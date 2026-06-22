@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\UserSiteAccessController;
@@ -22,4 +23,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('user-site-accesses', UserSiteAccessController::class)
         ->parameters(['user-site-accesses' => 'user_site_access']);
+
+    Route::apiResource('contacts', ContactController::class);
 });
