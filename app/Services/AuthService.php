@@ -22,6 +22,8 @@ class AuthService
             $data['device_name'] ?? 'partflow-auto-api'
         )->plainTextToken;
 
+        $user->load('role');
+
         return [
             'user' => $user,
             'token' => $token,
@@ -52,6 +54,8 @@ class AuthService
         $token = $user->createToken(
             $data['device_name'] ?? 'partflow-auto-api'
         )->plainTextToken;
+
+        $user->load('role');
 
         return [
             'user' => $user,

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -14,6 +15,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
+        'role_id',
         'name',
         'email',
         'phone',
@@ -36,6 +38,11 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
     }
 
     public function scopeActive(Builder $query): Builder
