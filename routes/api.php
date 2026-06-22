@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CarModelController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\FuelTypeController;
@@ -21,6 +22,7 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('brands', BrandController::class);
 
     Route::apiResource('fuel-types', FuelTypeController::class)
         ->parameters(['fuel-types' => 'fuel_type']);
