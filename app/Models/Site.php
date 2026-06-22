@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Site extends Model
@@ -31,6 +33,27 @@ class Site extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function userAccesses(): HasMany
+    {
+        return $this->hasMany(UserSiteAccess::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_site_access')
+            ->withPivot([
+                'access_level',
+                'can_view_stock',
+                'can_make_sales',
+                'can_receive_stock',
+                'can_transfer_stock',
+                'can_adjust_stock',
+                'is_default',
+                'is_active',
+            ])
+            ->withTimestamps();
     }
 
     public function scopeSearch(Builder $query, ?string $search): Builder

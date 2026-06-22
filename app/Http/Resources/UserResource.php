@@ -21,6 +21,9 @@ class UserResource extends JsonResource
             'last_login_at' => $this->last_login_at?->toDateTimeString(),
             'last_login_ip' => $this->last_login_ip,
             'created_at' => $this->created_at?->toDateTimeString(),
+            'site_access' => $this->whenLoaded('siteAccesses', function () {
+                return UserSiteAccessResource::collection($this->siteAccesses);
+            }),
         ];
     }
 }

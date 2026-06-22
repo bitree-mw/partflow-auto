@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -53,6 +55,27 @@ class User extends Authenticatable
     public function scopeInactive(Builder $query): Builder
     {
         return $query->where('is_active', false);
+    }
+
+    public function siteAccesses(): HasMany
+    {
+        return $this->hasMany(UserSiteAccess::class);
+    }
+
+    public function accessibleSites(): BelongsToMany
+    {
+        return $this->belongsToMany(Site::class, 'user_site_access')
+            ->withPivot([
+                'access_level',
+                'can_view_stock',
+                'can_make_sales',
+                'can_receive_stock',
+                'can_transfer_stock',
+                'can_adjust_stock',
+                'is_default',
+                'is_active',
+            ])
+            ->withTimestamps();
     }
 
     public function scopeSearch(Builder $query, ?string $search): Builder
