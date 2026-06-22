@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CarModelController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SiteController;
@@ -25,4 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->parameters(['user-site-accesses' => 'user_site_access']);
 
     Route::apiResource('contacts', ContactController::class);
+
+    Route::apiResource('car-models', CarModelController::class)
+        ->parameters(['car-models' => 'car_model']);
 });

@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class CarModel extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'make',
+        'make_code',
+        'model',
+        'model_code',
+        'year',
+        'country_of_origin',
+        'notes',
+        'is_active',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'year' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        return $query->when($search, function (Builder $query) use ($search) {
+            $query->where(function (Builder $query) use ($search) {
+                $query->where('make', 'like', "%{$search}%")
+                    ->orWhere('model', 'like', "%{$search}%")
+                    ->orWhere('make_code', 'like', "%{$search}%")
+                    ->orWhere('model_code', 'like', "%{$search}%")
+                    ->orWhere('country_of_origin', 'like', "%{$search}%");
+            });
+        });
+    }
+
+    public function scopeMake(Builder $query, ?string $make): Builder
+    {
+        return $query->when($make, function (Builder $query) use ($make) {
+            $query->where('make', 'like', "%{$make}%");
+        });
+    }
+
+    public function scopeYear(Builder $query, ?int $year): Builder
+    {
+        return $query->when($year, function (Builder $query) use ($year) {
+            $query->where('year', $year);
+        });
+    }
+}
