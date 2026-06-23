@@ -6,8 +6,10 @@ use App\Http\Controllers\Api\CarModelController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\FuelTypeController;
 use App\Http\Controllers\Api\PartTypeController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SiteController;
+use App\Http\Controllers\Api\SiteStockController;
 use App\Http\Controllers\Api\TaxProfileController;
 use App\Http\Controllers\Api\UserSiteAccessController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +25,10 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::apiResource('site-stocks', SiteStockController::class);
+
+    Route::apiResource('products', ProductController::class);
 
     Route::apiResource('tax-profiles', TaxProfileController::class)
         ->parameters(['tax-profiles' => 'tax_profile']);

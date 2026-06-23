@@ -86,6 +86,11 @@ class Product extends Model
             ->withTimestamps();
     }
 
+    public function siteStocks(): HasMany
+    {
+        return $this->hasMany(SiteStock::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

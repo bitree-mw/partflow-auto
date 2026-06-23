@@ -56,6 +56,11 @@ class Site extends Model
             ->withTimestamps();
     }
 
+    public function siteStocks(): HasMany
+    {
+        return $this->hasMany(SiteStock::class);
+    }
+
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function (Builder $query) use ($search) {
