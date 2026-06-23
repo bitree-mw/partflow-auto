@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\FuelTypeController;
 use App\Http\Controllers\Api\PartTypeController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SiteController;
+use App\Http\Controllers\Api\TaxProfileController;
 use App\Http\Controllers\Api\UserSiteAccessController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,10 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::apiResource('tax-profiles', TaxProfileController::class)
+        ->parameters(['tax-profiles' => 'tax_profile']);
+
     Route::apiResource('brands', BrandController::class);
 
     Route::apiResource('fuel-types', FuelTypeController::class)
