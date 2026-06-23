@@ -6,7 +6,12 @@
     <title>PartFlow Auto POS</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite([
+        'resources/css/app.css',
+        'resources/css/pos.css',
+        'resources/js/app.js',
+        'resources/js/pos.js',
+    ])
 </head>
 <body class="pos-shell">
     <main class="pos-workspace" aria-label="PartFlow Auto point of sale">
@@ -64,7 +69,7 @@
                     <article class="result-card selected">
                         <div>
                             <h2>Amoxicillin <span>500mg cap</span></h2>
-                            <p>Pack x21 · 60 across network</p>
+                            <p>Pack x21 &middot; 60 across network</p>
                         </div>
                         <div class="branch-pills">
                             <span class="home-branch">Area 23 12</span>
@@ -77,7 +82,7 @@
                     <article class="result-card">
                         <div>
                             <h2>Amoxiclav <span>625mg tab</span></h2>
-                            <p>Pack x14 · 27 across network</p>
+                            <p>Pack x14 &middot; 27 across network</p>
                         </div>
                         <div class="branch-pills">
                             <span class="home-branch">Area 23 3</span>
@@ -90,7 +95,7 @@
                     <article class="result-card">
                         <div>
                             <h2>Paracetamol <span>500mg tab</span></h2>
-                            <p>Pack x24 · 321 across network</p>
+                            <p>Pack x24 &middot; 321 across network</p>
                         </div>
                         <div class="branch-pills">
                             <span class="home-branch">Area 23 89</span>
@@ -103,7 +108,7 @@
                     <article class="result-card">
                         <div>
                             <h2>Ibuprofen <span>400mg tab</span></h2>
-                            <p>Pack x16 · 78 across network</p>
+                            <p>Pack x16 &middot; 78 across network</p>
                         </div>
                         <div class="branch-pills">
                             <span class="home-branch">Area 23 24</span>
@@ -125,7 +130,7 @@
                     <div>
                         <span class="panel-label">Selected part</span>
                         <h2>Amoxicillin 500mg cap</h2>
-                        <p>AMOX-500-CAP · Barcode 60012900421</p>
+                        <p>AMOX-500-CAP &middot; Barcode 60012900421</p>
                     </div>
                     <span class="stock-state">Available</span>
                 </div>

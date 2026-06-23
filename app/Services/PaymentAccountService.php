@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentAccountService
 {
+    /**
+     * Return API-facing account lists. Web list pages paginate in their controller.
+     */
     public function list(array $filters = []): Collection
     {
         return PaymentAccount::query()
@@ -20,6 +23,9 @@ class PaymentAccountService
             ->get();
     }
 
+    /**
+     * Create an account used by payment and expense workflows.
+     */
     public function create(array $data): PaymentAccount
     {
         return DB::transaction(function () use ($data) {
@@ -35,6 +41,9 @@ class PaymentAccountService
         });
     }
 
+    /**
+     * Update account metadata without changing linked payment history.
+     */
     public function update(PaymentAccount $paymentAccount, array $data): PaymentAccount
     {
         $paymentAccount->update($data);
@@ -42,6 +51,9 @@ class PaymentAccountService
         return $paymentAccount->refresh();
     }
 
+    /**
+     * Soft delete keeps historical payment links readable.
+     */
     public function delete(PaymentAccount $paymentAccount): void
     {
         $paymentAccount->delete();

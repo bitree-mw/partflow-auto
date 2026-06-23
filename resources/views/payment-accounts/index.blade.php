@@ -1,0 +1,96 @@
+@extends('layouts.app', [
+    'title' => $title,
+    'description' => $description,
+])
+
+@section('header_actions')
+    <a class="btn" href="{{ route('web.payment-accounts.create') }}">Create account</a>
+@endsection
+
+@section('content')
+    <section class="data-panel">
+        <div class="panel-toolbar">
+            <form class="filter-form" method="GET" action="{{ route('web.payment-accounts.index') }}">
+                <input
+                    name="search"
+                    type="search"
+                    value="{{ $filters['search'] ?? '' }}"
+                    placeholder="Search account..."
+                    aria-label="Search payment accounts"
+                >
+
+                <select name="account_type" aria-label="Filter by account type">
+                    <option value="">All types</option>
+                    @foreach ($accountTypes as $value => $label)
+                        <option value="{{ $value }}" @selected(($filters['account_type'] ?? '') === $value)>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="is_active" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="1" @selected(($filters['is_active'] ?? '') === '1')>Active</option>
+                    <option value="0" @selected(($filters['is_active'] ?? '') === '0')>Inactive</option>
+                </select>
+
+                <button class="btn-secondary" type="submit">Filter</button>
+                <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Reset</a>
+            </form>
+        </div>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($paymentAccounts as $account)
+                        <tr>
+                            <td>
+                                <strong>{{ $account->account_name }}</strong><br>
+                                <span>{{ $account->account_holder_name ?: 'No holder recorded' }}</span>
+                            </td>
+                            <td>{{ $accountTypes[$account->account_type] ?? $account->account_type }}</td>
+                            <td>
+                                {{ $account->bank_name ?: $account->mobile_number ?: $account->account_number ?: 'N/A' }}
+                            </td>
+                            <td>
+                                <span @class(['status-pill', 'inactive' => ! $account->is_active])>
+                                    {{ $account->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $account) }}">View</a>
+                                    <a class="btn-secondary" href="{{ route('web.payment-accounts.edit', $account) }}">Edit</a>
+                                    <form method="POST" action="{{ route('web.payment-accounts.destroy', $account) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn-danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">No payment accounts found.</div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-wrap">
+            {{ $paymentAccounts->links() }}
+        </div>
+    </section>
+@endsection
