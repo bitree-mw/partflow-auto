@@ -1,0 +1,106 @@
+@layer components {
+    /* Catalogue pages keep the required Car Models -> Part Types -> Parts workflow visible. */
+    .catalog-workflow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .workflow-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 6px 12px;
+        min-height: 112px;
+        padding: 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 18px;
+        color: inherit;
+        background: #fff;
+        box-shadow: 0 14px 36px rgb(17 24 39 / 6%);
+        text-decoration: none;
+    }
+
+    .workflow-step span {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        color: #374151;
+        background: #f9fafb;
+        font-size: 13px;
+        font-weight: 900;
+        grid-row: span 2;
+    }
+
+    .workflow-step strong {
+        color: #111827;
+        font-size: 15px;
+    }
+
+    .workflow-step p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .workflow-step.active {
+        border-color: #111827;
+        background: #f3f4f6;
+        box-shadow: 0 0 0 3px rgb(17 24 39 / 10%);
+    }
+
+    .workflow-step.active span,
+    .workflow-step.complete span {
+        border-color: #111827;
+        color: #fff;
+        background: #111827;
+    }
+
+    .catalog-form {
+        display: grid;
+        gap: 20px;
+        border-radius: 18px;
+    }
+
+    .form-section {
+        display: grid;
+        gap: 14px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .form-section:last-of-type {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .form-control:is(textarea) {
+        min-height: 104px;
+        padding-top: 12px;
+        resize: vertical;
+    }
+
+    .catalog-reference-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .catalog-reference-grid label {
+        display: grid;
+        gap: 8px;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+        .catalog-workflow,
+        .catalog-reference-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+}

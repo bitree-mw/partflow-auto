@@ -14,6 +14,28 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertRedirect(route('web.dashboard'));
+    }
+
+    public function test_back_office_pages_return_successful_responses(): void
+    {
+        $pages = [
+            '/pos',
+            '/back-office/dashboard',
+            '/back-office/sales',
+            '/back-office/reports',
+            '/back-office/alerts',
+            '/back-office/settings',
+            '/back-office/catalog/car-models',
+            '/back-office/catalog/car-models/create',
+            '/back-office/catalog/part-types',
+            '/back-office/catalog/part-types/create',
+            '/back-office/catalog/products',
+            '/back-office/catalog/products/create',
+        ];
+
+        foreach ($pages as $page) {
+            $this->get($page)->assertOk();
+        }
     }
 }

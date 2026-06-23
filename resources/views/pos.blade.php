@@ -1,226 +1,212 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PartFlow Auto POS</title>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet">
-    @vite([
-        'resources/css/app.css',
-        'resources/css/pos.css',
-        'resources/js/app.js',
-        'resources/js/pos.js',
-    ])
-</head>
-<body class="pos-shell">
-    <main class="pos-workspace" aria-label="PartFlow Auto point of sale">
-        <section class="pos-topbar" aria-label="POS status">
+@extends('layouts.app', [
+    'title' => 'Point of sale',
+    'description' => 'Choose parts, confirm branch stock, collect payment, and issue a receipt from one screen.',
+    'kicker' => 'Live service',
+    'bodyClass' => 'pos-page',
+])
+
+@push('styles')
+    @vite('resources/css/pos.css')
+@endpush
+
+@push('scripts')
+    @vite('resources/js/pos.js')
+@endpush
+
+@section('header_actions')
+    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+@endsection
+
+@section('content')
+    <datalist id="pos-vehicle-options">
+        @foreach ($vehicleFilters as $filter)
+            <option value="{{ $filter }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="pos-part-type-options">
+        @foreach ($partTypeFilters as $filter)
+            <option value="{{ $filter }}"></option>
+        @endforeach
+    </datalist>
+
+    <section class="pos-hero">
+        <div>
+            <span class="eyebrow">Fast parts entry</span>
+            <h2>Find, fit, sell.</h2>
+            <p>Search by part, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
+        </div>
+
+        <article class="activity-session">
+            <span></span>
             <div>
-                <span class="pos-kicker">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M20 7.5 12.5 15 9 11.5 4 16.5"></path>
-                        <path d="M15 7.5h5v5"></path>
-                    </svg>
-                    POS cross-branch
-                </span>
-                <h1>PartFlow Auto</h1>
+                <strong>{{ $currentBranch }} activity</strong>
+                <small>{{ $cashier }} - not synced</small>
             </div>
-            <div class="pos-till">
-                <span>Area 23 Till</span>
-                <strong>Online</strong>
-            </div>
-        </section>
+            <button type="button">Start activity</button>
+        </article>
+    </section>
 
-        <section class="pos-grid">
-            <aside class="pos-panel pos-search-panel" aria-label="Product search">
-                <header class="panel-header">
-                    <div>
-                        <span class="panel-label">Search shelf</span>
-                        <strong>4 branches indexed</strong>
-                    </div>
-                    <button class="icon-button" type="button" aria-label="Reset search">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M3 12a9 9 0 1 0 3-6.7"></path>
-                            <path d="M3 4v6h6"></path>
-                        </svg>
-                    </button>
-                </header>
-
-                <label class="search-field" for="part-search">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <path d="m20 20-3.5-3.5"></path>
-                    </svg>
-                    <input id="part-search" type="search" value="amox" autocomplete="off" aria-label="Search products">
-                    <span>41ms</span>
+    <section class="pos-board" aria-label="Point of sale workspace">
+        <section class="product-browser" aria-label="Parts browser">
+            <div class="pos-toolbar">
+                <label class="pos-search-field" for="part-search">
+                    <span aria-hidden="true"></span>
+                    <input id="part-search" type="search" value="brake pads" autocomplete="off" aria-label="Search by part, code, barcode, vehicle, or OEM">
                 </label>
 
-                <div class="quick-row" aria-label="Quick search chips">
-                    <span>Try</span>
-                    <button type="button">amox</button>
-                    <button type="button">parac</button>
-                    <button type="button">ibu</button>
-                    <button type="button">ceti</button>
-                    <a href="#" aria-label="Clear search">Clear</a>
+                <input class="searchable-input" data-pos-filter list="pos-vehicle-options" value="All vehicles" aria-label="Filter products by vehicle">
+                <input class="searchable-input" data-pos-filter list="pos-part-type-options" value="All part types" aria-label="Filter products by part type">
+            </div>
+
+            <div class="quick-row" aria-label="Quick search chips">
+                <span>Try</span>
+                @foreach ($quickSearches as $search)
+                    <button type="button">{{ $search }}</button>
+                @endforeach
+                <a href="#" data-pos-clear>Clear</a>
+            </div>
+
+            <div class="product-card-grid" aria-label="Matching parts">
+                @foreach ($products as $index => $product)
+                    <button class="part-card {{ $index === 0 ? 'selected' : '' }}" type="button" data-product-index="{{ $index }}">
+                        <span class="part-type">{{ $product['part_type'] }}</span>
+                        <span @class(['part-stock-pill', 'low' => $product['branch_stock'][0]['status'] === 'low', 'empty' => $product['branch_stock'][0]['available'] === 0])>
+                            {{ $product['branch_stock'][0]['available'] > 0 ? 'Direct stock available' : 'Needs transfer' }}
+                        </span>
+
+                        <strong>{{ $product['product_name'] }}</strong>
+                        <em>{{ $product['vehicle'] }}</em>
+
+                        <span class="part-price">{{ $product['selling_price_display'] }}</span>
+                        <span class="part-available">{{ $product['branch_stock'][0]['available'] }} available</span>
+                    </button>
+                @endforeach
+            </div>
+
+            <footer class="product-browser-footer">
+                <span data-result-count>{{ count($products) }} matches</span>
+                <span>Search includes OEM, barcode, and compatible car models</span>
+            </footer>
+        </section>
+
+        <aside class="order-panel" aria-label="Current order">
+            <header class="order-header">
+                <div>
+                    <span class="eyebrow">Current order</span>
+                    <h2>Cart <small data-cart-count>{{ count($cartLines) }}</small></h2>
                 </div>
+                <a href="#" data-pos-clear-cart>Clear</a>
+            </header>
 
-                <div class="result-list" aria-label="Matching products">
-                    <article class="result-card selected">
-                        <div>
-                            <h2>Amoxicillin <span>500mg cap</span></h2>
-                            <p>Pack x21 &middot; 60 across network</p>
-                        </div>
-                        <div class="branch-pills">
-                            <span class="home-branch">Area 23 12</span>
-                            <span>Old Town 40</span>
-                            <span>City Centre 8</span>
-                            <span class="muted">Mzuzu 0</span>
-                        </div>
-                    </article>
+            <section class="selected-part-card" aria-label="Selected part details">
+                <span class="eyebrow">Selected part</span>
+                <h3 data-selected-name>{{ $selectedProduct['product_name'] }}</h3>
+                <p data-selected-description>{{ $selectedProduct['pos_description'] }}</p>
 
-                    <article class="result-card">
-                        <div>
-                            <h2>Amoxiclav <span>625mg tab</span></h2>
-                            <p>Pack x14 &middot; 27 across network</p>
-                        </div>
-                        <div class="branch-pills">
-                            <span class="home-branch">Area 23 3</span>
-                            <span>Old Town 18</span>
-                            <span class="muted">City Centre 0</span>
-                            <span>Mzuzu 6</span>
-                        </div>
-                    </article>
-
-                    <article class="result-card">
-                        <div>
-                            <h2>Paracetamol <span>500mg tab</span></h2>
-                            <p>Pack x24 &middot; 321 across network</p>
-                        </div>
-                        <div class="branch-pills">
-                            <span class="home-branch">Area 23 89</span>
-                            <span>Old Town 120</span>
-                            <span>City Centre 67</span>
-                            <span>Mzuzu 45</span>
-                        </div>
-                    </article>
-
-                    <article class="result-card">
-                        <div>
-                            <h2>Ibuprofen <span>400mg tab</span></h2>
-                            <p>Pack x16 &middot; 78 across network</p>
-                        </div>
-                        <div class="branch-pills">
-                            <span class="home-branch">Area 23 24</span>
-                            <span>Old Town 38</span>
-                            <span>City Centre 12</span>
-                            <span>Mzuzu 4</span>
-                        </div>
-                    </article>
-                </div>
-
-                <footer class="panel-footer">
-                    <span>8 matches</span>
-                    <span>Indexed at the till</span>
-                </footer>
-            </aside>
-
-            <section class="pos-panel pos-detail-panel" aria-label="Selected item details">
-                <div class="part-header">
+                <dl>
                     <div>
-                        <span class="panel-label">Selected part</span>
-                        <h2>Amoxicillin 500mg cap</h2>
-                        <p>AMOX-500-CAP &middot; Barcode 60012900421</p>
+                        <dt>Code</dt>
+                        <dd data-selected-code>{{ $selectedProduct['product_code'] }}</dd>
                     </div>
-                    <span class="stock-state">Available</span>
+                    <div>
+                        <dt>Vehicle</dt>
+                        <dd data-selected-vehicle>{{ $selectedProduct['vehicle'] }}</dd>
+                    </div>
+                    <div>
+                        <dt>OEM</dt>
+                        <dd data-selected-oem>{{ $selectedProduct['oem_number'] }}</dd>
+                    </div>
+                    <div>
+                        <dt>Network stock</dt>
+                        <dd><span data-total-available>{{ $selectedProduct['total_available'] }}</span></dd>
+                    </div>
+                </dl>
+
+                <div class="branch-mini-list" data-branch-stock>
+                    @foreach ($selectedProduct['branch_stock'] as $branch)
+                        <div @class([
+                            'current' => $branch['branch'] === $currentBranch,
+                            'low' => $branch['status'] === 'low',
+                            'empty' => $branch['available'] === 0,
+                        ])>
+                            <span>{{ $branch['branch'] }}</span>
+                            <strong>{{ $branch['available'] }}</strong>
+                        </div>
+                    @endforeach
                 </div>
 
-                <div class="availability-strip" aria-label="Branch stock summary">
-                    <div class="branch-tile primary">
-                        <span>Current branch</span>
-                        <strong>12</strong>
-                        <small>Area 23</small>
-                    </div>
-                    <div class="branch-tile">
-                        <span>Best branch</span>
-                        <strong>40</strong>
-                        <small>Old Town</small>
-                    </div>
-                    <div class="branch-tile warning">
-                        <span>Reserved</span>
-                        <strong>3</strong>
-                        <small>Network</small>
-                    </div>
-                    <div class="branch-tile">
-                        <span>Total</span>
-                        <strong>60</strong>
-                        <small>All branches</small>
-                    </div>
-                </div>
+                <p data-selected-reference>
+                    Barcode {{ $selectedProduct['barcode'] }}. {{ $selectedProduct['tax_profile'] }}. Origin {{ $selectedProduct['part_country_of_origin'] }}.
+                </p>
 
-                <div class="cross-branch-card">
-                    <header>
-                        <span class="panel-label">Cross-branch availability</span>
-                        <button type="button">Reserve transfer</button>
-                    </header>
-                    <div class="branch-table" role="table" aria-label="Branch availability">
-                        <div class="branch-row head" role="row">
-                            <span>Branch</span>
-                            <span>On hand</span>
-                            <span>Reserved</span>
-                            <span>Available</span>
-                        </div>
-                        <div class="branch-row current" role="row">
-                            <span>Area 23</span>
-                            <span>15</span>
-                            <span>3</span>
-                            <strong>12</strong>
-                        </div>
-                        <div class="branch-row" role="row">
-                            <span>Old Town</span>
-                            <span>42</span>
-                            <span>2</span>
-                            <strong>40</strong>
-                        </div>
-                        <div class="branch-row" role="row">
-                            <span>City Centre</span>
-                            <span>8</span>
-                            <span>0</span>
-                            <strong>8</strong>
-                        </div>
-                        <div class="branch-row depleted" role="row">
-                            <span>Mzuzu</span>
-                            <span>0</span>
-                            <span>0</span>
-                            <strong>0</strong>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sale-card">
-                    <header>
-                        <span class="panel-label">Current sale</span>
-                        <strong>Invoice #POS-1042</strong>
-                    </header>
-                    <div class="sale-line">
-                        <span>Amoxicillin 500mg cap</span>
-                        <em>2 x MWK 8,500</em>
-                    </div>
-                    <div class="sale-line muted">
-                        <span>VAT inclusive</span>
-                        <em>MWK 2,532</em>
-                    </div>
-                    <div class="sale-total">
-                        <span>Total</span>
-                        <strong>MWK 17,000</strong>
-                    </div>
-                    <div class="action-row">
-                        <button class="ghost-button" type="button">Hold</button>
-                        <button class="pay-button" type="button">Pay now</button>
-                    </div>
+                <div class="add-row">
+                    <input type="number" min="1" value="1" data-pos-quantity aria-label="Quantity">
+                    <input type="text" value="{{ $selectedProduct['selling_price_display'] }}" data-pos-unit-price readonly aria-label="Unit price">
+                    <button type="button" data-add-to-cart>Add</button>
                 </div>
             </section>
-        </section>
-    </main>
-</body>
-</html>
+
+            <div class="cart-list" aria-label="Sale items" data-cart-list>
+                @foreach ($cartLines as $line)
+                    <article class="cart-line">
+                        <div>
+                            <strong>{{ $line['name'] }}</strong>
+                            <span>{{ $line['code'] }} x {{ $line['quantity'] }} at {{ $line['unit_price_display'] }}</span>
+                        </div>
+                        <em>{{ $line['line_total_display'] }}</em>
+                    </article>
+                @endforeach
+            </div>
+
+            <form class="checkout-form" aria-label="Checkout details">
+                <label>
+                    Customer
+                    <input type="text" value="Walk-in customer" autocomplete="off">
+                </label>
+
+                <div class="checkout-form-grid">
+                    <label>
+                        Payment method
+                        <select>
+                            @foreach ($paymentMethods as $paymentMethod)
+                                <option>{{ $paymentMethod }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label>
+                        Amount received
+                        <input type="text" value="{{ $saleTotals['total'] }}">
+                    </label>
+                </div>
+            </form>
+
+            <section class="totals-card" aria-label="Sale totals">
+                <div>
+                    <span>Subtotal</span>
+                    <strong data-subtotal>{{ $saleTotals['subtotal'] }}</strong>
+                </div>
+                <div>
+                    <span>Discount</span>
+                    <strong>{{ $saleTotals['discount'] }}</strong>
+                </div>
+                <div>
+                    <span>VAT</span>
+                    <strong>{{ $saleTotals['tax'] }}</strong>
+                </div>
+                <div class="total-due">
+                    <span>Total due</span>
+                    <strong data-total-due>{{ $saleTotals['total'] }}</strong>
+                </div>
+            </section>
+
+            <div class="checkout-actions">
+                <button class="ghost-button" type="button">Hold</button>
+                <button class="ghost-button" type="button">Discount</button>
+                <button class="pay-button" type="button">Complete sale</button>
+            </div>
+        </aside>
+    </section>
+
+    <script id="pos-products-data" type="application/json">@json($products)</script>
+    <script id="pos-current-branch" type="application/json">@json($currentBranch)</script>
+@endsection

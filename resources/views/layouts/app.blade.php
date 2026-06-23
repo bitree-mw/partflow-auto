@@ -11,8 +11,9 @@
         'resources/css/back-office.css',
         'resources/js/app.js',
     ])
+    @stack('styles')
 </head>
-<body class="app-shell">
+<body class="{{ $bodyClass ?? 'app-shell' }}">
     <div class="app-frame">
         @include('partials.sidebar')
 
@@ -20,6 +21,7 @@
             @include('partials.header', [
                 'title' => $title ?? 'Dashboard',
                 'description' => $description ?? null,
+                'kicker' => $kicker ?? 'Tuesday operations',
             ])
 
             <section class="content-shell">
@@ -28,5 +30,6 @@
             </section>
         </div>
     </div>
+    @stack('scripts')
 </body>
 </html>
