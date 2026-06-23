@@ -25,6 +25,28 @@ class ApiResponse
         return response()->json($response, $statusCode);
     }
 
+    public static function created(
+        mixed $data = null,
+        string $message = 'Resource created successfully',
+        array $meta = []
+    ): JsonResponse {
+        return self::success($data, $message, 201, $meta);
+    }
+
+    public static function updated(
+        mixed $data = null,
+        string $message = 'Resource updated successfully',
+        array $meta = []
+    ): JsonResponse {
+        return self::success($data, $message, 200, $meta);
+    }
+
+    public static function deleted(
+        string $message = 'Resource deleted successfully'
+    ): JsonResponse {
+        return self::success(null, $message);
+    }
+
     public static function error(
         string $message = 'Request failed',
         int $statusCode = 400,

@@ -61,6 +61,26 @@ class Site extends Model
         return $this->hasMany(SiteStock::class);
     }
 
+    public function sourceInventoryDocuments(): HasMany
+    {
+        return $this->hasMany(InventoryDocument::class, 'source_site_id');
+    }
+
+    public function destinationInventoryDocuments(): HasMany
+    {
+        return $this->hasMany(InventoryDocument::class, 'destination_site_id');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function (Builder $query) use ($search) {

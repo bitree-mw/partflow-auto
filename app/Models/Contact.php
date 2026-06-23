@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Contact extends Model
@@ -55,6 +56,11 @@ class Contact extends Model
                     ->orWhere('tax_number', 'like', "%{$search}%");
             });
         });
+    }
+
+    public function inventoryDocuments(): HasMany
+    {
+        return $this->hasMany(InventoryDocument::class);
     }
 
     public function isCustomer(): bool

@@ -62,6 +62,31 @@ class User extends Authenticatable
         return $this->hasMany(UserSiteAccess::class);
     }
 
+    public function createdInventoryDocuments(): HasMany
+    {
+        return $this->hasMany(InventoryDocument::class, 'created_by');
+    }
+
+    public function approvedInventoryDocuments(): HasMany
+    {
+        return $this->hasMany(InventoryDocument::class, 'approved_by');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'created_by');
+    }
+
+    public function paymentsReceived(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'received_by');
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class, 'created_by');
+    }
+
     public function accessibleSites(): BelongsToMany
     {
         return $this->belongsToMany(Site::class, 'user_site_access')

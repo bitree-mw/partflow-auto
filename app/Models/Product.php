@@ -92,6 +92,16 @@ class Product extends Model
         return $this->hasMany(SiteStock::class);
     }
 
+    public function inventoryDocumentItems(): HasMany
+    {
+        return $this->hasMany(InventoryDocumentItem::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
