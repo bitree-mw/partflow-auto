@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CarModel extends Model
@@ -28,6 +30,18 @@ class CarModel extends Model
             'year' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function compatibleProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'product_compatibilities')
+            ->withPivot('notes')
+            ->withTimestamps();
     }
 
     public function scopeActive(Builder $query): Builder
