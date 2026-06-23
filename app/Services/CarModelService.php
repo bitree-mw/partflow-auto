@@ -14,6 +14,7 @@ class CarModelService
             ->search($filters['search'] ?? null)
             ->make($filters['make'] ?? null)
             ->year(isset($filters['year']) ? (int) $filters['year'] : null)
+            ->engineSize($filters['engine_size'] ?? null)
             ->when(isset($filters['country_of_origin']), function ($query) use ($filters) {
                 $query->where('country_of_origin', $filters['country_of_origin']);
             })
@@ -34,6 +35,8 @@ class CarModelService
             'model' => $data['model'],
             'model_code' => $this->generateModelCode($data['model']),
             'year' => $data['year'],
+            'engine_size' => $data['engine_size'] ?? null,
+            'variant_name' => $data['variant_name'] ?? null,
             'country_of_origin' => $data['country_of_origin'] ?? null,
             'notes' => $data['notes'] ?? null,
             'is_active' => $data['is_active'] ?? true,

@@ -29,6 +29,18 @@ class StoreCarModelRequest extends ApiRequest
                 'max:'.((int) date('Y') + 1),
             ],
 
+            'engine_size' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+
+            'variant_name' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
             'country_of_origin' => [
                 'nullable',
                 'string',
@@ -54,6 +66,8 @@ class StoreCarModelRequest extends ApiRequest
                 ->where('make', $this->input('make'))
                 ->where('model', $this->input('model'))
                 ->where('year', $this->input('year'))
+                ->where('engine_size', $this->input('engine_size'))
+                ->where('variant_name', $this->input('variant_name'))
                 ->where('country_of_origin', $this->input('country_of_origin'))
                 ->exists();
 

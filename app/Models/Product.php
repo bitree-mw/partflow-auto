@@ -25,6 +25,7 @@ class Product extends Model
         'part_country_of_origin',
         'main_image_path',
         'description',
+        'pos_description',
         'default_purchase_price',
         'default_selling_price',
         'default_low_stock_level',
@@ -104,6 +105,7 @@ class Product extends Model
                     ->orWhere('product_name', 'like', "%{$search}%")
                     ->orWhere('part_country_of_origin', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('pos_description', 'like', "%{$search}%")
                     ->orWhereHas('references', function (Builder $query) use ($search) {
                         $query->where('reference_value', 'like', "%{$search}%");
                     });

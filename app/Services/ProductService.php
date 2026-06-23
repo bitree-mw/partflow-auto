@@ -77,6 +77,7 @@ class ProductService
                 'part_country_of_origin' => $data['part_country_of_origin'] ?? null,
                 'main_image_path' => $data['main_image_path'] ?? null,
                 'description' => $data['description'] ?? null,
+                'pos_description' => $data['pos_description'] ?? null,
                 'default_purchase_price' => $data['default_purchase_price'] ?? 0,
                 'default_selling_price' => $data['default_selling_price'] ?? 0,
                 'default_low_stock_level' => $data['default_low_stock_level'] ?? 0,
@@ -169,9 +170,10 @@ class ProductService
         $makeCode = $this->cleanCode($carModel->make_code);
         $modelCode = $this->cleanCode($carModel->model_code);
         $yearCode = substr((string) $carModel->year, -2);
+        $engineCode = $this->generateEngineCode($carModel->engine_size);
         $partCode = $this->cleanCode($partType->code);
 
-        $baseCode = $makeCode.$modelCode.$yearCode.$partCode;
+        $baseCode = $makeCode.$modelCode.$yearCode.$engineCode.$partCode;
 
         $fuelSuffix = $fuelType?->code
             ? '-'.$this->cleanCode($fuelType->code)
@@ -191,7 +193,18 @@ class ProductService
             $fuelName = FuelType::find($data['fuel_type_id'])?->name;
         }
 
-        $name = "{$carModel->make} {$carModel->model} {$carModel->year} {$partType->name}";
+        $nameParts = [
+            $carModel->make,
+            $carModel->model,
+            $carModel->year,
+            $carModel->engine_size,
+            $carModel->variant_name,
+            $partType->name,
+        ];
+
+        $name = collect($nameParts)
+            ->filter()
+            ->join(' ');
 
         if ($fuelName && strtolower($fuelName) !== 'universal') {
             $name .= " ({$fuelName})";
@@ -244,6 +257,18 @@ class ProductService
                     'notes' => $compatibility['notes'] ?? null,
                 ]);
             });
+    }
+
+    private function generateEngineCode(?string $engineSize): string
+    {
+        if (empty($engineSize)) {
+            return '';
+        }
+
+        return Str::of($engineSize)
+            ->upper()
+            ->replaceMatches('/[^0-9]/', '')
+            ->toString();
     }
 
     private function cleanCode(?string $value): string

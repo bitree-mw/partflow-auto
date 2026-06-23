@@ -44,6 +44,7 @@ class ProductResource extends JsonResource
             'part_country_of_origin' => $this->part_country_of_origin,
             'main_image_path' => $this->main_image_path,
             'description' => $this->description,
+            'pos_description' => $this->pos_description,
 
             'default_purchase_price' => (float) $this->default_purchase_price,
             'default_selling_price' => (float) $this->default_selling_price,
@@ -59,6 +60,23 @@ class ProductResource extends JsonResource
             'compatibilities' => ProductCompatibilityResource::collection(
                 $this->whenLoaded('compatibilities')
             ),
+
+            'compatible_cars' => $this->whenLoaded('compatibilities', function () {
+                return $this->compatibilities
+                    ->map(function ($compatibility) {
+                        if (! $compatibility->relationLoaded('carModel') || ! $compatibility->carModel) {
+                            return null;
+                        }
+
+                        return $compatibility->carModel->make.' '
+                            .$compatibility->carModel->model.' '
+                            .$compatibility->carModel->year
+                            .($compatibility->carModel->engine_size ? ' '.$compatibility->carModel->engine_size : '')
+                            .($compatibility->carModel->variant_name ? ' '.$compatibility->carModel->variant_name : '');
+                    })
+                    ->filter()
+                    ->values();
+            }),
 
             'is_active' => $this->is_active,
 

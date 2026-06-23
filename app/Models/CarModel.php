@@ -19,6 +19,8 @@ class CarModel extends Model
         'model',
         'model_code',
         'year',
+        'engine_size',
+        'variant_name',
         'country_of_origin',
         'notes',
         'is_active',
@@ -49,6 +51,13 @@ class CarModel extends Model
         return $query->where('is_active', true);
     }
 
+    public function scopeEngineSize(Builder $query, ?string $engineSize): Builder
+    {
+        return $query->when($engineSize, function (Builder $query) use ($engineSize) {
+            $query->where('engine_size', 'like', "%{$engineSize}%");
+        });
+    }
+
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function (Builder $query) use ($search) {
@@ -57,7 +66,9 @@ class CarModel extends Model
                     ->orWhere('model', 'like', "%{$search}%")
                     ->orWhere('make_code', 'like', "%{$search}%")
                     ->orWhere('model_code', 'like', "%{$search}%")
-                    ->orWhere('country_of_origin', 'like', "%{$search}%");
+                    ->orWhere('country_of_origin', 'like', "%{$search}%")
+                    ->orWhere('engine_size', 'like', "%{$search}%")
+                    ->orWhere('variant_name', 'like', "%{$search}%");
             });
         });
     }

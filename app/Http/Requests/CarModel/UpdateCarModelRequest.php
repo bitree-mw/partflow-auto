@@ -32,6 +32,18 @@ class UpdateCarModelRequest extends ApiRequest
                 'max:'.((int) date('Y') + 1),
             ],
 
+            'engine_size' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+
+            'variant_name' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
             'country_of_origin' => [
                 'nullable',
                 'string',
@@ -62,6 +74,8 @@ class UpdateCarModelRequest extends ApiRequest
             $make = $this->input('make', $carModel->make);
             $model = $this->input('model', $carModel->model);
             $year = $this->input('year', $carModel->year);
+            $engineSize = $this->input('engine_size', $carModel->engine_size);
+            $variantName = $this->input('variant_name', $carModel->variant_name);
             $country = $this->input('country_of_origin', $carModel->country_of_origin);
 
             $exists = CarModel::query()
@@ -69,6 +83,8 @@ class UpdateCarModelRequest extends ApiRequest
                 ->where('make', $make)
                 ->where('model', $model)
                 ->where('year', $year)
+                ->where('engine_size', $engineSize)
+                ->where('variant_name', $variantName)
                 ->where('country_of_origin', $country)
                 ->exists();
 
