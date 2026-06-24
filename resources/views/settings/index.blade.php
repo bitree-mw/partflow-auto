@@ -11,10 +11,6 @@
     @vite('resources/js/settings.js')
 @endpush
 
-@section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Payment accounts</a>
-@endsection
-
 @section('content')
     <x-country-datalist id="settings-countries" :countries="$countries" />
 
@@ -33,14 +29,15 @@
             <option value="{{ $costingMethod }}"></option>
         @endforeach
     </datalist>
-    <datalist id="tax-profile-options">
-        @foreach ($taxProfiles as $taxProfile)
-            <option value="{{ $taxProfile }}"></option>
-        @endforeach
-    </datalist>
     <datalist id="branch-options">
+        <option value="All sites"></option>
         @foreach ($sites as $site)
             <option value="{{ $site['name'] }}"></option>
+        @endforeach
+    </datalist>
+    <datalist id="role-options">
+        @foreach ($roles as $role)
+            <option value="{{ $role }}"></option>
         @endforeach
     </datalist>
 
@@ -49,15 +46,23 @@
             <span class="eyebrow">Setup path</span>
             <button type="button" class="active" data-settings-tab="company-profile">
                 <strong>Company profile</strong>
-                <small>Identity, tax, country, currency</small>
+                <small>Identity, country, currency</small>
             </button>
             <button type="button" data-settings-tab="operating-defaults">
                 <strong>Operating defaults</strong>
-                <small>Branch, tax profile, costing, stock policy</small>
+                <small>Branch, costing, stock policy</small>
             </button>
             <button type="button" data-settings-tab="company-sites">
                 <strong>Company sites</strong>
                 <small>Shops, branches, and warehouses</small>
+            </button>
+            <button type="button" data-settings-tab="document-numbering">
+                <strong>Document numbering</strong>
+                <small>Sales, purchases, transfers, stock counts</small>
+            </button>
+            <button type="button" data-settings-tab="user-management">
+                <strong>User management</strong>
+                <small>Admins, roles, site access, and status</small>
             </button>
             <button type="button" data-settings-tab="module-coverage">
                 <strong>Module coverage</strong>
@@ -92,11 +97,6 @@
                     </div>
 
                     <div class="form-field">
-                        <label for="tax_number">Tax number</label>
-                        <input class="form-control" id="tax_number" name="tax_number" value="{{ $settings['tax_number'] }}">
-                    </div>
-
-                    <div class="form-field">
                         <label for="base_country">Base country</label>
                         <input class="form-control searchable-input" id="base_country" name="base_country" list="settings-countries" value="{{ $settings['base_country'] }}">
                     </div>
@@ -111,19 +111,14 @@
             <section class="settings-panel" id="operating-defaults" data-settings-panel="operating-defaults" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Operating defaults</span>
-                    <h2>Stock, tax, and branch rules</h2>
-                    <p>Control the defaults used when products, stock documents, and POS sales are created.</p>
+                    <h2>Stock and branch rules</h2>
+                    <p>Control the defaults used when products, purchases, stock documents, and POS sales are created.</p>
                 </header>
 
                 <div class="form-grid settings-section">
                     <div class="form-field">
                         <label for="default_branch">Default branch</label>
                         <input class="form-control searchable-input" id="default_branch" name="default_branch" list="branch-options" value="{{ $settings['default_branch'] }}">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="default_tax_profile">Default tax profile</label>
-                        <input class="form-control searchable-input" id="default_tax_profile" name="default_tax_profile" list="tax-profile-options" value="{{ $settings['default_tax_profile'] }}">
                     </div>
 
                     <div class="form-field">
@@ -184,6 +179,91 @@
                 </div>
             </section>
 
+            <section class="settings-panel" id="document-numbering" data-settings-panel="document-numbering" hidden>
+                <header class="settings-header">
+                    <span class="eyebrow">Document numbering</span>
+                    <h2>Operational document series</h2>
+                    <p>Prepare the numbering prefixes used by POS sales, purchases, transfers, and stock documents.</p>
+                </header>
+
+                <div class="document-series-list">
+                    @foreach ($documentSeries as $series)
+                        <article>
+                            <div>
+                                <strong>{{ $series['document'] }}</strong>
+                                <span>Prefix {{ $series['prefix'] }}</span>
+                            </div>
+                            <em>Next {{ $series['next_number'] }}</em>
+                        </article>
+                    @endforeach
+                </div>
+
+                <div class="admin-setup-card account-create-card">
+                    <span class="eyebrow">New series</span>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="series_name">Document name</label>
+                            <input class="form-control" id="series_name" name="series_name" placeholder="Supplier returns">
+                        </div>
+                        <div class="form-field">
+                            <label for="series_prefix">Prefix</label>
+                            <input class="form-control" id="series_prefix" name="series_prefix" placeholder="SRN">
+                        </div>
+                        <div class="form-field full">
+                            <label for="series_next_number">Next number</label>
+                            <input class="form-control" id="series_next_number" name="series_next_number" placeholder="1001">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-panel" id="user-management" data-settings-panel="user-management" hidden>
+                <header class="settings-header">
+                    <span class="eyebrow">User management</span>
+                    <h2>People, access, and branch scope</h2>
+                    <p>Add team members, assign roles, and control which site they operate from before API permissions are connected.</p>
+                </header>
+
+                <div class="user-management-grid">
+                    <section class="user-list" aria-label="Current users">
+                        @foreach ($users as $user)
+                            <article>
+                                <div>
+                                    <strong>{{ $user['name'] }}</strong>
+                                    <span>{{ $user['email'] }}</span>
+                                </div>
+                                <div>
+                                    <span>{{ $user['role'] }}</span>
+                                    <em>{{ $user['site'] }} - {{ $user['status'] }}</em>
+                                </div>
+                            </article>
+                        @endforeach
+                    </section>
+
+                    <section class="user-create-card" aria-label="Invite user">
+                        <span class="eyebrow">New user</span>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="user_name">Full name</label>
+                                <input class="form-control" id="user_name" name="user_name" placeholder="Branch Manager">
+                            </div>
+                            <div class="form-field">
+                                <label for="user_email">Email</label>
+                                <input class="form-control" id="user_email" name="user_email" type="email" placeholder="manager@partflow.test">
+                            </div>
+                            <div class="form-field">
+                                <label for="user_role">Role</label>
+                                <input class="form-control searchable-input" id="user_role" name="user_role" list="role-options" placeholder="Search role">
+                            </div>
+                            <div class="form-field">
+                                <label for="user_site">Site access</label>
+                                <input class="form-control searchable-input" id="user_site" name="user_site" list="branch-options" placeholder="Search site">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
             <section class="settings-panel" id="module-coverage" data-settings-panel="module-coverage" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Coverage</span>
@@ -207,7 +287,7 @@
 
             <div class="settings-save-bar">
                 <button class="btn-secondary" type="button" data-settings-prev>Previous</button>
-                <span data-settings-progress>Step 1 of 4</span>
+                <span data-settings-progress>Step 1 of 6</span>
                 <button class="btn-secondary" type="button" data-settings-next>Next</button>
                 <button class="btn" type="submit">Save settings</button>
             </div>

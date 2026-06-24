@@ -17,7 +17,7 @@ class PosController extends Controller
             'currentBranch' => 'Area 23',
             'cashier' => 'Cashier Desk 01',
             'saleNumber' => 'POS-1042',
-            'quickSearches' => ['brake pads', 'oil filter', 'demio', 'shock'],
+            'quickSearches' => ['oil filter', 'demio', 'shock absorber', 'fuel pump'],
             'vehicleFilters' => [
                 'All vehicles',
                 'Toyota Corolla 1.6L Sedan (2014)',
@@ -29,22 +29,8 @@ class PosController extends Controller
             'products' => $products,
             'selectedProduct' => $selectedProduct,
             'cartLines' => [
-                [
-                    'name' => 'Toyota Corolla Brake Pads Front',
-                    'code' => 'TYCO14BP-I',
-                    'quantity' => 1,
-                    'unit_price' => 32500,
-                    'unit_price_display' => $this->money(32500),
-                    'line_total_display' => $this->money(32500),
-                ],
-                [
-                    'name' => 'Nissan Tiida Oil Filter',
-                    'code' => 'NSNT12OF-I',
-                    'quantity' => 2,
-                    'unit_price' => 12000,
-                    'unit_price_display' => $this->money(12000),
-                    'line_total_display' => $this->money(24000),
-                ],
+                $this->cartLine($products[0], 1),
+                $this->cartLine($products[1], 2),
             ],
             'saleTotals' => [
                 'subtotal' => $this->money(56500),
@@ -179,6 +165,9 @@ class PosController extends Controller
         $totalAvailable = collect($branchStock)->sum('available');
         $bestBranch = collect($branchStock)->sortByDesc('available')->first();
         $margin = $price - $cost;
+        $branchStockSummary = collect($branchStock)
+            ->map(fn (array $branch): string => "{$branch['branch']} {$branch['available']}")
+            ->implode(' - ');
 
         return [
             'id' => $id,
@@ -199,6 +188,7 @@ class PosController extends Controller
             'tax_profile' => 'VAT Inclusive 17.5%',
             'compatible_cars' => $compatibleCars,
             'branch_stock' => $branchStock,
+            'branch_stock_summary' => $branchStockSummary,
             'total_available' => $totalAvailable,
             'best_branch' => $bestBranch['branch'],
             'best_branch_available' => $bestBranch['available'],
@@ -208,5 +198,19 @@ class PosController extends Controller
     private function money(int $amount): string
     {
         return 'MWK '.number_format($amount);
+    }
+
+    private function cartLine(array $product, int $quantity): array
+    {
+        $lineTotal = $product['selling_price'] * $quantity;
+
+        return [
+            'name' => $product['product_name'],
+            'code' => $product['product_code'],
+            'quantity' => $quantity,
+            'unit_price' => $product['selling_price'],
+            'unit_price_display' => $product['selling_price_display'],
+            'line_total_display' => $this->money($lineTotal),
+        ];
     }
 }

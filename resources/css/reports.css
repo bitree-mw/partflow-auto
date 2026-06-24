@@ -1,0 +1,151 @@
+@layer components {
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .report-filter-panel,
+    .profit-loss-panel,
+    .report-card {
+        border: 1px solid #d1d5db;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgb(17 24 39 / 6%);
+    }
+
+    .report-filter-panel form {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(150px, 190px)) auto;
+        gap: 14px;
+        align-items: end;
+        padding: 18px;
+    }
+
+    .report-filter-panel h2,
+    .profit-loss-panel h2 {
+        margin: 6px 0 0;
+        color: #111827;
+        font-size: 22px;
+        line-height: 1.15;
+    }
+
+    .report-filter-panel p,
+    .profit-loss-panel p {
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .report-filter-panel label {
+        display: grid;
+        gap: 7px;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .profit-loss-panel {
+        overflow: hidden;
+    }
+
+    .profit-loss-panel header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .profit-loss-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
+    }
+
+    .profit-loss-grid article {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .profit-loss-grid article:last-child {
+        border-right: 0;
+    }
+
+    .profit-loss-grid span {
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .profit-loss-grid strong {
+        color: #111827;
+        font-size: 15px;
+    }
+
+    .profit-loss-grid em {
+        color: #374151;
+        font-size: 13px;
+        font-style: normal;
+        font-weight: 900;
+    }
+
+    .report-card {
+        display: grid;
+        gap: 18px;
+        min-height: 190px;
+        padding: 18px;
+    }
+
+    .report-card h2 {
+        margin: 8px 0;
+        color: #111827;
+        font-size: 20px;
+        line-height: 1.2;
+    }
+
+    .report-card p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .report-card .btn-secondary {
+        align-self: end;
+        justify-self: start;
+    }
+
+    @media (max-width: 1100px) {
+        .report-grid,
+        .profit-loss-grid,
+        .report-filter-panel form {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 680px) {
+        .report-grid,
+        .profit-loss-grid,
+        .report-filter-panel form {
+            grid-template-columns: 1fr;
+        }
+
+        .profit-loss-panel header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .profit-loss-grid article {
+            border-right: 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+    }
+}

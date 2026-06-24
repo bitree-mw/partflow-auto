@@ -7,17 +7,22 @@
     @vite('resources/css/catalog.css')
 @endpush
 
+@push('scripts')
+    @vite('resources/js/catalog.js')
+@endpush
+
 @section('header_actions')
     <a class="btn" href="{{ route('web.catalog.car-models.create') }}">Add car model</a>
 @endsection
 
 @section('content')
-    <x-catalog-workflow current="car-models" />
-
     <section class="data-panel">
         <div class="panel-toolbar">
             <strong>Vehicle fitment records</strong>
-            <x-page-size-controls />
+            <div class="table-tools">
+                <input class="table-search" type="search" data-table-search placeholder="Search car models..." aria-label="Search car models">
+                <x-page-size-controls />
+            </div>
         </div>
         <div class="table-wrap">
             <table class="data-table">

@@ -7,17 +7,22 @@
     @vite('resources/css/catalog.css')
 @endpush
 
+@push('scripts')
+    @vite('resources/js/catalog.js')
+@endpush
+
 @section('header_actions')
     <a class="btn" href="{{ route('web.catalog.part-types.create') }}">Add part type</a>
 @endsection
 
 @section('content')
-    <x-catalog-workflow current="part-types" />
-
     <section class="data-panel">
         <div class="panel-toolbar">
             <strong>Part type library</strong>
-            <x-page-size-controls />
+            <div class="table-tools">
+                <input class="table-search" type="search" data-table-search placeholder="Search part types..." aria-label="Search part types">
+                <x-page-size-controls />
+            </div>
         </div>
         <div class="table-wrap">
             <table class="data-table">

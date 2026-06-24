@@ -76,7 +76,8 @@
     .settings-section,
     .settings-groups,
     .site-list,
-    .site-create-card {
+    .site-create-card,
+    .user-management-grid {
         padding: 18px;
     }
 
@@ -195,6 +196,144 @@
         font-weight: 800;
     }
 
+    .admin-setup-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        padding: 18px;
+    }
+
+    .admin-setup-card,
+    .account-create-card {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 16px;
+        background: #f9fafb;
+    }
+
+    .settings-chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .settings-chip-list span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        color: #374151;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .document-series-list,
+    .profit-loss-account-list {
+        display: grid;
+        gap: 10px;
+        padding: 0 18px 18px;
+    }
+
+    .document-series-list article,
+    .profit-loss-account-list article {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .document-series-list strong,
+    .profit-loss-account-list strong {
+        color: #111827;
+        font-size: 14px;
+    }
+
+    .document-series-list span,
+    .profit-loss-account-list span {
+        display: block;
+        margin-top: 4px;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .document-series-list em,
+    .profit-loss-account-list em {
+        display: inline-flex;
+        min-height: 26px;
+        align-items: center;
+        padding: 0 10px;
+        border-radius: 999px;
+        color: #111827;
+        background: #e5e7eb;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .account-create-card {
+        margin: 0 18px 18px;
+    }
+
+    .user-management-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .user-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .user-list article {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+        gap: 12px;
+        align-items: center;
+        padding: 13px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .user-list strong,
+    .user-create-card strong {
+        color: #111827;
+        font-size: 14px;
+    }
+
+    .user-list span,
+    .user-list em {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 800;
+    }
+
+    .user-list article > div:last-child {
+        text-align: right;
+    }
+
+    .user-create-card {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 16px;
+        background: #f9fafb;
+    }
+
     .settings-save-bar {
         display: grid;
         grid-template-columns: auto 1fr auto auto;
@@ -232,7 +371,8 @@
 
     @media (max-width: 720px) {
         .settings-nav-panel,
-        .settings-groups {
+        .settings-groups,
+        .admin-setup-grid {
             grid-template-columns: 1fr;
         }
 
@@ -242,6 +382,20 @@
 
         .settings-save-bar span {
             text-align: left;
+        }
+
+        .user-list article {
+            grid-template-columns: 1fr;
+        }
+
+        .user-list article > div:last-child {
+            text-align: left;
+        }
+
+        .document-series-list article,
+        .profit-loss-account-list article {
+            align-items: flex-start;
+            flex-direction: column;
         }
     }
 }

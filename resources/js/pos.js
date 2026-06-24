@@ -6,7 +6,7 @@ const searchInput = document.querySelector('#part-search');
 const quickSearches = document.querySelectorAll('.quick-row button');
 const clearSearch = document.querySelector('[data-pos-clear]');
 const resetSearch = document.querySelector('[data-pos-reset]');
-const resultCards = Array.from(document.querySelectorAll('.result-card'));
+const resultCards = Array.from(document.querySelectorAll('.part-card'));
 const resultCount = document.querySelector('[data-result-count]');
 const filters = Array.from(document.querySelectorAll('[data-pos-filter]'));
 const quantityInput = document.querySelector('[data-pos-quantity]');
@@ -37,6 +37,7 @@ function productSearchText(product) {
         product.barcode,
         product.oem_number,
         product.part_country_of_origin,
+        product.branch_stock_summary,
         ...(product.compatible_cars || []),
     ].join(' ').toLowerCase();
 }
@@ -132,6 +133,7 @@ function selectProduct(index) {
         `Barcode ${selectedProduct.barcode}. ${selectedProduct.tax_profile}. Origin ${selectedProduct.part_country_of_origin}.`
     );
     setText('[data-selected-status]', available > 0 ? 'Available' : 'Out of stock');
+    setText('[data-selected-branch-summary]', selectedProduct.branch_stock_summary);
 
     const unitPriceInput = document.querySelector('[data-pos-unit-price]');
 

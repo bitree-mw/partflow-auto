@@ -4,14 +4,21 @@
 ])
 
 @push('styles')
-    @vite('resources/css/operations.css')
+    @vite('resources/css/alerts.css')
+@endpush
+
+@push('scripts')
+    @vite('resources/js/alerts.js')
 @endpush
 
 @section('content')
     <section class="data-panel">
         <div class="panel-toolbar">
             <strong>Active alerts</strong>
-            <x-page-size-controls />
+            <div class="table-tools">
+                <input class="table-search" type="search" data-table-search placeholder="Search alerts..." aria-label="Search alerts table">
+                <x-page-size-controls />
+            </div>
         </div>
 
         <div class="table-wrap">

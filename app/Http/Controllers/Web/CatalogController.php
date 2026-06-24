@@ -71,9 +71,21 @@ class CatalogController extends Controller
             'title' => 'Parts Catalogue',
             'description' => 'Manage sellable parts, generated product codes, references, pricing, and compatibility.',
             'products' => [
-                ['name' => 'Toyota Corolla Brake Pads Front', 'code' => 'TYCO14BP-I', 'model' => 'Toyota Corolla 2014 1.6L', 'type' => 'Brake Pads', 'price' => 'MWK 32,500', 'stock' => 27],
-                ['name' => 'Nissan Tiida Oil Filter', 'code' => 'NSNT12OF-I', 'model' => 'Nissan Tiida 2012 1.5L', 'type' => 'Oil Filter', 'price' => 'MWK 12,000', 'stock' => 16],
-                ['name' => 'Mazda Demio Rear Shock Absorber', 'code' => 'MZDM12SA-I', 'model' => 'Mazda Demio 2012 1.3L', 'type' => 'Shock Absorber', 'price' => 'MWK 83,000', 'stock' => 7],
+                ['name' => 'Toyota Corolla Brake Pads Front', 'code' => 'TYCO14BP-I', 'model' => 'Toyota Corolla 2014 1.6L', 'type' => 'Brake Pads', 'price' => 'MWK 32,500', 'stock' => 27, 'branch_stock' => [['site' => 'Area 23', 'qty' => 12], ['site' => 'Old Town', 'qty' => 30], ['site' => 'City Centre', 'qty' => 8], ['site' => 'Mzuzu', 'qty' => 0]]],
+                ['name' => 'Nissan Tiida Oil Filter', 'code' => 'NSNT12OF-I', 'model' => 'Nissan Tiida 2012 1.5L', 'type' => 'Oil Filter', 'price' => 'MWK 12,000', 'stock' => 16, 'branch_stock' => [['site' => 'Area 23', 'qty' => 6], ['site' => 'Old Town', 'qty' => 16], ['site' => 'City Centre', 'qty' => 9], ['site' => 'Mzuzu', 'qty' => 0]]],
+                ['name' => 'Mazda Demio Rear Shock Absorber', 'code' => 'MZDM12SA-I', 'model' => 'Mazda Demio 2012 1.3L', 'type' => 'Shock Absorber', 'price' => 'MWK 83,000', 'stock' => 7, 'branch_stock' => [['site' => 'Area 23', 'qty' => 2], ['site' => 'Old Town', 'qty' => 6], ['site' => 'City Centre', 'qty' => 4], ['site' => 'Mzuzu', 'qty' => 3]]],
+            ],
+            'partTypes' => [
+                ['name' => 'Brake Pads', 'code' => 'BP', 'products' => 42, 'status' => 'Active'],
+                ['name' => 'Oil Filter', 'code' => 'OF', 'products' => 36, 'status' => 'Active'],
+                ['name' => 'Shock Absorber', 'code' => 'SA', 'products' => 18, 'status' => 'Active'],
+                ['name' => 'Fuel Pump', 'code' => 'FP', 'products' => 9, 'status' => 'Active'],
+            ],
+            'carModels' => $this->mockCarModels(),
+            'catalogueSummary' => [
+                ['label' => 'Parts available', 'value' => '3', 'detail' => 'Sellable catalogue items'],
+                ['label' => 'Part types', 'value' => '4', 'detail' => 'Reusable product categories'],
+                ['label' => 'Car models', 'value' => '4', 'detail' => 'Fitment and variant records'],
             ],
         ]);
     }

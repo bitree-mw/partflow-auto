@@ -10,6 +10,7 @@ use App\Services\ReportService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -95,5 +96,65 @@ class ReportController extends Controller
     public function expenses(Request $request): JsonResponse
     {
         return ApiResponse::success(ExpenseResource::collection($this->reportService->expenses($request->query())), 'Expenses report retrieved successfully');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $reportType = (string) $request->query('report_type', 'sales');
+        $filters = $request->only([
+            'date_from',
+            'date_to',
+            'site_id',
+            'status',
+            'product_id',
+            'contact_id',
+            'payment_account_id',
+            'expense_category_id',
+        ]);
+        $rows = $this->reportService->fullFieldReportRows($reportType, array_filter($filters, fn ($value) => $value !== null && $value !== ''));
+        $normalizedType = $this->reportService->normalizeReportType($reportType);
+        $filename = sprintf(
+            '%s_%s_to_%s.csv',
+            $normalizedType,
+            $request->query('date_from', 'start'),
+            $request->query('date_to', 'end')
+        );
+
+        return response()->streamDownload(function () use ($rows, $normalizedType, $filters): void {
+            $handle = fopen('php://output', 'w');
+            $headers = $this->csvHeaders($rows, $normalizedType, $filters);
+
+            fputcsv($handle, $headers);
+
+            if ($rows->isEmpty()) {
+                fputcsv($handle, [
+                    $normalizedType,
+                    $filters['date_from'] ?? null,
+                    $filters['date_to'] ?? null,
+                    'No transactions found for the selected filters.',
+                ]);
+            }
+
+            foreach ($rows as $row) {
+                $row = (array) $row;
+                fputcsv($handle, array_map(fn ($header) => $row[$header] ?? null, $headers));
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    private function csvHeaders($rows, string $normalizedType, array $filters): array
+    {
+        if ($rows->isNotEmpty()) {
+            return array_keys((array) $rows->first());
+        }
+
+        return [
+            'report_type',
+            'date_from',
+            'date_to',
+            'message',
+        ];
     }
 }

@@ -7,6 +7,7 @@
         color: #20261f;
         background: #f3f4f6;
         font-family: var(--font-sans);
+        font-size: 13px;
     }
 
     .app-frame {
@@ -60,7 +61,7 @@
         display: block;
         grid-column: 2;
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1;
     }
 
@@ -111,7 +112,7 @@
         padding: 0 12px;
         border-radius: 12px;
         color: #cfc8b8;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 800;
         text-decoration: none;
     }
@@ -205,7 +206,7 @@
     .app-header h1 {
         margin: 6px 0 0;
         color: #20261f;
-        font-size: 18px;
+        font-size: 17px;
         line-height: 1.1;
         font-weight: 700;
     }
@@ -213,7 +214,7 @@
     .app-header p {
         margin: 4px 0 0;
         color: #6d7568;
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .eyebrow {
@@ -247,7 +248,7 @@
         border-radius: 14px;
         color: #20261f;
         background: #fff;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 900;
         text-decoration: none;
         cursor: pointer;
@@ -378,6 +379,14 @@
         border-bottom: 1px solid #d1d5db;
     }
 
+    .table-tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
     .filter-form {
         display: flex;
         flex-wrap: wrap;
@@ -387,21 +396,29 @@
 
     .filter-form input,
     .filter-form select,
+    .table-search,
     .form-control {
-        min-height: 50px;
+        min-height: 46px;
         padding: 0 14px;
         border: 1px solid #d1d5db;
         border-radius: 14px;
         color: #20261f;
         background: #fff;
+        font-size: 13px;
         outline: none;
     }
 
     .filter-form input:focus,
     .filter-form select:focus,
+    .table-search:focus,
     .form-control:focus {
         border-color: #111827;
         box-shadow: 0 0 0 4px rgb(17 24 39 / 12%);
+    }
+
+    .table-search {
+        min-width: 230px;
+        max-width: 320px;
     }
 
     .table-wrap {
@@ -411,12 +428,12 @@
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .data-table th,
     .data-table td {
-        padding: 15px 18px;
+        padding: 13px 16px;
         border-bottom: 1px solid #e5e7eb;
         text-align: left;
         vertical-align: middle;
@@ -429,6 +446,43 @@
         font-weight: 900;
         letter-spacing: 0.12em;
         text-transform: uppercase;
+    }
+
+    .branch-stock-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 4px;
+    }
+
+    .branch-stock-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
+        background: #f9fafb;
+        white-space: nowrap;
+    }
+
+    .branch-stock-pill span {
+        font-weight: 700;
+    }
+
+    .branch-stock-pill strong {
+        color: #111827;
+        font-weight: 900;
+    }
+
+    .branch-stock-pill.empty {
+        color: #991b1b;
+        border-color: #fecaca;
+        background: #fef2f2;
     }
 
     .status-pill {
@@ -500,7 +554,7 @@
 
     .form-field label {
         color: #5c6558;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 900;
     }
 

@@ -1,0 +1,120 @@
+@layer components {
+    .operation-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .operation-summary article,
+    .contact-performance-panel {
+        border: 1px solid #d1d5db;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgb(17 24 39 / 6%);
+    }
+
+    .operation-summary article {
+        display: grid;
+        gap: 8px;
+        padding: 18px;
+    }
+
+    .operation-summary article.success {
+        border-color: #bbf7d0;
+    }
+
+    .operation-summary article.warning {
+        border-color: #fde68a;
+    }
+
+    .operation-summary article.danger {
+        border-color: #fecaca;
+    }
+
+    .operation-summary span,
+    .operation-summary em {
+        color: #6b7280;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 800;
+    }
+
+    .operation-summary strong {
+        color: #111827;
+        font-size: 24px;
+        line-height: 1;
+    }
+
+    .contact-performance-panel {
+        overflow: hidden;
+    }
+
+    .contact-performance-panel header {
+        padding: 18px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .contact-performance-panel h2 {
+        margin: 6px 0 0;
+        color: #111827;
+        font-size: 20px;
+        line-height: 1.2;
+    }
+
+    .contact-performance-panel p {
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .performance-bars {
+        display: grid;
+    }
+
+    .performance-bars article {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 15px 18px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .performance-bars article:last-child {
+        border-bottom: 0;
+    }
+
+    .performance-bars strong {
+        color: #111827;
+        font-size: 14px;
+    }
+
+    .performance-bars span {
+        display: block;
+        margin-top: 4px;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .performance-bars em {
+        color: #111827;
+        font-size: 13px;
+        font-style: normal;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1100px) {
+        .operation-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 680px) {
+        .operation-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+}

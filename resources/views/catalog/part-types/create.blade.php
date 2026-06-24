@@ -7,13 +7,15 @@
     @vite('resources/css/catalog.css')
 @endpush
 
+@push('scripts')
+    @vite('resources/js/catalog.js')
+@endpush
+
 @section('header_actions')
     <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to part types</a>
 @endsection
 
 @section('content')
-    <x-catalog-workflow current="part-types" />
-
     <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.part-types.store') }}">
         @csrf
 

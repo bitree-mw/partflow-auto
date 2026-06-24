@@ -127,6 +127,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .chart-panel {
+        min-height: 330px;
+    }
+
     .insight-header {
         display: flex;
         align-items: flex-start;
@@ -399,6 +403,90 @@
         color: #111827;
     }
 
+    .bar-chart {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+        min-height: 230px;
+        padding: 18px;
+    }
+
+    .bar-column {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 9px;
+        align-items: end;
+        min-height: 210px;
+        text-align: center;
+    }
+
+    .bar-column strong {
+        color: #374151;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .bar-column span {
+        display: block;
+        width: 100%;
+        height: var(--bar-height);
+        min-height: 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px 12px 4px 4px;
+        background: linear-gradient(180deg, #111827, #4b5563);
+    }
+
+    .bar-column em {
+        color: #6b7280;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+    }
+
+    .horizontal-chart {
+        display: grid;
+        gap: 15px;
+        padding: 18px;
+    }
+
+    .horizontal-chart div {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 14px;
+        align-items: center;
+    }
+
+    .horizontal-chart span {
+        overflow: hidden;
+        color: #20261f;
+        font-size: 13px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .horizontal-chart strong {
+        color: #374151;
+        font-size: 12px;
+    }
+
+    .horizontal-chart em {
+        grid-column: 1 / -1;
+        display: block;
+        height: 12px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        overflow: hidden;
+    }
+
+    .horizontal-chart b {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #111827;
+    }
+
     @media (max-width: 1180px) {
         .dashboard-metrics,
         .branch-performance {
@@ -423,8 +511,23 @@
         .revenue-summary,
         .top-parts-grid,
         .money-cards,
-        .branch-performance {
+        .branch-performance,
+        .bar-chart {
             grid-template-columns: 1fr;
+        }
+
+        .bar-column {
+            grid-template-columns: 72px 1fr 40px;
+            grid-template-rows: auto;
+            align-items: center;
+            min-height: auto;
+            text-align: left;
+        }
+
+        .bar-column span {
+            width: var(--bar-height);
+            height: 18px;
+            border-radius: 999px;
         }
 
         .stacked-row > div:last-child {

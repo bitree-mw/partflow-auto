@@ -25,10 +25,19 @@ class DashboardController extends Controller
                 ['invoice' => 'POS-1044', 'branch' => 'City Centre', 'customer' => 'Walk-in', 'amount' => 'MWK 62,000', 'profit' => 'MWK 13,900', 'status' => 'Paid', 'payment_tone' => 'success'],
             ],
             'mostSoldParts' => [
-                ['part' => 'Brake Pads Front', 'code' => 'TYCO14BP-I', 'units' => 42, 'sales' => 'MWK 1.26M', 'profit' => 'MWK 318K'],
-                ['part' => 'Oil Filter', 'code' => 'NSNT12OF-I', 'units' => 39, 'sales' => 'MWK 468K', 'profit' => 'MWK 126K'],
-                ['part' => 'Spark Plug Set', 'code' => 'TYCO10SP-I', 'units' => 28, 'sales' => 'MWK 392K', 'profit' => 'MWK 101K'],
-                ['part' => 'Shock Absorber Rear', 'code' => 'MZDM12SA-I', 'units' => 11, 'sales' => 'MWK 913K', 'profit' => 'MWK 206K'],
+                ['part' => 'Brake Pads Front', 'code' => 'TYCO14BP-I', 'units' => 42, 'sales' => 'MWK 1.26M', 'profit' => 'MWK 318K', 'share' => 100],
+                ['part' => 'Oil Filter', 'code' => 'NSNT12OF-I', 'units' => 39, 'sales' => 'MWK 468K', 'profit' => 'MWK 126K', 'share' => 93],
+                ['part' => 'Spark Plug Set', 'code' => 'TYCO10SP-I', 'units' => 28, 'sales' => 'MWK 392K', 'profit' => 'MWK 101K', 'share' => 67],
+                ['part' => 'Shock Absorber Rear', 'code' => 'MZDM12SA-I', 'units' => 11, 'sales' => 'MWK 913K', 'profit' => 'MWK 206K', 'share' => 26],
+            ],
+            'salesTrend' => [
+                ['label' => 'Mon', 'value' => 'MWK 1.9M', 'height' => 52],
+                ['label' => 'Tue', 'value' => 'MWK 2.8M', 'height' => 78],
+                ['label' => 'Wed', 'value' => 'MWK 2.1M', 'height' => 59],
+                ['label' => 'Thu', 'value' => 'MWK 3.2M', 'height' => 90],
+                ['label' => 'Fri', 'value' => 'MWK 2.6M', 'height' => 72],
+                ['label' => 'Sat', 'value' => 'MWK 1.4M', 'height' => 39],
+                ['label' => 'Sun', 'value' => 'MWK 820K', 'height' => 24],
             ],
             'branchPerformance' => [
                 ['branch' => 'Area 23', 'sales' => 'MWK 1.12M', 'profit' => 'MWK 276K', 'margin' => '24.6%', 'margin_tone' => 'positive', 'stockouts' => 3],

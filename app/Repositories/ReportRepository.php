@@ -7,6 +7,7 @@ use App\Models\InventoryDocument;
 use App\Models\InventoryDocumentItem;
 use App\Models\SiteStock;
 use App\Models\StockMovement;
+use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -208,6 +209,55 @@ class ReportRepository
             ->get();
     }
 
+    public function fullFieldReportRows(string $reportType, array $filters = []): Collection
+    {
+        return match ($this->normalizeReportType($reportType)) {
+            'sales',
+            'sale',
+            'most-selling-products',
+            'least-selling-products',
+            'profit-by-product',
+            'profit-by-site' => $this->inventoryDocumentLineRows('sale', $filters),
+            'purchases',
+            'purchase' => $this->inventoryDocumentLineRows('purchase', $filters),
+            'sale-returns',
+            'sale-return' => $this->inventoryDocumentLineRows('sale_return', $filters),
+            'purchase-returns',
+            'purchase-return' => $this->inventoryDocumentLineRows('purchase_return', $filters),
+            'stock-transfers',
+            'stock-transfer',
+            'transfers',
+            'transfer' => $this->inventoryDocumentLineRows('transfer', $filters),
+            'stock-take-variance' => $this->inventoryDocumentLineRows('stock_take', $filters),
+            'stock-movements',
+            'stock-movement' => $this->stockMovementRows($filters),
+            'payments',
+            'payment',
+            'payments-by-account' => $this->paymentRows($filters),
+            'expenses' => $this->expenseRows($filters),
+            'profit-and-loss' => $this->profitAndLossRows($filters),
+            'current-stock',
+            'current-stock-by-site',
+            'low-stock',
+            'low-stock-by-site',
+            'out-of-stock',
+            'out-of-stock-products',
+            'stock-valuation' => $this->stockRows($filters),
+            'customer-balances' => $this->customerBalanceRows($filters),
+            default => throw new InvalidArgumentException("Unsupported report type [{$reportType}]."),
+        };
+    }
+
+    public function normalizeReportType(string $reportType): string
+    {
+        return str($reportType)
+            ->lower()
+            ->replace(['_', ' '], '-')
+            ->replace('-by-date-range', '')
+            ->replace('-history', '')
+            ->toString();
+    }
+
     private function stockLevelQuery(array $filters = [])
     {
         return DB::table('site_stocks')
@@ -248,5 +298,221 @@ class ReportRepository
             ->dateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->latest('document_date')
             ->get();
+    }
+
+    private function inventoryDocumentLineRows(string $documentType, array $filters = []): Collection
+    {
+        return DB::table('inventory_documents')
+            ->leftJoin('inventory_document_items', 'inventory_document_items.inventory_document_id', '=', 'inventory_documents.id')
+            ->leftJoin('products', 'products.id', '=', 'inventory_document_items.product_id')
+            ->leftJoin('contacts', 'contacts.id', '=', 'inventory_documents.contact_id')
+            ->leftJoin('sites as source_sites', 'source_sites.id', '=', 'inventory_documents.source_site_id')
+            ->leftJoin('sites as destination_sites', 'destination_sites.id', '=', 'inventory_documents.destination_site_id')
+            ->leftJoin('users as creators', 'creators.id', '=', 'inventory_documents.created_by')
+            ->leftJoin('users as approvers', 'approvers.id', '=', 'inventory_documents.approved_by')
+            ->where('inventory_documents.document_type', $documentType)
+            ->when(isset($filters['status']), fn ($query) => $query->where('inventory_documents.status', $filters['status']))
+            ->when(isset($filters['site_id']), function ($query) use ($filters) {
+                $query->where(function ($query) use ($filters) {
+                    $query->where('inventory_documents.source_site_id', $filters['site_id'])
+                        ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
+                });
+            })
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->orderBy('inventory_documents.document_date')
+            ->orderBy('inventory_documents.document_number')
+            ->orderBy('inventory_document_items.id')
+            ->get([
+                'inventory_documents.id as document_id',
+                'inventory_documents.document_number',
+                'inventory_documents.document_type',
+                'inventory_documents.document_date',
+                'inventory_documents.status',
+                'inventory_documents.payment_status',
+                'contacts.name as contact_name',
+                'contacts.phone as contact_phone',
+                'source_sites.name as source_site',
+                'destination_sites.name as destination_site',
+                'products.product_code',
+                'products.product_name',
+                'inventory_document_items.quantity',
+                'inventory_document_items.unit_cost',
+                'inventory_document_items.unit_price',
+                'inventory_document_items.discount_amount as line_discount_amount',
+                'inventory_document_items.tax_rate',
+                'inventory_document_items.tax_amount as line_tax_amount',
+                'inventory_document_items.line_total',
+                'inventory_document_items.profit_amount',
+                'inventory_document_items.system_quantity',
+                'inventory_document_items.counted_quantity',
+                'inventory_document_items.variance_quantity',
+                'inventory_document_items.notes as item_notes',
+                'inventory_documents.subtotal_amount',
+                'inventory_documents.discount_amount as document_discount_amount',
+                'inventory_documents.taxable_amount',
+                'inventory_documents.tax_amount as document_tax_amount',
+                'inventory_documents.total_amount',
+                'inventory_documents.paid_amount',
+                'inventory_documents.balance_amount',
+                'inventory_documents.notes as document_notes',
+                'creators.name as created_by',
+                'approvers.name as approved_by',
+            ]);
+    }
+
+    private function paymentRows(array $filters = []): Collection
+    {
+        return DB::table('payments')
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'payments.inventory_document_id')
+            ->join('payment_accounts', 'payment_accounts.id', '=', 'payments.payment_account_id')
+            ->join('users', 'users.id', '=', 'payments.received_by')
+            ->leftJoin('contacts', 'contacts.id', '=', 'inventory_documents.contact_id')
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('payments.payment_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('payments.payment_date', '<=', $filters['date_to']))
+            ->when(isset($filters['payment_account_id']), fn ($query) => $query->where('payments.payment_account_id', $filters['payment_account_id']))
+            ->orderBy('payments.payment_date')
+            ->get([
+                'payments.id as payment_id',
+                'payments.payment_date',
+                'inventory_documents.document_number',
+                'inventory_documents.document_type',
+                'contacts.name as contact_name',
+                'payment_accounts.account_name',
+                'payment_accounts.account_type',
+                'payments.payment_method',
+                'payments.amount',
+                'payments.transaction_reference',
+                'users.name as received_by',
+                'payments.notes',
+            ]);
+    }
+
+    private function expenseRows(array $filters = []): Collection
+    {
+        return DB::table('expenses')
+            ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
+            ->leftJoin('payment_accounts', 'payment_accounts.id', '=', 'expenses.payment_account_id')
+            ->leftJoin('sites', 'sites.id', '=', 'expenses.site_id')
+            ->join('users', 'users.id', '=', 'expenses.created_by')
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('expenses.expense_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('expenses.expense_date', '<=', $filters['date_to']))
+            ->when(isset($filters['expense_category_id']), fn ($query) => $query->where('expenses.expense_category_id', $filters['expense_category_id']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('expenses.site_id', $filters['site_id']))
+            ->orderBy('expenses.expense_date')
+            ->get([
+                'expenses.id as expense_id',
+                'expenses.expense_date',
+                'expense_categories.name as expense_category',
+                'sites.name as site_name',
+                'payment_accounts.account_name',
+                'payment_accounts.account_type',
+                'expenses.amount',
+                'expenses.reference',
+                'expenses.description',
+                'users.name as created_by',
+            ]);
+    }
+
+    private function profitAndLossRows(array $filters = []): Collection
+    {
+        $incomeRows = $this->inventoryDocumentLineRows('sale', $filters)->map(fn ($row) => [
+            'transaction_date' => $row->document_date,
+            'account_type' => 'Income',
+            'account_name' => 'Sales Revenue',
+            'document_number' => $row->document_number,
+            'site_name' => $row->source_site,
+            'contact_name' => $row->contact_name,
+            'product_code' => $row->product_code,
+            'product_name' => $row->product_name,
+            'quantity' => $row->quantity,
+            'income_amount' => $row->line_total,
+            'cost_amount' => $row->unit_cost !== null && $row->quantity !== null ? (float) $row->unit_cost * (int) $row->quantity : 0,
+            'expense_amount' => 0,
+            'profit_or_loss' => $row->profit_amount,
+            'notes' => $row->item_notes ?: $row->document_notes,
+        ]);
+
+        $expenseRows = $this->expenseRows($filters)->map(fn ($row) => [
+            'transaction_date' => $row->expense_date,
+            'account_type' => 'Expense',
+            'account_name' => $row->expense_category,
+            'document_number' => $row->reference,
+            'site_name' => $row->site_name,
+            'contact_name' => null,
+            'product_code' => null,
+            'product_name' => null,
+            'quantity' => null,
+            'income_amount' => 0,
+            'cost_amount' => 0,
+            'expense_amount' => $row->amount,
+            'profit_or_loss' => -1 * (float) $row->amount,
+            'notes' => $row->description,
+        ]);
+
+        return $incomeRows
+            ->merge($expenseRows)
+            ->sortBy('transaction_date')
+            ->values();
+    }
+
+    private function stockMovementRows(array $filters = []): Collection
+    {
+        return DB::table('stock_movements')
+            ->join('products', 'products.id', '=', 'stock_movements.product_id')
+            ->join('sites', 'sites.id', '=', 'stock_movements.site_id')
+            ->leftJoin('inventory_documents', 'inventory_documents.id', '=', 'stock_movements.inventory_document_id')
+            ->join('users', 'users.id', '=', 'stock_movements.created_by')
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('stock_movements.created_at', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('stock_movements.created_at', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('stock_movements.site_id', $filters['site_id']))
+            ->when(isset($filters['product_id']), fn ($query) => $query->where('stock_movements.product_id', $filters['product_id']))
+            ->orderBy('stock_movements.created_at')
+            ->get([
+                'stock_movements.id as stock_movement_id',
+                'stock_movements.created_at as movement_date',
+                'stock_movements.movement_type',
+                'inventory_documents.document_number',
+                'sites.name as site_name',
+                'products.product_code',
+                'products.product_name',
+                'stock_movements.quantity_change',
+                'stock_movements.balance_before',
+                'stock_movements.balance_after',
+                'stock_movements.reference_type',
+                'stock_movements.reference_id',
+                'users.name as created_by',
+                'stock_movements.notes',
+            ]);
+    }
+
+    private function stockRows(array $filters = []): Collection
+    {
+        return $this->currentStockBySite($filters);
+    }
+
+    private function customerBalanceRows(array $filters = []): Collection
+    {
+        return DB::table('inventory_documents')
+            ->join('contacts', 'contacts.id', '=', 'inventory_documents.contact_id')
+            ->leftJoin('sites', 'sites.id', '=', 'inventory_documents.source_site_id')
+            ->where('inventory_documents.document_type', 'sale')
+            ->where('inventory_documents.balance_amount', '>', 0)
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
+            ->orderBy('inventory_documents.document_date')
+            ->get([
+                'inventory_documents.document_number',
+                'inventory_documents.document_date',
+                'contacts.name as customer_name',
+                'contacts.phone',
+                'sites.name as site_name',
+                'inventory_documents.total_amount',
+                'inventory_documents.paid_amount',
+                'inventory_documents.balance_amount',
+                'inventory_documents.payment_status',
+                'inventory_documents.status',
+            ]);
     }
 }

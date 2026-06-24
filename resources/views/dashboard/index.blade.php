@@ -33,6 +33,48 @@
         @endforeach
     </section>
 
+    <section class="dashboard-grid secondary chart-row">
+        <article class="insight-panel chart-panel">
+            <header class="insight-header">
+                <div>
+                    <span class="eyebrow">Sales analytics</span>
+                    <h2>Weekly sales trend</h2>
+                    <p>Daily sales movement for the active operating period.</p>
+                </div>
+            </header>
+
+            <div class="bar-chart" aria-label="Weekly sales bar chart">
+                @foreach ($salesTrend as $point)
+                    <div class="bar-column">
+                        <strong>{{ $point['value'] }}</strong>
+                        <span style="--bar-height: {{ $point['height'] }}%;"></span>
+                        <em>{{ $point['label'] }}</em>
+                    </div>
+                @endforeach
+            </div>
+        </article>
+
+        <article class="insight-panel chart-panel">
+            <header class="insight-header">
+                <div>
+                    <span class="eyebrow">Parts performance</span>
+                    <h2>Top part velocity</h2>
+                    <p>Most sold parts by unit movement.</p>
+                </div>
+            </header>
+
+            <div class="horizontal-chart" aria-label="Top parts horizontal bar chart">
+                @foreach ($mostSoldParts as $part)
+                    <div>
+                        <span>{{ $part['part'] }}</span>
+                        <strong>{{ $part['units'] }} units</strong>
+                        <em><b style="width: {{ $part['share'] }}%;"></b></em>
+                    </div>
+                @endforeach
+            </div>
+        </article>
+    </section>
+
     <section class="dashboard-grid primary">
         <article class="insight-panel revenue-panel">
             <header class="insight-header">

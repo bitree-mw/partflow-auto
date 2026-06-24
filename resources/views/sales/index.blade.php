@@ -4,7 +4,11 @@
 ])
 
 @push('styles')
-    @vite('resources/css/operations.css')
+    @vite('resources/css/sales.css')
+@endpush
+
+@push('scripts')
+    @vite('resources/js/sales.js')
 @endpush
 
 @section('header_actions')
@@ -24,7 +28,10 @@
     <section class="data-panel">
         <div class="panel-toolbar">
             <strong>Recent sales</strong>
-            <x-page-size-controls />
+            <div class="table-tools">
+                <input class="table-search" type="search" data-table-search placeholder="Search sales..." aria-label="Search sales table">
+                <x-page-size-controls />
+            </div>
         </div>
 
         <div class="table-wrap">

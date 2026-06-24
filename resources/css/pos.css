@@ -15,7 +15,7 @@
         margin: 12px 0 8px;
         color: #20261f;
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: clamp(38px, 4.4vw, 56px);
+        font-size: clamp(32px, 3.8vw, 48px);
         line-height: 0.98;
         letter-spacing: -0.03em;
     }
@@ -23,7 +23,7 @@
     .pos-hero p {
         margin: 0;
         color: #6d7568;
-        font-size: 15px;
+        font-size: 13px;
     }
 
     .activity-session {
@@ -31,7 +31,7 @@
         grid-template-columns: 18px minmax(0, 1fr) auto;
         gap: 10px;
         align-items: center;
-        padding: 16px;
+        padding: 14px;
         border: 1px solid #d1d5db;
         border-radius: 18px;
         background: #fff;
@@ -105,7 +105,7 @@
         grid-template-columns: 18px minmax(0, 1fr);
         align-items: center;
         gap: 11px;
-        min-height: 52px;
+        min-height: 48px;
         padding: 0 16px;
         border: 1px solid #d1d5db;
         border-radius: 15px;
@@ -128,7 +128,7 @@
     .add-row input {
         width: 100%;
         min-width: 0;
-        min-height: 50px;
+        min-height: 46px;
         border: 1px solid #d1d5db;
         border-radius: 15px;
         color: #20261f;
@@ -141,7 +141,7 @@
         border: 0;
         border-radius: 0;
         background: transparent;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 800;
     }
 
@@ -159,7 +159,7 @@
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
-        padding: 0 16px 14px;
+        padding: 12px 14px;
         border-bottom: 1px solid #d1d5db;
         color: #6d7568;
         font-size: 12px;
@@ -195,17 +195,17 @@
     .product-card-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+        gap: 10px;
         align-content: start;
-        padding: 16px;
+        padding: 14px;
     }
 
     .part-card {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: 13px 10px;
-        min-height: 174px;
-        padding: 16px;
+        gap: 8px 10px;
+        min-height: 150px;
+        padding: 13px;
         border: 1px solid #d1d5db;
         border-radius: 16px;
         color: inherit;
@@ -252,28 +252,33 @@
     .part-card strong {
         grid-column: 1 / -1;
         color: #20261f;
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.25;
     }
 
     .part-card em {
         grid-column: 1 / -1;
         color: #6d7568;
-        font-size: 13px;
+        font-size: 12px;
         font-style: normal;
         font-weight: 800;
     }
 
+    .part-branch-summary {
+        grid-column: 1 / -1;
+        margin-top: 0;
+    }
+
     .part-price {
         color: #111709;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 900;
     }
 
     .part-available {
         align-self: end;
         color: #6d7568;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
         text-align: right;
     }
@@ -309,7 +314,7 @@
     .order-header h2 {
         margin: 8px 0 0;
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: 26px;
+        font-size: 23px;
         line-height: 1;
     }
 
@@ -339,13 +344,13 @@
     .selected-part-card h3 {
         margin: 0;
         color: #20261f;
-        font-size: 18px;
+        font-size: 16px;
     }
 
     .selected-part-card p {
         margin: 0;
         color: #6d7568;
-        font-size: 13px;
+        font-size: 12px;
         line-height: 1.45;
     }
 
@@ -372,7 +377,7 @@
     .selected-part-card dd {
         margin: 0;
         color: #20261f;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 900;
     }
 
@@ -421,7 +426,7 @@
 
     .branch-mini-list strong {
         color: #20261f;
-        font-size: 18px;
+        font-size: 16px;
     }
 
     .add-row {
@@ -539,7 +544,7 @@
     }
 
     .total-due strong {
-        font-size: 24px;
+        font-size: 21px;
         line-height: 1;
     }
 

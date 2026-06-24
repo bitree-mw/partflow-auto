@@ -90,4 +90,14 @@ class ReportService
     {
         return $this->reports->expenses($filters);
     }
+
+    public function fullFieldReportRows(string $reportType, array $filters = []): Collection
+    {
+        return $this->reports->fullFieldReportRows($reportType, $filters);
+    }
+
+    public function normalizeReportType(string $reportType): string
+    {
+        return $this->reports->normalizeReportType($reportType);
+    }
 }

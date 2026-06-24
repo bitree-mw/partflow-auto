@@ -7,12 +7,15 @@
     @vite('resources/css/catalog.css')
 @endpush
 
+@push('scripts')
+    @vite('resources/js/catalog.js')
+@endpush
+
 @section('header_actions')
     <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Back to catalogue</a>
 @endsection
 
 @section('content')
-    <x-catalog-workflow current="products" />
     <x-country-datalist id="part-origin-countries" :countries="$countries" />
 
     <datalist id="car-model-options">
@@ -134,10 +137,26 @@
                     Supplier code
                     <input class="form-control" name="supplier_code" placeholder="Supplier code">
                 </label>
-                <label>
-                    Compatible models
-                    <input class="form-control" name="compatible_models" placeholder="Mazda Demio 2012, Honda Fit 2015">
-                </label>
+            </div>
+
+            <div class="compatibility-panel">
+                <div>
+                    <strong>Other compatible car variants</strong>
+                    <p>Add any extra vehicles that can use this same part. Main car model already covers the primary fitment.</p>
+                </div>
+
+                <div class="compatibility-variant-list" data-compatibility-list>
+                    <div class="compatibility-variant-row">
+                        <input class="form-control searchable-input" name="compatible_variants[]" list="car-model-options" placeholder="Search compatible car variant">
+                        <button class="btn-secondary" type="button" data-remove-compatibility-variant>Remove</button>
+                    </div>
+                </div>
+
+                <button class="btn-secondary compatibility-add-button" type="button" data-add-compatibility-variant>Add variant</button>
+
+                <div class="compatibility-grid">
+                    <textarea class="form-control" name="compatibility_notes" rows="3" placeholder="Fitment notes, exclusions, engine remarks, or trim differences"></textarea>
+                </div>
             </div>
         </section>
 

@@ -51,7 +51,7 @@
             <div class="pos-toolbar">
                 <label class="pos-search-field" for="part-search">
                     <span aria-hidden="true"></span>
-                    <input id="part-search" type="search" value="brake pads" autocomplete="off" aria-label="Search by part, code, barcode, vehicle, or OEM">
+                    <input id="part-search" type="search" value="" placeholder="Search part, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by part, code, barcode, vehicle, or OEM">
                 </label>
 
                 <input class="searchable-input" data-pos-filter list="pos-vehicle-options" value="All vehicles" aria-label="Filter products by vehicle">
@@ -59,7 +59,7 @@
             </div>
 
             <div class="quick-row" aria-label="Quick search chips">
-                <span>Try</span>
+                <span>Suggested</span>
                 @foreach ($quickSearches as $search)
                     <button type="button">{{ $search }}</button>
                 @endforeach
@@ -76,6 +76,14 @@
 
                         <strong>{{ $product['product_name'] }}</strong>
                         <em>{{ $product['vehicle'] }}</em>
+                        <span class="branch-stock-pills part-branch-summary">
+                            @foreach ($product['branch_stock'] as $branch)
+                                <span @class(['branch-stock-pill', 'empty' => $branch['available'] === 0])>
+                                    <span>{{ $branch['branch'] }}</span>
+                                    <strong>{{ $branch['available'] }}</strong>
+                                </span>
+                            @endforeach
+                        </span>
 
                         <span class="part-price">{{ $product['selling_price_display'] }}</span>
                         <span class="part-available">{{ $product['branch_stock'][0]['available'] }} available</span>

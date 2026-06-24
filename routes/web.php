@@ -3,9 +3,11 @@
 use App\Http\Controllers\Web\AdminSettingsController;
 use App\Http\Controllers\Web\AlertsController;
 use App\Http\Controllers\Web\CatalogController;
+use App\Http\Controllers\Web\ContactDirectoryController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\PaymentAccountController;
 use App\Http\Controllers\Web\PosController;
+use App\Http\Controllers\Web\PurchasesController;
 use App\Http\Controllers\Web\ReportsController;
 use App\Http\Controllers\Web\SalesController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +25,15 @@ Route::prefix('back-office')
         Route::get('/', fn () => redirect()->route('web.dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
+        Route::get('purchases', [PurchasesController::class, 'index'])->name('purchases.index');
+        Route::get('purchases/create', [PurchasesController::class, 'create'])->name('purchases.create');
+        Route::post('purchases', [PurchasesController::class, 'store'])->name('purchases.store');
+        Route::get('customers', [ContactDirectoryController::class, 'customers'])->name('customers.index');
+        Route::get('customers/create', [ContactDirectoryController::class, 'createCustomer'])->name('customers.create');
+        Route::post('customers', [ContactDirectoryController::class, 'storeCustomer'])->name('customers.store');
+        Route::get('suppliers', [ContactDirectoryController::class, 'suppliers'])->name('suppliers.index');
+        Route::get('suppliers/create', [ContactDirectoryController::class, 'createSupplier'])->name('suppliers.create');
+        Route::post('suppliers', [ContactDirectoryController::class, 'storeSupplier'])->name('suppliers.store');
         Route::get('reports', [ReportsController::class, 'index'])->name('reports.index');
         Route::get('alerts', [AlertsController::class, 'index'])->name('alerts.index');
 

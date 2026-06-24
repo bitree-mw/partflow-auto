@@ -3,6 +3,14 @@
     'description' => $description,
 ])
 
+@push('styles')
+    @vite('resources/css/payment-accounts.css')
+@endpush
+
+@push('scripts')
+    @vite('resources/js/payment-accounts.js')
+@endpush
+
 @section('header_actions')
     <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $paymentAccount) }}">View account</a>
 @endsection

@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('stock-transfer-history', 'stockTransferHistory');
         Route::get('stock-take-variance', 'stockTakeVariance');
         Route::get('expenses', 'expenses');
+        Route::get('export', 'export');
     });
 
     Route::get('pos/products', [PosProductController::class, 'index']);
