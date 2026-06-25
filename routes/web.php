@@ -56,6 +56,10 @@ Route::prefix('back-office')
             Route::get('part-types/create', 'createPartType')->name('part-types.create');
             Route::post('part-types', 'storePartType')->name('part-types.store');
 
+            Route::get('fuel-types', 'fuelTypes')->name('fuel-types.index');
+            Route::get('fuel-types/create', 'createFuelType')->name('fuel-types.create');
+            Route::post('fuel-types', 'storeFuelType')->name('fuel-types.store');
+
             Route::get('products', 'products')->name('products.index');
             Route::get('products/create', 'createProduct')->name('products.create');
             Route::post('products', 'storeProduct')->name('products.store');

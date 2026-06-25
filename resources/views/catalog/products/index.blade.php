@@ -29,6 +29,11 @@
                             <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">View types</a>
                             <a class="btn-secondary" href="{{ route('web.catalog.part-types.create') }}">Add type</a>
                         </div>
+                    @elseif ($item['label'] === 'Fuel types')
+                        <div class="catalogue-card-actions">
+                            <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.index') }}">View fuels</a>
+                            <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.create') }}">Add fuel</a>
+                        </div>
                     @elseif ($item['label'] === 'Car models')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.car-models.index') }}">View models</a>

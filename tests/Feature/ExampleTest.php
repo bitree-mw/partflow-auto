@@ -48,6 +48,8 @@ class ExampleTest extends TestCase
             '/back-office/catalog/car-models/create',
             '/back-office/catalog/part-types',
             '/back-office/catalog/part-types/create',
+            '/back-office/catalog/fuel-types',
+            '/back-office/catalog/fuel-types/create',
             '/back-office/catalog/products',
             '/back-office/catalog/products/create',
         ];

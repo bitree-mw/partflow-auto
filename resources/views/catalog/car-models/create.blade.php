@@ -17,14 +17,6 @@
 
 @section('content')
     <x-country-datalist id="car-model-origin-countries" :countries="$countries" />
-    <datalist id="car-fuel-type-options">
-        <option value="Petrol"></option>
-        <option value="Diesel"></option>
-        <option value="Hybrid"></option>
-        <option value="Electric"></option>
-        <option value="Plug-in Hybrid"></option>
-        <option value="Universal"></option>
-    </datalist>
 
     <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.store') }}">
         @csrf
@@ -34,46 +26,38 @@
             <div class="form-grid">
                 <div class="form-field">
                     <label for="make">Make</label>
-                    <input class="form-control" id="make" name="make" placeholder="Toyota">
+                    <input class="form-control" id="make" name="make" value="{{ old('make') }}" placeholder="Toyota" required>
+                    <x-form-error name="make" />
                 </div>
 
                 <div class="form-field">
                     <label for="model">Model</label>
-                    <input class="form-control" id="model" name="model" placeholder="Demio">
+                    <input class="form-control" id="model" name="model" value="{{ old('model') }}" placeholder="Demio" required>
+                    <x-form-error name="model" />
                 </div>
 
                 <div class="form-field">
                     <label for="year">Year</label>
-                    <input class="form-control" id="year" name="year" type="number" placeholder="2014">
+                    <input class="form-control" id="year" name="year" type="number" value="{{ old('year') }}" placeholder="2014" required>
+                    <x-form-error name="year" />
                 </div>
 
                 <div class="form-field">
                     <label for="engine_size">Engine size</label>
-                    <input class="form-control" id="engine_size" name="engine_size" placeholder="1.3L">
+                    <input class="form-control" id="engine_size" name="engine_size" value="{{ old('engine_size') }}" placeholder="1.3L">
+                    <x-form-error name="engine_size" />
                 </div>
 
                 <div class="form-field">
                     <label for="variant_name">Variant</label>
-                    <input class="form-control" id="variant_name" name="variant_name" placeholder="Hatchback">
+                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name') }}" placeholder="Hatchback">
+                    <x-form-error name="variant_name" />
                 </div>
 
                 <div class="form-field">
                     <label for="country_of_origin">Country of origin</label>
-                    <input class="form-control searchable-input" id="country_of_origin" name="country_of_origin" list="car-model-origin-countries" placeholder="Search country">
-                </div>
-            </div>
-        </section>
-
-        <section class="form-section">
-            <span class="eyebrow">Fuel type setup</span>
-            <div class="fuel-type-panel">
-                <div class="form-field">
-                    <label for="fuel_type">Fuel type for this model</label>
-                    <input class="form-control searchable-input" id="fuel_type" name="fuel_type" list="car-fuel-type-options" placeholder="Search or type fuel type">
-                </div>
-                <div class="form-field">
-                    <label for="new_fuel_type">Add new fuel type</label>
-                    <input class="form-control" id="new_fuel_type" name="new_fuel_type" placeholder="Hydrogen, LPG, CNG">
+                    <input class="form-control searchable-input" id="country_of_origin" name="country_of_origin" value="{{ old('country_of_origin') }}" list="car-model-origin-countries" placeholder="Search country">
+                    <x-form-error name="country_of_origin" />
                 </div>
             </div>
         </section>
@@ -82,7 +66,8 @@
             <span class="eyebrow">Notes</span>
             <div class="form-field full">
                 <label for="notes">Fitment notes</label>
-                <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
+                <textarea class="form-control" id="notes" name="notes" rows="4">{{ old('notes') }}</textarea>
+                <x-form-error name="notes" />
             </div>
         </section>
 

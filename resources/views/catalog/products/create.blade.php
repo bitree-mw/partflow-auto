@@ -16,33 +16,11 @@
 @endsection
 
 @section('content')
-    <x-country-datalist id="part-origin-countries" :countries="$countries" />
+    @php
+        $selectedCompatibleCarModels = old('compatible_car_model_ids', ['']);
+    @endphp
 
-    <datalist id="car-model-options">
-        @foreach ($carModels as $carModel)
-            <option value="{{ $carModel['make'] }} {{ $carModel['model'] }} {{ $carModel['engine'] }} {{ $carModel['variant'] }} ({{ $carModel['year'] }})"></option>
-        @endforeach
-    </datalist>
-    <datalist id="part-type-options">
-        @foreach ($partTypes as $partType)
-            <option value="{{ $partType }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="fuel-type-options">
-        @foreach ($fuelTypes as $fuelType)
-            <option value="{{ $fuelType }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="brand-options">
-        @foreach ($brands as $brand)
-            <option value="{{ $brand }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="tax-profile-options">
-        @foreach ($taxProfiles as $taxProfile)
-            <option value="{{ $taxProfile }}"></option>
-        @endforeach
-    </datalist>
+    <x-country-datalist id="part-origin-countries" :countries="$countries" />
 
     <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.products.store') }}">
         @csrf
@@ -51,23 +29,48 @@
             <span class="eyebrow">Fitment</span>
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="car_model">Main car model</label>
-                    <input class="form-control searchable-input" id="car_model" name="car_model" list="car-model-options" placeholder="Search make, model, engine, or year">
+                    <label for="car_model_id">Main car model</label>
+                    <select class="form-control" id="car_model_id" name="car_model_id" required>
+                        <option value="">Select vehicle fitment</option>
+                        @foreach ($carModels as $carModel)
+                            <option value="{{ $carModel['id'] }}" @selected((string) old('car_model_id') === (string) $carModel['id'])>
+                                {{ $carModel['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="car_model_id" />
                 </div>
 
                 <div class="form-field">
-                    <label for="part_type">Part type</label>
-                    <input class="form-control searchable-input" id="part_type" name="part_type" list="part-type-options" placeholder="Search part type">
+                    <label for="part_type_id">Part type</label>
+                    <select class="form-control" id="part_type_id" name="part_type_id" required>
+                        <option value="">Select part type</option>
+                        @foreach ($partTypes as $partType)
+                            <option value="{{ $partType['id'] }}" @selected((string) old('part_type_id') === (string) $partType['id'])>
+                                {{ $partType['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="part_type_id" />
                 </div>
 
                 <div class="form-field">
-                    <label for="fuel_type">Fuel type</label>
-                    <input class="form-control searchable-input" id="fuel_type" name="fuel_type" list="fuel-type-options" placeholder="Search fuel type">
+                    <label for="fuel_type_id">Fuel type</label>
+                    <select class="form-control" id="fuel_type_id" name="fuel_type_id">
+                        <option value="">Universal or not set</option>
+                        @foreach ($fuelTypes as $fuelType)
+                            <option value="{{ $fuelType['id'] }}" @selected((string) old('fuel_type_id') === (string) $fuelType['id'])>
+                                {{ $fuelType['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="fuel_type_id" />
                 </div>
 
                 <div class="form-field">
                     <label for="part_country_of_origin">Part origin</label>
-                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" list="part-origin-countries" placeholder="Search country">
+                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin') }}" list="part-origin-countries" placeholder="Search country">
+                    <x-form-error name="part_country_of_origin" />
                 </div>
             </div>
         </section>
@@ -77,47 +80,70 @@
             <div class="form-grid">
                 <div class="form-field">
                     <label for="product_name">Product name</label>
-                    <input class="form-control" id="product_name" name="product_name" placeholder="Toyota Corolla Brake Pads Front">
+                    <input class="form-control" id="product_name" name="product_name" value="{{ old('product_name') }}" placeholder="Toyota Corolla Brake Pads Front">
+                    <x-form-error name="product_name" />
                 </div>
 
                 <div class="form-field">
                     <label for="product_code">Product code</label>
-                    <input class="form-control" id="product_code" name="product_code" placeholder="Auto generated if blank">
+                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code') }}" placeholder="Auto generated if blank">
+                    <x-form-error name="product_code" />
                 </div>
 
                 <div class="form-field">
-                    <label for="brand">Brand</label>
-                    <input class="form-control searchable-input" id="brand" name="brand" list="brand-options" placeholder="Search brand">
+                    <label for="brand_id">Brand</label>
+                    <select class="form-control" id="brand_id" name="brand_id">
+                        <option value="">No brand selected</option>
+                        @foreach ($brands as $brand)
+                            <option value="{{ $brand['id'] }}" @selected((string) old('brand_id') === (string) $brand['id'])>
+                                {{ $brand['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="brand_id" />
                 </div>
 
                 <div class="form-field">
-                    <label for="tax_profile">Tax profile</label>
-                    <input class="form-control searchable-input" id="tax_profile" name="tax_profile" list="tax-profile-options" placeholder="Search tax profile">
+                    <label for="tax_profile_id">Tax profile</label>
+                    <select class="form-control" id="tax_profile_id" name="tax_profile_id">
+                        <option value="">Use system default</option>
+                        @foreach ($taxProfiles as $taxProfile)
+                            <option value="{{ $taxProfile['id'] }}" @selected((string) old('tax_profile_id') === (string) $taxProfile['id'])>
+                                {{ $taxProfile['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="tax_profile_id" />
                 </div>
 
                 <div class="form-field">
                     <label for="default_purchase_price">Purchase price</label>
-                    <input class="form-control" id="default_purchase_price" name="default_purchase_price" type="number" placeholder="25000">
+                    <input class="form-control" id="default_purchase_price" name="default_purchase_price" type="number" min="0" step="0.01" value="{{ old('default_purchase_price') }}" placeholder="25000">
+                    <x-form-error name="default_purchase_price" />
                 </div>
 
                 <div class="form-field">
                     <label for="default_selling_price">Selling price</label>
-                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" placeholder="32500">
+                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500">
+                    <x-form-error name="default_selling_price" />
                 </div>
 
                 <div class="form-field">
                     <label for="default_low_stock_level">Low stock level</label>
-                    <input class="form-control" id="default_low_stock_level" name="default_low_stock_level" type="number" placeholder="5">
+                    <input class="form-control" id="default_low_stock_level" name="default_low_stock_level" type="number" min="0" value="{{ old('default_low_stock_level') }}" placeholder="5">
+                    <x-form-error name="default_low_stock_level" />
                 </div>
 
                 <div class="form-field">
                     <label for="pack_size">Pack size</label>
-                    <input class="form-control" id="pack_size" name="pack_size" type="number" placeholder="1">
+                    <input class="form-control" id="pack_size" name="pack_size" type="number" min="0.01" step="0.01" value="{{ old('pack_size') }}" placeholder="1">
+                    <x-form-error name="pack_size" />
                 </div>
 
                 <div class="form-field full">
                     <label for="pos_description">POS description</label>
-                    <textarea class="form-control" id="pos_description" name="pos_description" rows="3" placeholder="Short cashier-friendly description"></textarea>
+                    <textarea class="form-control" id="pos_description" name="pos_description" rows="3" placeholder="Short cashier-friendly description">{{ old('pos_description') }}</textarea>
+                    <x-form-error name="pos_description" />
                 </div>
             </div>
         </section>
@@ -127,15 +153,18 @@
             <div class="catalog-reference-grid">
                 <label>
                     Barcode
-                    <input class="form-control" name="barcode" placeholder="Scan or enter barcode">
+                    <input class="form-control" name="barcode" value="{{ old('barcode') }}" placeholder="Scan or enter barcode">
+                    <x-form-error name="barcode" />
                 </label>
                 <label>
                     OEM number
-                    <input class="form-control" name="oem_number" placeholder="OEM reference">
+                    <input class="form-control" name="oem_number" value="{{ old('oem_number') }}" placeholder="OEM reference">
+                    <x-form-error name="oem_number" />
                 </label>
                 <label>
                     Supplier code
-                    <input class="form-control" name="supplier_code" placeholder="Supplier code">
+                    <input class="form-control" name="supplier_code" value="{{ old('supplier_code') }}" placeholder="Supplier code">
+                    <x-form-error name="supplier_code" />
                 </label>
             </div>
 
@@ -146,16 +175,27 @@
                 </div>
 
                 <div class="compatibility-variant-list" data-compatibility-list>
-                    <div class="compatibility-variant-row">
-                        <input class="form-control searchable-input" name="compatible_variants[]" list="car-model-options" placeholder="Search compatible car variant">
-                        <button class="btn-secondary" type="button" data-remove-compatibility-variant>Remove</button>
-                    </div>
+                    @foreach ($selectedCompatibleCarModels as $selectedCompatibleCarModel)
+                        <div class="compatibility-variant-row">
+                            <select class="form-control" name="compatible_car_model_ids[]">
+                                <option value="">Select compatible vehicle</option>
+                                @foreach ($carModels as $carModel)
+                                    <option value="{{ $carModel['id'] }}" @selected((string) $selectedCompatibleCarModel === (string) $carModel['id'])>
+                                        {{ $carModel['label'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button class="btn-secondary" type="button" data-remove-compatibility-variant>Remove</button>
+                        </div>
+                    @endforeach
                 </div>
+                <x-form-error name="compatible_car_model_ids" />
 
                 <button class="btn-secondary compatibility-add-button" type="button" data-add-compatibility-variant>Add variant</button>
 
                 <div class="compatibility-grid">
-                    <textarea class="form-control" name="compatibility_notes" rows="3" placeholder="Fitment notes, exclusions, engine remarks, or trim differences"></textarea>
+                    <textarea class="form-control" name="compatibility_notes" rows="3" placeholder="Fitment notes, exclusions, engine remarks, or trim differences">{{ old('compatibility_notes') }}</textarea>
+                    <x-form-error name="compatibility_notes" />
                 </div>
             </div>
         </section>

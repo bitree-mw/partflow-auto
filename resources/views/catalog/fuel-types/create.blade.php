@@ -12,23 +12,23 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to part types</a>
+    <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.index') }}">Back to fuel types</a>
 @endsection
 
 @section('content')
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.part-types.store') }}">
+    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.fuel-types.store') }}">
         @csrf
 
         <div class="form-grid">
             <div class="form-field">
-                <label for="name">Part type name</label>
-                <input class="form-control" id="name" name="name" value="{{ old('name') }}" placeholder="Brake Pads" required>
+                <label for="name">Fuel type name</label>
+                <input class="form-control" id="name" name="name" value="{{ old('name') }}" placeholder="Petrol" required>
                 <x-form-error name="name" />
             </div>
 
             <div class="form-field">
-                <label for="code">Part type code</label>
-                <input class="form-control" id="code" name="code" value="{{ old('code') }}" placeholder="BP" required>
+                <label for="code">Fuel type code</label>
+                <input class="form-control" id="code" name="code" value="{{ old('code') }}" placeholder="P">
                 <x-form-error name="code" />
             </div>
 
@@ -40,7 +40,7 @@
         </div>
 
         <div class="form-actions">
-            <button class="btn" type="submit">Save part type</button>
+            <button class="btn" type="submit">Save fuel type</button>
         </div>
     </form>
 @endsection

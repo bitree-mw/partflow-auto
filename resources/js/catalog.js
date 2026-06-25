@@ -27,7 +27,7 @@ document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
             return;
         }
 
-        const input = row.querySelector('input');
+        const input = row.querySelector('input, select');
         const removeButton = row.querySelector('[data-remove-compatibility-variant]');
 
         if (input) {
