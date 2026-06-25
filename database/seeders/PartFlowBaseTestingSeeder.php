@@ -114,7 +114,12 @@ class PartFlowBaseTestingSeeder extends Seeder
                 UserSiteAccess::updateOrCreate(
                     ['user_id' => $user->id, 'site_id' => $site->id],
                     [
-                        'access_level' => $user->email === 'admin@partflow.test' ? 'admin' : 'standard',
+                        'access_level' => match ($user->role->name) {
+                            'System Administrator' => 'admin',
+                            'Stock Controller' => 'stock',
+                            'Cashier' => 'sales',
+                            default => 'view_only',
+                        },
                         'can_view_stock' => true,
                         'can_make_sales' => $user->email !== 'stock.mzuzu@partflow.test',
                         'can_receive_stock' => true,

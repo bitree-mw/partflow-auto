@@ -7,6 +7,7 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
+                'resources/css/auth.css',
                 'resources/css/back-office.css',
                 'resources/css/dashboard.css',
                 'resources/css/settings.css',
@@ -19,6 +20,7 @@ export default defineConfig({
                 'resources/css/payment-accounts.css',
                 'resources/css/pos.css',
                 'resources/js/app.js',
+                'resources/js/auth.js',
                 'resources/js/pos.js',
                 'resources/js/settings.js',
                 'resources/js/catalog.js',

@@ -179,9 +179,17 @@
         font-size: 13px;
     }
 
-    .sidebar-user b {
+    .sidebar-user button {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 0;
         color: #a69d83;
+        background: transparent;
         font-size: 16px;
+        font-weight: 900;
+        cursor: pointer;
     }
 
     .app-main {

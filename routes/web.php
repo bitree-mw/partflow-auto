@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\AdminSettingsController;
 use App\Http\Controllers\Web\AlertsController;
+use App\Http\Controllers\Web\AuthSessionController;
 use App\Http\Controllers\Web\CatalogController;
 use App\Http\Controllers\Web\ContactDirectoryController;
 use App\Http\Controllers\Web\DashboardController;
@@ -16,11 +17,20 @@ Route::get('/', function () {
     return redirect()->route('web.dashboard');
 });
 
-Route::get('/pos', [PosController::class, 'index'])->name('web.pos');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthSessionController::class, 'store'])->name('login.store');
+});
 
-// Web back-office routes are kept separate from API routes and can receive auth/role middleware as the session UI grows.
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthSessionController::class, 'destroy'])->name('logout');
+    Route::get('/pos', [PosController::class, 'index'])->name('web.pos');
+});
+
+// Web back-office routes are kept separate from API routes and receive auth/role middleware as the session UI grows.
 Route::prefix('back-office')
     ->name('web.')
+    ->middleware('auth')
     ->group(function () {
         Route::get('/', fn () => redirect()->route('web.dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

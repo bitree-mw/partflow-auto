@@ -1,4 +1,12 @@
 @php
+    $signedInUser = auth()->user();
+    $signedInRole = $signedInUser?->relationLoaded('role') ? $signedInUser->role?->name : $signedInUser?->role?->name;
+    $initials = collect(explode(' ', $signedInUser?->name ?? 'User'))
+        ->filter()
+        ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
+        ->take(2)
+        ->implode('');
+
     $icons = [
         'grid' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
         'receipt' => '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg>',
@@ -71,12 +79,13 @@
         @endforeach
     </nav>
 
-    <section class="sidebar-user" aria-label="Signed in user">
-        <span>SA</span>
+    <form class="sidebar-user" method="POST" action="{{ route('logout') }}" aria-label="Signed in user">
+        @csrf
+        <span>{{ $initials ?: 'U' }}</span>
         <div>
-            <strong>System Admin</strong>
-            <small>Admin - Active</small>
+            <strong>{{ $signedInUser?->name ?? 'Signed in user' }}</strong>
+            <small>{{ $signedInRole ?? 'User' }} - Active</small>
         </div>
-        <b aria-hidden="true">-&gt;</b>
-    </section>
+        <button type="submit" aria-label="Log out">-&gt;</button>
+    </form>
 </aside>
