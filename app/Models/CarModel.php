@@ -73,7 +73,7 @@ class CarModel extends Model
         });
     }
 
-    public function scopeMake(Builder $query, ?string $make): Builder
+    public function scopeForMake(Builder $query, ?string $make): Builder
     {
         return $query->when($make, function (Builder $query) use ($make) {
             $query->where('make', 'like', "%{$make}%");

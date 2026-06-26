@@ -12,7 +12,7 @@ class CarModelService
     {
         return CarModel::query()
             ->search($filters['search'] ?? null)
-            ->make($filters['make'] ?? null)
+            ->forMake($filters['make'] ?? null)
             ->year(isset($filters['year']) ? (int) $filters['year'] : null)
             ->engineSize($filters['engine_size'] ?? null)
             ->when(isset($filters['country_of_origin']), function ($query) use ($filters) {

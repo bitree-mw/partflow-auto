@@ -46,9 +46,7 @@ class AuthSessionController extends Controller
         $request->session()->put('partflow_api_token', $plainToken);
         $request->session()->put('partflow_api_token_id', strtok($plainToken, '|') ?: null);
 
-        return redirect()
-            ->intended(route('web.dashboard'))
-            ->with('success', 'Logged in successfully.');
+        return redirect()->intended(route('web.dashboard'));
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -60,7 +58,7 @@ class AuthSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('success', 'Logged out successfully.');
+        return redirect()->route('login');
     }
 
     private function deleteSessionApiToken(Request $request): void
