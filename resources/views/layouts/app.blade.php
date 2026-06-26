@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ trim(($title ?? 'Dashboard').' | PartFlow Auto') }}</title>
+    <title>{{ trim(($title ?? 'Dashboard').' | '.($appSystem['business_name'] ?? 'PartFlow Auto')) }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet">
     @vite([
@@ -21,7 +21,7 @@
             @include('partials.header', [
                 'title' => $title ?? 'Dashboard',
                 'description' => $description ?? null,
-                'kicker' => $kicker ?? 'Tuesday operations',
+                'kicker' => $kicker ?? ($appSystem['kicker'] ?? 'Operations'),
             ])
 
             <section class="content-shell">

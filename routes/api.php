@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CarModelController;
 use App\Http\Controllers\Api\ContactController;
@@ -43,6 +44,8 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+    Route::get('alerts', [AlertController::class, 'index']);
+    Route::get('alerts/summary', [AlertController::class, 'summary']);
 
     Route::prefix('reports')->controller(ReportController::class)->group(function () {
         Route::get('current-stock-by-site', 'currentStockBySite');

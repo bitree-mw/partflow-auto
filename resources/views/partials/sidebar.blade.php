@@ -1,6 +1,7 @@
 @php
     $signedInUser = auth()->user();
     $signedInRole = $signedInUser?->relationLoaded('role') ? $signedInUser->role?->name : $signedInUser?->role?->name;
+    $alertCount = $notificationSummary['count'] ?? 0;
     $initials = collect(explode(' ', $signedInUser?->name ?? 'User'))
         ->filter()
         ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
@@ -41,7 +42,7 @@
         ],
         'Intelligence' => [
             ['label' => 'Reports', 'icon' => 'bars', 'href' => route('web.reports.index'), 'active' => request()->routeIs('web.reports.*')],
-            ['label' => 'Alerts', 'icon' => 'bell', 'href' => route('web.alerts.index'), 'active' => request()->routeIs('web.alerts.*'), 'badge' => '4'],
+            ['label' => 'Alerts', 'icon' => 'bell', 'href' => route('web.alerts.index'), 'active' => request()->routeIs('web.alerts.*'), 'badge' => $alertCount],
         ],
         'Admin' => [
             ['label' => 'Admin settings', 'icon' => 'shield', 'href' => route('web.settings.index'), 'active' => request()->routeIs('web.settings.*')],
@@ -51,9 +52,9 @@
 
 <aside class="app-sidebar" aria-label="Primary navigation">
     <a class="brand-mark" href="{{ route('web.dashboard') }}">
-        <span>PF</span>
-        <strong>PartFlow Auto</strong>
-        <small>Auto parts operations</small>
+        <span>{{ $appSystem['business_initials'] ?? 'PF' }}</span>
+        <strong>{{ $appSystem['business_name'] ?? 'PartFlow Auto' }}</strong>
+        <small>{{ $appSystem['tagline'] ?? 'Auto parts operations' }}</small>
     </a>
 
     <nav class="sidebar-nav" aria-label="Application sections">

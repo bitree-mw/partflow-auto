@@ -33,7 +33,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($alerts as $alert)
+                    @forelse ($alerts as $alert)
                         <tr>
                             <td><strong>{{ $alert['type'] }}</strong></td>
                             <td>{{ $alert['item'] }}</td>
@@ -41,7 +41,11 @@
                             <td>{{ $alert['detail'] }}</td>
                             <td><span @class(['status-pill', $alert['priority_tone'] ?? 'neutral'])>{{ $alert['priority'] }}</span></td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="5" class="empty-state">No active alerts right now.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

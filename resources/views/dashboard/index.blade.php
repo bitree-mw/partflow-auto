@@ -1,7 +1,6 @@
 @extends('layouts.app', [
     'title' => $title,
     'description' => $description,
-    'kicker' => 'Tuesday operations',
 ])
 
 @push('styles')
@@ -14,13 +13,26 @@
 @endsection
 
 @section('content')
+    @php
+        $metrics = collect($metrics);
+        $currentSales = collect($currentSales);
+        $mostSoldParts = collect($mostSoldParts);
+        $salesTrend = collect($salesTrend);
+        $branchPerformance = collect($branchPerformance);
+        $lossRisks = collect($lossRisks);
+        $stockAlerts = collect($stockAlerts);
+        $primaryMetric = $metrics->first() ?? ['value' => 'MWK 0', 'change' => 'No sales today', 'trend' => 'neutral'];
+        $lossMetric = $metrics->get(3) ?? ['value' => 'MWK 0'];
+        $peakPart = $mostSoldParts->first() ?? ['part' => 'No sales yet', 'units' => 0];
+    @endphp
+
     <section class="dashboard-hero">
         <div>
             <span class="eyebrow">Live business pulse</span>
-            <h2>Good day, System.</h2>
+            <h2>Good day, {{ $greetingName }}.</h2>
             <p>Sales, profit, branch stock, low-stock warnings, and payment movement update from your operating records.</p>
         </div>
-        <a class="btn-secondary" href="#">Open reports</a>
+        <a class="btn-secondary" href="{{ route('web.reports.index') }}">Open reports</a>
     </section>
 
     <section class="dashboard-metrics" aria-label="Business summary">
@@ -93,17 +105,17 @@
             <div class="revenue-summary">
                 <div>
                     <span>Revenue</span>
-                    <strong>{{ $metrics[0]['value'] }}</strong>
-                    <em @class(['metric-trend', $metrics[0]['trend'] ?? 'neutral'])>{{ $metrics[0]['change'] }}</em>
+                    <strong>{{ $primaryMetric['value'] }}</strong>
+                    <em @class(['metric-trend', $primaryMetric['trend'] ?? 'neutral'])>{{ $primaryMetric['change'] }}</em>
                 </div>
                 <div>
                     <span>Peak part</span>
-                    <strong>{{ $mostSoldParts[0]['part'] }}</strong>
-                    <em>{{ $mostSoldParts[0]['units'] }} sold</em>
+                    <strong>{{ $peakPart['part'] }}</strong>
+                    <em>{{ $peakPart['units'] }} sold</em>
                 </div>
                 <div>
                     <span>Average sale</span>
-                    <strong>MWK 94K</strong>
+                    <strong>{{ $averageSale }}</strong>
                     <em>Across active tills</em>
                 </div>
             </div>
@@ -134,15 +146,15 @@
             <div class="money-cards">
                 <article>
                     <span>Incoming</span>
-                    <strong>{{ $metrics[0]['value'] }}</strong>
+                    <strong>{{ $primaryMetric['value'] }}</strong>
                 </article>
                 <article class="loss">
                     <span>Loss exposure</span>
-                    <strong>{{ $metrics[3]['value'] }}</strong>
+                    <strong>{{ $lossMetric['value'] }}</strong>
                 </article>
             </div>
             <p class="money-note">Review returns, discount leakage, and stock variance before closing the day.</p>
-            <a class="btn-secondary" href="#">View payment report</a>
+            <a class="btn-secondary" href="{{ route('web.reports.index') }}">View payment report</a>
         </article>
     </section>
 

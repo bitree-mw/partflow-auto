@@ -5,15 +5,25 @@
         @if (! empty($description))
             <p>{{ $description }}</p>
         @endif
+        <p class="header-system-context">
+            {{ $appSystem['business_name'] ?? 'PartFlow Auto' }}
+            <span>{{ $appSystem['site_name'] ?? 'All sites' }}</span>
+            <span>{{ $appSystem['currency'] ?? 'MWK' }}</span>
+        </p>
     </div>
 
     <div class="header-actions">
-        <button class="icon-action" type="button" aria-label="Refresh">
+        <button class="icon-action" type="button" aria-label="Refresh" onclick="window.location.reload()">
             <span class="refresh-glyph" aria-hidden="true"></span>
         </button>
-        <button class="icon-action notification-action" type="button" aria-label="Notifications">
+        <a
+            @class(['icon-action', 'notification-action', 'has-notifications' => ($notificationSummary['count'] ?? 0) > 0])
+            href="{{ route('web.alerts.index') }}"
+            aria-label="Notifications"
+            data-count="{{ $notificationSummary['count'] ?? 0 }}"
+        >
             <span class="alert-glyph" aria-hidden="true"></span>
-        </button>
+        </a>
 
         @hasSection('header_actions')
             @yield('header_actions')

@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'partflow' => [
+        'registration_number' => env('PARTFLOW_REGISTRATION_NUMBER', 'MW-BR-1042'),
+        'base_country' => env('PARTFLOW_BASE_COUNTRY', 'Malawi'),
+        'base_currency' => env('PARTFLOW_BASE_CURRENCY', 'MWK'),
+        'stock_costing_method' => env('PARTFLOW_STOCK_COSTING_METHOD', 'Last purchase cost'),
+        'tagline' => env('PARTFLOW_TAGLINE', 'Auto parts operations'),
+    ],
+
 ];
