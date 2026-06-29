@@ -46,6 +46,7 @@ document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
 document.querySelectorAll('[data-car-make-select]').forEach((makeSelect) => {
     const form = makeSelect.closest('form');
     const modelSelect = form?.querySelector('[data-vehicle-model-select]');
+    const yearInput = form?.querySelector('[data-model-year-input]');
 
     if (!modelSelect) {
         return;
@@ -81,6 +82,19 @@ document.querySelectorAll('[data-car-make-select]').forEach((makeSelect) => {
         modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
+    function syncYearFromModel() {
+        if (!yearInput) {
+            return;
+        }
+
+        const selectedOption = modelSelect.selectedOptions[0];
+        const modelYear = selectedOption?.dataset.year || '';
+
+        yearInput.value = modelYear;
+    }
+
     makeSelect.addEventListener('change', syncModels);
+    modelSelect.addEventListener('change', syncYearFromModel);
     syncModels();
+    syncYearFromModel();
 });

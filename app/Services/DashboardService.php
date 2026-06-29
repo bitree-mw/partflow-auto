@@ -96,6 +96,7 @@ class DashboardService
             'mostSoldParts' => $topParts,
             'salesTrend' => $salesTrend,
             'branchPerformance' => $branchPerformance,
+            'branchSalesMix' => $this->branchSalesMix($branchPerformance),
             'lossRisks' => $this->lossRisks($currency, $siteId),
             'stockAlerts' => $stockAlerts,
             'averageSale' => $this->formatCurrency(
@@ -194,6 +195,7 @@ class DashboardService
     private function stockAlerts(?int $siteId = null): Collection
     {
         return $this->dashboard->lowStockAlerts(filters: $siteId ? ['site_id' => $siteId] : [])
+            ->take(5)
             ->map(fn ($row) => [
                 'part' => $row->product_name,
                 'branch' => $row->site_name,
@@ -202,6 +204,31 @@ class DashboardService
                 'priority_tone' => ((int) $row->available_quantity <= 0) ? 'danger' : 'warning',
             ])
             ->values();
+    }
+
+    private function branchSalesMix(Collection $branchPerformance): Collection
+    {
+        $colors = ['#1f3a5f', '#4f7cad', '#7fb4d8', '#91c7a9', '#d7a75f', '#b96b6b'];
+        $totalSales = (float) $branchPerformance->sum('sales_raw');
+
+        if ($totalSales <= 0) {
+            return collect();
+        }
+
+        return $branchPerformance
+            ->filter(fn (array $branch): bool => (float) $branch['sales_raw'] > 0)
+            ->values()
+            ->map(function (array $branch, int $index) use ($totalSales, $colors): array {
+                $share = ((float) $branch['sales_raw'] / $totalSales) * 100;
+
+                return [
+                    'branch' => $branch['branch'],
+                    'sales' => $branch['sales'],
+                    'share' => round($share, 1),
+                    'color' => $colors[$index % count($colors)],
+                    'selected' => $branch['selected'],
+                ];
+            });
     }
 
     private function lossRisks(string $currency, ?int $siteId = null): Collection

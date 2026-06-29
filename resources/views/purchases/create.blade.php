@@ -124,7 +124,7 @@
                             <div class="purchase-line-top">
                                 <div class="form-field">
                                     <label for="part_{{ $lineIndex }}">Part</label>
-                                    <select class="form-control" id="part_{{ $lineIndex }}" name="items[{{ $lineIndex }}][product_id]">
+                                    <select class="form-control" id="part_{{ $lineIndex }}" name="items[{{ $lineIndex }}][product_id]" data-searchable-select>
                                         <option value="">Select part</option>
                                         @foreach ($parts as $part)
                                             <option value="{{ $part['id'] }}" @selected((string) old("items.{$lineIndex}.product_id", $lineItem['product_id'] ?? '') === (string) $part['id'])>
@@ -165,7 +165,7 @@
                         <div class="purchase-line-top">
                             <div class="form-field">
                                 <label for="part___INDEX__">Part</label>
-                                <select class="form-control" id="part___INDEX__" name="items[__INDEX__][product_id]">
+                                <select class="form-control" id="part___INDEX__" name="items[__INDEX__][product_id]" data-searchable-select>
                                     <option value="">Select part</option>
                                     @foreach ($parts as $part)
                                         <option value="{{ $part['id'] }}">{{ $part['label'] }}</option>

@@ -16,6 +16,7 @@ class VehicleModel extends Model
         'car_make_id',
         'name',
         'code',
+        'year',
         'body_style',
         'description',
         'is_active',
@@ -24,6 +25,7 @@ class VehicleModel extends Model
     protected function casts(): array
     {
         return [
+            'year' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -41,5 +43,17 @@ class VehicleModel extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        return $query->when($search, function (Builder $query) use ($search) {
+            $query->where(function (Builder $query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('body_style', 'like', "%{$search}%")
+                    ->orWhere('year', 'like', "%{$search}%");
+            });
+        });
     }
 }

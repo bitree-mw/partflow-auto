@@ -7,15 +7,20 @@ use App\Models\Brand;
 use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\FuelType;
+use App\Models\InventoryDocument;
 use App\Models\PartType;
 use App\Models\Product;
+use App\Models\Site;
+use App\Models\SiteStock;
 use App\Models\TaxProfile;
 use App\Models\VehicleModel;
 use App\Services\BrandService;
 use App\Services\CarModelService;
 use App\Services\FuelTypeService;
+use App\Services\InventoryDocumentService;
 use App\Services\PartTypeService;
 use App\Services\ProductService;
+use App\Services\SiteService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,8 +35,252 @@ class CatalogController extends Controller
         private readonly PartTypeService $partTypeService,
         private readonly ProductService $productService,
         private readonly FuelTypeService $fuelTypeService,
-        private readonly BrandService $brandService
+        private readonly BrandService $brandService,
+        private readonly SiteService $siteService,
+        private readonly InventoryDocumentService $inventoryDocumentService
     ) {}
+
+    public function siteManagement(Request $request): View
+    {
+        $filters = $request->only(['search', 'type', 'is_active']);
+        $sites = Site::query()
+            ->withCount(['siteStocks', 'sourceInventoryDocuments', 'destinationInventoryDocuments'])
+            ->withSum('siteStocks as stock_on_hand', 'quantity_on_hand')
+            ->search($filters['search'] ?? null)
+            ->type($filters['type'] ?? null)
+            ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate($this->perPage($request))
+            ->withQueryString()
+            ->through(fn (Site $site): array => [
+                'id' => $site->id,
+                'name' => $site->name,
+                'code' => $site->code,
+                'type' => str($site->type)->headline()->toString(),
+                'location' => $site->location ?: 'Not set',
+                'stock_items' => $site->site_stocks_count ?? 0,
+                'stock_on_hand' => (int) ($site->stock_on_hand ?? 0),
+                'documents' => ($site->source_inventory_documents_count ?? 0) + ($site->destination_inventory_documents_count ?? 0),
+                'is_active' => (bool) $site->is_active,
+                'status' => $site->is_active ? 'Active' : 'Inactive',
+            ]);
+
+        $siteOptions = $this->siteOptions($this->siteService->list(['is_active' => true]));
+        $productOptions = $this->productOptions($this->productService->list(['is_active' => true]));
+
+        return view('catalog.sites.index', [
+            'title' => 'Site Management',
+            'description' => 'Manage warehouses, branches, stock transfers, and stock takes.',
+            'sites' => $sites,
+            'filters' => $filters,
+            'summary' => [
+                ['label' => 'Active sites', 'value' => (string) Site::query()->active()->count(), 'detail' => 'Branches, shops, and warehouses'],
+                ['label' => 'Warehouses', 'value' => (string) Site::query()->active()->where('type', 'warehouse')->count(), 'detail' => 'Stock storage locations'],
+                ['label' => 'Transfer docs', 'value' => (string) $this->inventoryDocumentService->listByType('transfer')->count(), 'detail' => 'Stock movement records'],
+                ['label' => 'Stock takes', 'value' => (string) $this->inventoryDocumentService->listByType('stock_take')->count(), 'detail' => 'Count and variance records'],
+            ],
+        ]);
+    }
+
+    public function createSite(): View
+    {
+        return view('catalog.sites.create', [
+            'title' => 'Add Site',
+            'description' => 'Create a branch, shop, or warehouse used for stock, transfers, and stock counts.',
+            'siteTypes' => ['shop' => 'Shop', 'branch' => 'Branch', 'warehouse' => 'Warehouse'],
+        ]);
+    }
+
+    public function storeSite(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:sites,name'],
+            'code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/', 'unique:sites,code'],
+            'type' => ['required', 'string', 'in:shop,branch,warehouse'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ], [
+            'code.regex' => 'The site code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        $validated['code'] = filled($validated['code'] ?? null)
+            ? strtoupper($validated['code'])
+            : $this->uniqueSiteCode($validated['name']);
+
+        $this->siteService->create($validated);
+
+        return redirect()
+            ->route('web.catalog.sites.index')
+            ->with('success', 'Site added successfully.');
+    }
+
+    public function siteTransfers(Request $request): View
+    {
+        $transfers = $this->siteDocumentQuery('transfer', $request)
+            ->paginate($this->perPage($request))
+            ->withQueryString()
+            ->through(fn (InventoryDocument $document): array => $this->siteDocumentRow($document));
+
+        return view('catalog.sites.transfers.index', [
+            'title' => 'Stock Transfers',
+            'description' => 'View completed stock movement between sites.',
+            'documents' => $transfers,
+            'filters' => $request->only(['search', 'site_id']),
+            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+        ]);
+    }
+
+    public function createSiteTransfer(): View
+    {
+        return view('catalog.sites.transfers.create', [
+            'title' => 'New Stock Transfer',
+            'description' => 'Move multiple parts from one site to another in one transaction.',
+            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'productOptions' => $this->productOptions($this->productService->list(['is_active' => true])),
+            'stockAvailability' => $this->stockAvailabilityMap(),
+        ]);
+    }
+
+    public function storeSiteTransfer(Request $request): RedirectResponse
+    {
+        $validated = Validator::make($request->all(), [
+            'source_site_id' => ['required', 'integer', 'exists:sites,id', 'different:destination_site_id'],
+            'destination_site_id' => ['required', 'integer', 'exists:sites,id'],
+            'document_date' => ['nullable', 'date'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'notes' => ['nullable', 'string'],
+        ])->after(function ($validator) use ($request): void {
+            $sourceSiteId = (int) $request->input('source_site_id');
+            $items = collect($request->input('items', []))
+                ->filter(fn ($item): bool => filled($item['product_id'] ?? null) && filled($item['quantity'] ?? null));
+
+            if ($sourceSiteId <= 0 || $items->isEmpty()) {
+                return;
+            }
+
+            $requestedByProduct = $items
+                ->groupBy(fn ($item): int => (int) $item['product_id'])
+                ->map(fn ($rows): int => $rows->sum(fn ($row): int => (int) $row['quantity']));
+
+            $stocks = SiteStock::query()
+                ->with('product')
+                ->where('site_id', $sourceSiteId)
+                ->whereIn('product_id', $requestedByProduct->keys())
+                ->get()
+                ->keyBy('product_id');
+
+            foreach ($items as $index => $item) {
+                $productId = (int) $item['product_id'];
+                $available = (int) ($stocks->get($productId)?->available_quantity ?? 0);
+                $requested = (int) $requestedByProduct->get($productId, 0);
+
+                if ($requested > $available) {
+                    $productName = $stocks->get($productId)?->product?->product_name ?? 'This part';
+                    $validator->errors()->add(
+                        "items.{$index}.quantity",
+                        "{$productName} has {$available} available at the source site."
+                    );
+                }
+            }
+        })->validate();
+
+        $document = $this->inventoryDocumentService->createTransfer([
+            'source_site_id' => $validated['source_site_id'],
+            'destination_site_id' => $validated['destination_site_id'],
+            'document_date' => $validated['document_date'] ?? now(),
+            'status' => 'completed',
+            'notes' => $validated['notes'] ?? null,
+            'items' => collect($validated['items'])->map(fn (array $item): array => [
+                'product_id' => (int) $item['product_id'],
+                'quantity' => (int) $item['quantity'],
+            ])->values()->all(),
+        ], $request->user());
+
+        return redirect()
+            ->route('web.catalog.sites.transfers.show', $document)
+            ->with('success', 'Stock transferred successfully.');
+    }
+
+    public function showSiteTransfer(InventoryDocument $inventoryDocument): View
+    {
+        $document = $this->siteDocumentOrFail($inventoryDocument, 'transfer');
+
+        return view('catalog.sites.transfers.show', [
+            'title' => $document->document_number,
+            'description' => 'Stock transfer details and moved line items.',
+            'document' => $document,
+        ]);
+    }
+
+    public function siteStockTakes(Request $request): View
+    {
+        $stockTakes = $this->siteDocumentQuery('stock_take', $request)
+            ->paginate($this->perPage($request))
+            ->withQueryString()
+            ->through(fn (InventoryDocument $document): array => $this->siteDocumentRow($document));
+
+        return view('catalog.sites.stock-takes.index', [
+            'title' => 'Stock Takes',
+            'description' => 'Review stock counts, system quantities, and variances.',
+            'documents' => $stockTakes,
+            'filters' => $request->only(['search', 'site_id']),
+            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+        ]);
+    }
+
+    public function createSiteStockTake(): View
+    {
+        return view('catalog.sites.stock-takes.create', [
+            'title' => 'New Stock Take',
+            'description' => 'Count multiple parts at a site and let the system report any variances.',
+            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'productOptions' => $this->productOptions($this->productService->list(['is_active' => true])),
+            'stockAvailability' => $this->stockAvailabilityMap(),
+        ]);
+    }
+
+    public function storeSiteStockTake(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'site_id' => ['required', 'integer', 'exists:sites,id'],
+            'document_date' => ['nullable', 'date'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,id'],
+            'items.*.counted_quantity' => ['required', 'integer', 'min:0'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $document = $this->inventoryDocumentService->createStockTake([
+            'site_id' => $validated['site_id'],
+            'document_date' => $validated['document_date'] ?? now(),
+            'status' => 'approved',
+            'notes' => $validated['notes'] ?? null,
+            'items' => collect($validated['items'])->map(fn (array $item): array => [
+                'product_id' => (int) $item['product_id'],
+                'counted_quantity' => (int) $item['counted_quantity'],
+            ])->values()->all(),
+        ], $request->user());
+
+        return redirect()
+            ->route('web.catalog.sites.stock-takes.show', $document)
+            ->with('success', 'Stock take saved successfully.');
+    }
+
+    public function showSiteStockTake(InventoryDocument $inventoryDocument): View
+    {
+        $document = $this->siteDocumentOrFail($inventoryDocument, 'stock_take');
+
+        return view('catalog.sites.stock-takes.show', [
+            'title' => $document->document_number,
+            'description' => 'Stock take variance report.',
+            'document' => $document,
+            'varianceCount' => $document->items->where('variance_quantity', '!=', 0)->count(),
+        ]);
+    }
 
     public function carModels(Request $request): View
     {
@@ -84,18 +333,18 @@ class CatalogController extends Controller
         $validated = Validator::make($request->all(), [
             'car_make_id' => ['required', 'integer', 'exists:car_makes,id'],
             'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
-            'year' => ['required', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
-            'engine_size' => ['nullable', 'string', 'max:50'],
+            'year' => ['nullable', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
+            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20'],
             'variant_name' => ['nullable', 'string', 'max:100'],
             'country_of_origin' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
         ])->after(function ($validator) use ($request): void {
-            $modelBelongsToMake = VehicleModel::query()
+            $vehicleModel = VehicleModel::query()
                 ->whereKey($request->input('vehicle_model_id'))
                 ->where('car_make_id', $request->input('car_make_id'))
-                ->exists();
+                ->first();
 
-            if (! $modelBelongsToMake) {
+            if (! $vehicleModel) {
                 $validator->errors()->add(
                     'vehicle_model_id',
                     'Choose a model that belongs to the selected make.'
@@ -104,11 +353,20 @@ class CatalogController extends Controller
                 return;
             }
 
+            $year = $vehicleModel->year ?: $request->input('year');
+            $engineSize = $this->normalizeEngineSize($request->input('engine_size'));
+
+            if (! $year) {
+                $validator->errors()->add('year', 'Choose a model with a year or provide a year.');
+
+                return;
+            }
+
             $exists = CarModel::query()
                 ->where('car_make_id', $request->input('car_make_id'))
                 ->where('vehicle_model_id', $request->input('vehicle_model_id'))
-                ->where('year', $request->input('year'))
-                ->where('engine_size', $request->input('engine_size'))
+                ->where('year', $year)
+                ->where('engine_size', $engineSize)
                 ->where('variant_name', $request->input('variant_name'))
                 ->where('country_of_origin', $request->input('country_of_origin'))
                 ->exists();
@@ -120,6 +378,10 @@ class CatalogController extends Controller
                 );
             }
         })->validate();
+
+        $vehicleModel = VehicleModel::query()->find($validated['vehicle_model_id']);
+        $validated['year'] = $vehicleModel?->year ?: ($validated['year'] ?? null);
+        $validated['engine_size'] = $this->normalizeEngineSize($validated['engine_size'] ?? null);
 
         $this->carModelService->create($validated);
 
@@ -145,20 +407,29 @@ class CatalogController extends Controller
         $validated = Validator::make($request->all(), [
             'car_make_id' => ['required', 'integer', 'exists:car_makes,id'],
             'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
-            'year' => ['required', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
-            'engine_size' => ['nullable', 'string', 'max:50'],
+            'year' => ['nullable', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
+            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20'],
             'variant_name' => ['nullable', 'string', 'max:100'],
             'country_of_origin' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ])->after(function ($validator) use ($request, $carModel): void {
-            $modelBelongsToMake = VehicleModel::query()
+            $vehicleModel = VehicleModel::query()
                 ->whereKey($request->input('vehicle_model_id'))
                 ->where('car_make_id', $request->input('car_make_id'))
-                ->exists();
+                ->first();
 
-            if (! $modelBelongsToMake) {
+            if (! $vehicleModel) {
                 $validator->errors()->add('vehicle_model_id', 'Choose a model that belongs to the selected make.');
+
+                return;
+            }
+
+            $year = $vehicleModel->year ?: $request->input('year');
+            $engineSize = $this->normalizeEngineSize($request->input('engine_size'));
+
+            if (! $year) {
+                $validator->errors()->add('year', 'Choose a model with a year or provide a year.');
 
                 return;
             }
@@ -167,8 +438,8 @@ class CatalogController extends Controller
                 ->whereKeyNot($carModel->id)
                 ->where('car_make_id', $request->input('car_make_id'))
                 ->where('vehicle_model_id', $request->input('vehicle_model_id'))
-                ->where('year', $request->input('year'))
-                ->where('engine_size', $request->input('engine_size'))
+                ->where('year', $year)
+                ->where('engine_size', $engineSize)
                 ->where('variant_name', $request->input('variant_name'))
                 ->where('country_of_origin', $request->input('country_of_origin'))
                 ->exists();
@@ -181,6 +452,9 @@ class CatalogController extends Controller
             }
         })->validate();
 
+        $vehicleModel = VehicleModel::query()->find($validated['vehicle_model_id']);
+        $validated['year'] = $vehicleModel?->year ?: ($validated['year'] ?? null);
+        $validated['engine_size'] = $this->normalizeEngineSize($validated['engine_size'] ?? null);
         $validated['is_active'] = $request->boolean('is_active');
 
         if (! $validated['is_active'] && ($carModel->products()->exists() || $carModel->compatibleProducts()->exists())) {
@@ -736,6 +1010,81 @@ class CatalogController extends Controller
         }
     }
 
+    private function siteDocumentQuery(string $documentType, Request $request)
+    {
+        $filters = $request->only(['search', 'site_id']);
+
+        return InventoryDocument::query()
+            ->with(['sourceSite', 'destinationSite', 'items.product'])
+            ->withCount('items')
+            ->type($documentType)
+            ->forSite(filled($filters['site_id'] ?? null) ? (int) $filters['site_id'] : null)
+            ->when($filters['search'] ?? null, function ($query, string $search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('document_number', 'like', "%{$search}%")
+                        ->orWhereHas('items.product', fn ($query) => $query->where('product_name', 'like', "%{$search}%"));
+                });
+            })
+            ->latest('document_date')
+            ->latest('id');
+    }
+
+    private function siteDocumentRow(InventoryDocument $document): array
+    {
+        return [
+            'id' => $document->id,
+            'number' => $document->document_number,
+            'date' => $document->document_date?->format('M j, Y') ?? 'Not dated',
+            'source' => $document->sourceSite?->name ?? 'Not set',
+            'destination' => $document->destinationSite?->name ?? 'Not set',
+            'items' => $document->items_count ?? $document->items->count(),
+            'units' => (int) $document->items->sum('quantity'),
+            'variance_count' => $document->items->where('variance_quantity', '!=', 0)->count(),
+            'status' => str($document->status)->headline()->toString(),
+        ];
+    }
+
+    private function siteDocumentOrFail(InventoryDocument $document, string $type): InventoryDocument
+    {
+        abort_unless($document->document_type === $type, 404);
+
+        return $this->inventoryDocumentService->show($document);
+    }
+
+    private function stockAvailabilityMap(): array
+    {
+        return SiteStock::query()
+            ->get()
+            ->groupBy('site_id')
+            ->map(fn (Collection $stocks): array => $stocks
+                ->mapWithKeys(fn (SiteStock $stock): array => [
+                    $stock->product_id => [
+                        'on_hand' => $stock->quantity_on_hand,
+                        'available' => $stock->available_quantity,
+                    ],
+                ])
+                ->all())
+            ->all();
+    }
+
+    private function uniqueSiteCode(string $name): string
+    {
+        $base = str($name)
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]+/', '')
+            ->substr(0, 6)
+            ->toString() ?: 'SITE';
+        $code = $base;
+        $counter = 1;
+
+        while (Site::query()->where('code', $code)->exists()) {
+            $code = $base.str_pad((string) $counter, 2, '0', STR_PAD_LEFT);
+            $counter++;
+        }
+
+        return $code;
+    }
+
     private function carModelRows(Collection $carModels): array
     {
         return $carModels
@@ -783,7 +1132,8 @@ class CatalogController extends Controller
             ->map(fn (VehicleModel $model): array => [
                 'id' => $model->id,
                 'car_make_id' => $model->car_make_id,
-                'label' => $model->name,
+                'label' => $model->year ? "{$model->name} ({$model->year})" : $model->name,
+                'year' => $model->year,
                 'body_style' => $model->body_style,
             ])
             ->all();
@@ -940,6 +1290,26 @@ class CatalogController extends Controller
             ->all();
     }
 
+    private function siteOptions(Collection $sites): array
+    {
+        return $sites
+            ->map(fn (Site $site): array => [
+                'id' => $site->id,
+                'label' => "{$site->name} ({$site->code})",
+            ])
+            ->all();
+    }
+
+    private function productOptions(Collection $products): array
+    {
+        return $products
+            ->map(fn (Product $product): array => [
+                'id' => $product->id,
+                'label' => "{$product->product_name} ({$product->product_code})",
+            ])
+            ->all();
+    }
+
     private function taxProfileOptions(): array
     {
         return TaxProfile::query()
@@ -969,6 +1339,19 @@ class CatalogController extends Controller
         ])
             ->filter()
             ->join(' ');
+    }
+
+    private function normalizeEngineSize(mixed $engineSize): ?string
+    {
+        $value = trim((string) $engineSize);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $number = rtrim(rtrim(number_format((float) $value, 1, '.', ''), '0'), '.');
+
+        return $number === '' ? null : "{$number}L";
     }
 
     private function money(float $amount): string

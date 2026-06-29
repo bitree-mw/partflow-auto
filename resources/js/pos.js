@@ -50,7 +50,7 @@ function productSearchText(product) {
 function activeFilterValues() {
     return filters
         .map((filter) => filter.value)
-        .filter((value) => value && !value.startsWith('All'))
+        .filter((value) => value)
         .map((value) => value.toLowerCase());
 }
 
@@ -211,6 +211,7 @@ if (searchInput) {
 }
 
 filters.forEach((filter) => {
+    filter.addEventListener('input', filterResults);
     filter.addEventListener('change', filterResults);
 });
 
@@ -235,7 +236,7 @@ if (resetSearch) {
     resetSearch.addEventListener('click', () => {
         searchInput.value = '';
         filters.forEach((filter) => {
-            filter.selectedIndex = 0;
+            filter.value = '';
         });
         filterResults();
         searchInput.focus();

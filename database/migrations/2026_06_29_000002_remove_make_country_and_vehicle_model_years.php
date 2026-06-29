@@ -22,6 +22,10 @@ return new class extends Migration
             if (Schema::hasColumn('vehicle_models', 'end_year')) {
                 $table->dropColumn('end_year');
             }
+
+            if (! Schema::hasColumn('vehicle_models', 'year')) {
+                $table->unsignedSmallInteger('year')->nullable()->after('code');
+            }
         });
     }
 
@@ -40,6 +44,10 @@ return new class extends Migration
 
             if (! Schema::hasColumn('vehicle_models', 'end_year')) {
                 $table->year('end_year')->nullable()->after('start_year');
+            }
+
+            if (Schema::hasColumn('vehicle_models', 'year')) {
+                $table->dropColumn('year');
             }
         });
     }

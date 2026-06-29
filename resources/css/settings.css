@@ -222,6 +222,10 @@
         gap: 16px;
     }
 
+    .vehicle-library-grid.single {
+        grid-template-columns: 1fr;
+    }
+
     .vehicle-library-grid > section {
         display: grid;
         align-content: start;

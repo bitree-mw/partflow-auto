@@ -32,7 +32,7 @@
             <div class="form-grid">
                 <div class="form-field">
                     <label for="car_model_id">Main car model</label>
-                    <select class="form-control" id="car_model_id" name="car_model_id" required>
+                    <select class="form-control" id="car_model_id" name="car_model_id" data-searchable-select required>
                         <option value="">Select vehicle fitment</option>
                         @foreach ($carModels as $carModel)
                             <option value="{{ $carModel['id'] }}" @selected((string) old('car_model_id') === (string) $carModel['id'])>
@@ -45,7 +45,7 @@
 
                 <div class="form-field">
                     <label for="part_type_id">Part type</label>
-                    <select class="form-control" id="part_type_id" name="part_type_id" required>
+                    <select class="form-control" id="part_type_id" name="part_type_id" data-searchable-select required>
                         <option value="">Select part type</option>
                         @foreach ($partTypes as $partType)
                             <option value="{{ $partType['id'] }}" @selected((string) old('part_type_id') === (string) $partType['id'])>
@@ -94,7 +94,7 @@
 
                 <div class="form-field">
                     <label for="brand_id">Brand</label>
-                    <select class="form-control" id="brand_id" name="brand_id">
+                    <select class="form-control" id="brand_id" name="brand_id" data-searchable-select>
                         <option value="">No brand selected</option>
                         @foreach ($brands as $brand)
                             <option value="{{ $brand['id'] }}" @selected((string) old('brand_id') === (string) $brand['id'])>
@@ -161,7 +161,7 @@
                 <div class="compatibility-variant-list" data-compatibility-list>
                     @foreach ($selectedCompatibleCarModels as $selectedCompatibleCarModel)
                         <div class="compatibility-variant-row">
-                            <select class="form-control" name="compatible_car_model_ids[]">
+                            <select class="form-control" name="compatible_car_model_ids[]" data-searchable-select>
                                 <option value="">Select compatible vehicle</option>
                                 @foreach ($carModels as $carModel)
                                     <option value="{{ $carModel['id'] }}" @selected((string) $selectedCompatibleCarModel === (string) $carModel['id'])>

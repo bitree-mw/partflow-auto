@@ -54,8 +54,8 @@
                     <input id="part-search" type="search" value="" placeholder="Search part, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by part, code, barcode, vehicle, or OEM">
                 </label>
 
-                <input class="searchable-input" data-pos-filter list="pos-vehicle-options" value="All vehicles" aria-label="Filter products by vehicle">
-                <input class="searchable-input" data-pos-filter list="pos-part-type-options" value="All part types" aria-label="Filter products by part type">
+                <input class="searchable-input" data-pos-filter list="pos-vehicle-options" value="" placeholder="All vehicles" aria-label="Filter products by vehicle">
+                <input class="searchable-input" data-pos-filter list="pos-part-type-options" value="" placeholder="All part types" aria-label="Filter products by part type">
             </div>
 
             <div class="quick-row" aria-label="Quick search chips">

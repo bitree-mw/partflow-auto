@@ -33,12 +33,12 @@
         'Operations' => [
             ['label' => 'Sales', 'icon' => 'trend', 'href' => route('web.sales.index'), 'active' => request()->routeIs('web.sales.*')],
             ['label' => 'Purchases', 'icon' => 'basket', 'href' => route('web.purchases.index'), 'active' => request()->routeIs('web.purchases.*')],
-            ['label' => 'Payment accounts', 'icon' => 'wallet', 'href' => route('web.payment-accounts.index'), 'active' => request()->routeIs('web.payment-accounts.*')],
             ['label' => 'Customers', 'icon' => 'users', 'href' => route('web.customers.index'), 'active' => request()->routeIs('web.customers.*')],
             ['label' => 'Suppliers', 'icon' => 'truck', 'href' => route('web.suppliers.index'), 'active' => request()->routeIs('web.suppliers.*')],
         ],
         'Catalogue' => [
-            ['label' => 'Parts catalogue', 'icon' => 'parts', 'href' => route('web.catalog.products.index'), 'active' => request()->routeIs('web.catalog.*')],
+            ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*')],
+            ['label' => 'Parts catalogue', 'icon' => 'parts', 'href' => route('web.catalog.products.index'), 'active' => request()->routeIs('web.catalog.*') && ! request()->routeIs('web.catalog.sites.*')],
         ],
         'Intelligence' => [
             ['label' => 'Reports', 'icon' => 'bars', 'href' => route('web.reports.index'), 'active' => request()->routeIs('web.reports.*')],

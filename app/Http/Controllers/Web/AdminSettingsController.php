@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
 use App\Models\CarMake;
+use App\Models\PaymentAccount;
 use App\Models\Role;
 use App\Models\Site;
 use App\Models\User;
@@ -28,12 +29,11 @@ class AdminSettingsController extends Controller
     {
         return view('settings.index', [
             'title' => 'Application Settings',
-            'description' => 'Configure company identity, sites, users, document numbering, and stock operation defaults.',
+            'description' => 'Configure company identity, users, document numbering, and stock operation defaults.',
             'settings' => $this->systemConfiguration->settings(),
             'sites' => $this->systemConfiguration->sites(),
             'countries' => config('countries'),
             'currencies' => ['MWK', 'USD', 'ZAR', 'EUR', 'GBP', 'JPY', 'CNY', 'AED'],
-            'siteTypes' => ['shop' => 'Shop', 'branch' => 'Branch', 'warehouse' => 'Warehouse'],
             'costingMethods' => ['Last purchase cost', 'Weighted average cost', 'Manual standard cost'],
             'documentSeries' => $this->systemConfiguration->documentSeries(),
             'roles' => $this->systemConfiguration->roles(),
@@ -41,7 +41,86 @@ class AdminSettingsController extends Controller
             'carMakes' => $this->carMakes($request),
             'vehicleModels' => $this->vehicleModels($request),
             'carMakeOptions' => $this->carMakeOptions(),
+            'paymentAccounts' => $this->paymentAccounts($request),
+            'accountTypes' => $this->accountTypes(),
         ]);
+    }
+
+    public function showVehicleMake(Request $request, CarMake $carMake): View
+    {
+        $filters = $request->only('search', 'is_active');
+        $models = $carMake->vehicleModels()
+            ->search($filters['search'] ?? null)
+            ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
+            ->withCount('carModels')
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (VehicleModel $model): array => $this->vehicleModelRow($model));
+
+        return view('settings.vehicle-make', [
+            'title' => $carMake->name,
+            'description' => 'Manage model dropdowns for this make.',
+            'carMake' => $carMake,
+            'models' => $models,
+            'filters' => $filters,
+        ]);
+    }
+
+    public function storeVehicleModelForMake(Request $request, CarMake $carMake): RedirectResponse
+    {
+        $validated = $request->validate($this->vehicleModelRules($carMake->id, null, $request->integer('vehicle_year') ?: null), [
+            'vehicle_model_code.regex' => 'The model code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        VehicleModel::query()->create([
+            'car_make_id' => $carMake->id,
+            'name' => $validated['vehicle_model_name'],
+            'code' => $this->uniqueVehicleModelCode($carMake->id, $validated['vehicle_model_code'] ?? null, $validated['vehicle_model_name']),
+            'year' => $validated['vehicle_year'] ?? null,
+            'body_style' => $validated['vehicle_body_style'] ?? null,
+            'description' => $validated['vehicle_model_description'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return redirect()
+            ->route('web.settings.vehicle-makes.show', $carMake)
+            ->with('success', 'Vehicle model added successfully.');
+    }
+
+    public function updateVehicleModelForMake(Request $request, VehicleModel $vehicleModel): RedirectResponse
+    {
+        $validated = $request->validate($this->vehicleModelRules($vehicleModel->car_make_id, $vehicleModel, $request->integer('vehicle_year') ?: null), [
+            'vehicle_model_code.regex' => 'The model code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        $vehicleModel->update([
+            'name' => $validated['vehicle_model_name'],
+            'code' => $this->uniqueVehicleModelCodeForUpdate($vehicleModel, $vehicleModel->car_make_id, $validated['vehicle_model_code'] ?? null, $validated['vehicle_model_name']),
+            'year' => $validated['vehicle_year'] ?? null,
+            'body_style' => $validated['vehicle_body_style'] ?? null,
+            'description' => $validated['vehicle_model_description'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('web.settings.vehicle-makes.show', $vehicleModel->car_make_id)
+            ->with('success', 'Vehicle model updated successfully.');
+    }
+
+    public function deactivateVehicleModelForMake(VehicleModel $vehicleModel): RedirectResponse
+    {
+        if ($vehicleModel->carModels()->exists()) {
+            return redirect()
+                ->route('web.settings.vehicle-makes.show', $vehicleModel->car_make_id)
+                ->with('error', 'This vehicle model is linked to fitments and cannot be made inactive.');
+        }
+
+        $vehicleModel->update(['is_active' => false]);
+
+        return redirect()
+            ->route('web.settings.vehicle-makes.show', $vehicleModel->car_make_id)
+            ->with('success', 'Vehicle model marked inactive.');
     }
 
     public function update(Request $request): RedirectResponse
@@ -49,7 +128,6 @@ class AdminSettingsController extends Controller
         $action = $request->input('settings_action', 'save_settings');
 
         return match ($action) {
-            'create_site' => $this->createSite($request),
             'create_document_series' => $this->createDocumentSeries($request),
             'create_user' => $this->createUser($request),
             'create_car_make' => $this->createCarMake($request),
@@ -81,28 +159,6 @@ class AdminSettingsController extends Controller
             ->each(fn (mixed $value, string $key): BusinessSetting => $this->putSetting($key, $value));
 
         return $this->settingsRedirect($validated['settings_panel'] ?? 'company-profile', 'Settings saved successfully.');
-    }
-
-    private function createSite(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'site_name' => ['required', 'string', 'max:255', 'unique:sites,name'],
-            'site_type' => ['required', 'string', 'in:shop,branch,warehouse'],
-            'site_city' => ['nullable', 'string', 'max:255'],
-            'site_country' => ['nullable', 'string', 'max:255'],
-            'settings_panel' => ['nullable', 'string', 'max:80'],
-        ]);
-
-        Site::query()->create([
-            'name' => $validated['site_name'],
-            'code' => $this->uniqueSiteCode($validated['site_name']),
-            'type' => $validated['site_type'],
-            'location' => $validated['site_city'] ?? null,
-            'address' => $validated['site_country'] ?? null,
-            'is_active' => true,
-        ]);
-
-        return $this->settingsRedirect('company-sites', 'Site added successfully.');
     }
 
     private function createDocumentSeries(Request $request): RedirectResponse
@@ -216,6 +272,7 @@ class AdminSettingsController extends Controller
                 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('vehicle_models', 'code')->where('car_make_id', $make?->id),
             ],
+            'vehicle_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
             'vehicle_body_style' => ['nullable', 'string', 'max:100'],
             'vehicle_model_description' => ['nullable', 'string'],
             'settings_panel' => ['nullable', 'string', 'max:80'],
@@ -231,6 +288,7 @@ class AdminSettingsController extends Controller
                 $validated['vehicle_model_code'] ?? null,
                 $validated['vehicle_model_name']
             ),
+            'year' => $validated['vehicle_year'] ?? null,
             'body_style' => $validated['vehicle_body_style'] ?? null,
             'description' => $validated['vehicle_model_description'] ?? null,
             'is_active' => true,
@@ -296,6 +354,7 @@ class AdminSettingsController extends Controller
                 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('vehicle_models', 'code')->where('car_make_id', $make?->id)->ignore($model->id),
             ],
+            'edit_vehicle_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
             'edit_vehicle_body_style' => ['nullable', 'string', 'max:100'],
             'edit_vehicle_model_description' => ['nullable', 'string'],
         ], [
@@ -311,6 +370,7 @@ class AdminSettingsController extends Controller
                 $validated['edit_vehicle_model_code'] ?? null,
                 $validated['edit_vehicle_model_name']
             ),
+            'year' => $validated['edit_vehicle_year'] ?? null,
             'body_style' => $validated['edit_vehicle_body_style'] ?? null,
             'description' => $validated['edit_vehicle_model_description'] ?? null,
         ]);
@@ -351,29 +411,15 @@ class AdminSettingsController extends Controller
             ->with('settings_panel', $panel);
     }
 
-    private function uniqueSiteCode(string $name): string
-    {
-        $base = Str::of($name)
-            ->upper()
-            ->replaceMatches('/[^A-Z0-9]+/', '')
-            ->substr(0, 6)
-            ->toString() ?: 'SITE';
-
-        $code = $base;
-        $suffix = 1;
-
-        while (Site::query()->where('code', $code)->exists()) {
-            $code = $base.str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
-            $suffix++;
-        }
-
-        return $code;
-    }
-
     private function carMakes(Request $request)
     {
+        $search = $request->query('vehicle_search');
+
         return CarMake::query()
             ->withCount('vehicleModels')
+            ->when($search, fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")))
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(8, ['*'], 'makes_page')
@@ -405,6 +451,7 @@ class AdminSettingsController extends Controller
                 'make' => $model->carMake?->name ?? 'Unknown make',
                 'name' => $model->name,
                 'code' => $model->code,
+                'year' => $model->year ?: 'Not set',
                 'body_style' => $model->body_style ?: 'Not set',
                 'description' => $model->description ?: '',
                 'is_active' => (bool) $model->is_active,
@@ -423,6 +470,69 @@ class AdminSettingsController extends Controller
                 'name' => $make->name,
             ])
             ->all();
+    }
+
+    private function paymentAccounts(Request $request)
+    {
+        return PaymentAccount::query()
+            ->when($request->query('payment_search'), fn ($query, $search) => $query
+                ->where('account_name', 'like', "%{$search}%")
+                ->orWhere('account_holder_name', 'like', "%{$search}%"))
+            ->orderByDesc('is_active')
+            ->orderBy('account_name')
+            ->paginate(8, ['*'], 'payment_page')
+            ->withQueryString()
+            ->fragment('payment-accounts');
+    }
+
+    private function accountTypes(): array
+    {
+        return [
+            'cash' => 'Cash',
+            'bank' => 'Bank',
+            'mobile_money' => 'Mobile Money',
+            'card' => 'Card',
+        ];
+    }
+
+    private function vehicleModelRules(int $makeId, ?VehicleModel $model = null, ?int $year = null): array
+    {
+        return [
+            'vehicle_model_name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('vehicle_models', 'name')
+                    ->where('car_make_id', $makeId)
+                    ->where('year', $year)
+                    ->ignore($model?->id),
+            ],
+            'vehicle_model_code' => [
+                'nullable',
+                'string',
+                'max:20',
+                'regex:/^[A-Za-z0-9\-]+$/',
+                Rule::unique('vehicle_models', 'code')->where('car_make_id', $makeId)->ignore($model?->id),
+            ],
+            'vehicle_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
+            'vehicle_body_style' => ['nullable', 'string', 'max:100'],
+            'vehicle_model_description' => ['nullable', 'string'],
+        ];
+    }
+
+    private function vehicleModelRow(VehicleModel $model): array
+    {
+        return [
+            'id' => $model->id,
+            'name' => $model->name,
+            'code' => $model->code,
+            'year' => $model->year ?: 'Not set',
+            'body_style' => $model->body_style ?: 'Not set',
+            'description' => $model->description ?: '',
+            'linked_fitments' => $model->car_models_count ?? 0,
+            'is_active' => (bool) $model->is_active,
+            'status' => $model->is_active ? 'Active' : 'Inactive',
+        ];
     }
 
     private function makeCode(?string $code, string $name, int $length): string

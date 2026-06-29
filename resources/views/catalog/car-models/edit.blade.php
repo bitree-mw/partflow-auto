@@ -17,6 +17,10 @@
 
 @section('content')
     <x-country-datalist id="car-model-origin-countries" :countries="$countries" />
+    @php
+        $engineSizeValue = old('engine_size', $carModel->engine_size);
+        $engineSizeValue = $engineSizeValue ? preg_replace('/[^0-9.]/', '', $engineSizeValue) : '';
+    @endphp
 
     <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.update', $carModel) }}">
         @csrf
@@ -27,7 +31,7 @@
             <div class="form-grid">
                 <div class="form-field">
                     <label for="car_make_id">Make</label>
-                    <select class="form-control" id="car_make_id" name="car_make_id" data-car-make-select required>
+                    <select class="form-control" id="car_make_id" name="car_make_id" data-car-make-select data-searchable-select required>
                         <option value="">Select make</option>
                         @foreach ($carMakes as $make)
                             <option value="{{ $make['id'] }}" @selected((string) old('car_make_id', $carModel->car_make_id) === (string) $make['id'])>
@@ -40,10 +44,10 @@
 
                 <div class="form-field">
                     <label for="vehicle_model_id">Model</label>
-                    <select class="form-control" id="vehicle_model_id" name="vehicle_model_id" data-vehicle-model-select required>
+                    <select class="form-control" id="vehicle_model_id" name="vehicle_model_id" data-vehicle-model-select data-searchable-select required>
                         <option value="">Select make first</option>
                         @foreach ($vehicleModels as $model)
-                            <option value="{{ $model['id'] }}" data-car-make-id="{{ $model['car_make_id'] }}" @selected((string) old('vehicle_model_id', $carModel->vehicle_model_id) === (string) $model['id'])>
+                            <option value="{{ $model['id'] }}" data-car-make-id="{{ $model['car_make_id'] }}" data-year="{{ $model['year'] ?? '' }}" @selected((string) old('vehicle_model_id', $carModel->vehicle_model_id) === (string) $model['id'])>
                                 {{ $model['label'] }}
                             </option>
                         @endforeach
@@ -53,13 +57,13 @@
 
                 <div class="form-field">
                     <label for="year">Year</label>
-                    <input class="form-control" id="year" name="year" type="number" value="{{ old('year', $carModel->year) }}" required>
+                    <input class="form-control" id="year" name="year" type="number" value="{{ old('year', $carModel->year) }}" data-model-year-input required>
                     <x-form-error name="year" />
                 </div>
 
                 <div class="form-field">
-                    <label for="engine_size">Engine size</label>
-                    <input class="form-control" id="engine_size" name="engine_size" value="{{ old('engine_size', $carModel->engine_size) }}">
+                    <label for="engine_size">Engine size (L)</label>
+                    <input class="form-control" id="engine_size" name="engine_size" type="number" min="0" max="20" step="0.1" inputmode="decimal" value="{{ $engineSizeValue }}" placeholder="1.3">
                     <x-form-error name="engine_size" />
                 </div>
 

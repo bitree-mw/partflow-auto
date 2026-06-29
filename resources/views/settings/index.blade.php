@@ -19,11 +19,6 @@
             <option value="{{ $currency }}"></option>
         @endforeach
     </datalist>
-    <datalist id="site-type-options">
-        @foreach ($siteTypes as $value => $label)
-            <option value="{{ $value }}">{{ $label }}</option>
-        @endforeach
-    </datalist>
     <datalist id="costing-method-options">
         @foreach ($costingMethods as $costingMethod)
             <option value="{{ $costingMethod }}"></option>
@@ -57,13 +52,13 @@
                 <strong>Operating defaults</strong>
                 <small>Branch, costing, stock policy</small>
             </button>
-            <button type="button" data-settings-tab="company-sites">
-                <strong>Company sites</strong>
-                <small>Shops, branches, and warehouses</small>
-            </button>
             <button type="button" data-settings-tab="vehicle-library">
                 <strong>Vehicle library</strong>
                 <small>Car makes and model dropdowns</small>
+            </button>
+            <button type="button" data-settings-tab="payment-accounts">
+                <strong>Payment accounts</strong>
+                <small>Cash, bank, and mobile money</small>
             </button>
             <button type="button" data-settings-tab="document-numbering">
                 <strong>Document numbering</strong>
@@ -154,83 +149,32 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="company-sites" data-settings-panel="company-sites" hidden>
-                <header class="settings-header">
-                    <span class="eyebrow">Sites</span>
-                    <h2>Branches and stock locations</h2>
-                    <p>Add shops, branches, or warehouses that hold stock, accept transfers, and run tills.</p>
-                </header>
-
-                <div class="site-list">
-                    @foreach ($sites as $site)
-                        <article>
-                            <div>
-                                <strong>{{ $site['name'] }}</strong>
-                                <span>{{ $site['type'] }} - {{ $site['city'] }}, {{ $site['country'] }}</span>
-                            </div>
-                            <em>{{ $site['status'] }}</em>
-                        </article>
-                    @endforeach
-                </div>
-
-                <div class="site-create-actions">
-                    <button class="btn-secondary" type="button" data-open-settings-dialog="site">Add site</button>
-                </div>
-
-                <dialog class="settings-dialog" data-settings-dialog="site" aria-labelledby="settings-site-title">
-                    <div class="settings-dialog-card">
-                        <header>
-                            <span class="eyebrow">New site</span>
-                            <h3 id="settings-site-title">Add stock location</h3>
-                        </header>
-                        <div class="form-grid">
-                            <div class="form-field">
-                                <label for="site_name">Site name</label>
-                                <input class="form-control" id="site_name" name="site_name" value="{{ old('site_name') }}" placeholder="Kanengo Warehouse">
-                                <x-form-error name="site_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="site_type">Site type</label>
-                                <input class="form-control searchable-input" id="site_type" name="site_type" value="{{ old('site_type') }}" list="site-type-options" placeholder="Search site type">
-                                <x-form-error name="site_type" />
-                            </div>
-                            <div class="form-field">
-                                <label for="site_city">City</label>
-                                <input class="form-control" id="site_city" name="site_city" value="{{ old('site_city') }}" placeholder="Lilongwe">
-                                <x-form-error name="site_city" />
-                            </div>
-                            <div class="form-field">
-                                <label for="site_country">Country</label>
-                                <input class="form-control searchable-input" id="site_country" name="site_country" value="{{ old('site_country', $settings['base_country']) }}" list="settings-countries" placeholder="Search country">
-                                <x-form-error name="site_country" />
-                            </div>
-                        </div>
-                        <div class="settings-dialog-actions">
-                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
-                            <button class="btn" type="submit" name="settings_action" value="create_site">Save site</button>
-                        </div>
-                    </div>
-                </dialog>
-            </section>
-
             <section class="settings-panel" id="vehicle-library" data-settings-panel="vehicle-library" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Vehicle library</span>
                     <h2>Car makes and models</h2>
-                    <p>Manage the dropdown source used when adding vehicle identities and fitment records.</p>
+                    <p>Search makes here, then open a make to add or manage the models linked to it.</p>
                 </header>
 
-                <div class="vehicle-library-grid">
+                <div class="settings-add-row">
+                    <div class="filter-form">
+                        <input type="search" placeholder="Search makes..." aria-label="Search car makes" data-settings-list-search="vehicle-make-list">
+                    </div>
+                    <button class="btn-secondary" type="button" data-open-settings-dialog="car-make">Add make</button>
+                </div>
+
+                <div class="vehicle-library-grid single">
                     <section>
                         <header>
                             <strong>Car makes</strong>
-                            <button class="btn-secondary" type="button" data-open-settings-dialog="car-make">Add make</button>
                         </header>
-                        <div class="site-list">
+                        <div class="site-list" data-settings-list="vehicle-make-list">
                             @forelse ($carMakes as $make)
-                                <article>
+                                <article data-settings-list-item="{{ strtolower($make['name'].' '.$make['code']) }}">
                                     <div>
-                                        <strong>{{ $make['name'] }}</strong>
+                                        <strong>
+                                            <a class="table-link" href="{{ route('web.settings.vehicle-makes.show', $make['id']) }}">{{ $make['name'] }}</a>
+                                        </strong>
                                         <span>{{ $make['code'] }} - {{ $make['models'] }} models</span>
                                     </div>
                                     <em>{{ $make['status'] }}</em>
@@ -277,65 +221,6 @@
                             {{ $carMakes->links() }}
                         </div>
                     </section>
-
-                    <section>
-                        <header>
-                            <strong>Car models</strong>
-                            <button class="btn-secondary" type="button" data-open-settings-dialog="vehicle-model">Add model</button>
-                        </header>
-                        <div class="site-list">
-                            @forelse ($vehicleModels as $model)
-                                <article>
-                                    <div>
-                                        <strong>{{ $model['make'] }} {{ $model['name'] }}</strong>
-                                        <span>{{ $model['code'] }} - {{ $model['body_style'] }}</span>
-                                    </div>
-                                    <em>{{ $model['status'] }}</em>
-                                    <div class="settings-row-actions">
-                                        <button
-                                            class="icon-action icon-edit"
-                                            type="button"
-                                            title="Edit model"
-                                            aria-label="Edit model"
-                                            data-open-settings-dialog="edit-vehicle-model"
-                                            data-settings-fill
-                                            data-edit-vehicle-model-id="{{ $model['id'] }}"
-                                            data-edit-vehicle-make-name="{{ $model['make'] }}"
-                                            data-edit-vehicle-model-name="{{ $model['name'] }}"
-                                            data-edit-vehicle-model-code="{{ $model['code'] }}"
-                                            data-edit-vehicle-body-style="{{ $model['body_style'] === 'Not set' ? '' : $model['body_style'] }}"
-                                            data-edit-vehicle-model-description="{{ $model['description'] }}"
-                                        >
-                                            <x-icons.pencil />
-                                        </button>
-                                        @if ($model['is_active'])
-                                            <button
-                                                class="icon-action icon-danger"
-                                                type="submit"
-                                                name="settings_action"
-                                                value="deactivate_vehicle_model"
-                                                formaction="{{ route('web.settings.update', ['vehicle_model_id' => $model['id']]) }}"
-                                                title="Make inactive"
-                                                aria-label="Make inactive"
-                                            >
-                                                <x-icons.trash />
-                                            </button>
-                                        @endif
-                                    </div>
-                                </article>
-                            @empty
-                                <article>
-                                    <div>
-                                        <strong>No models added</strong>
-                                        <span>Add a model and link it to a make.</span>
-                                    </div>
-                                </article>
-                            @endforelse
-                        </div>
-                        <div class="settings-pagination">
-                            {{ $vehicleModels->links() }}
-                        </div>
-                    </section>
                 </div>
 
                 <dialog class="settings-dialog" data-settings-dialog="car-make" aria-labelledby="settings-car-make-title">
@@ -364,46 +249,6 @@
                         <div class="settings-dialog-actions">
                             <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
                             <button class="btn" type="submit" name="settings_action" value="create_car_make">Save make</button>
-                        </div>
-                    </div>
-                </dialog>
-
-                <dialog class="settings-dialog" data-settings-dialog="vehicle-model" aria-labelledby="settings-vehicle-model-title">
-                    <div class="settings-dialog-card">
-                        <header>
-                            <span class="eyebrow">New model</span>
-                            <h3 id="settings-vehicle-model-title">Add car model</h3>
-                        </header>
-                        <div class="form-grid">
-                            <div class="form-field">
-                                <label for="vehicle_make_id">Make</label>
-                                <input class="form-control searchable-input" id="vehicle_make_id" name="vehicle_make_name" value="{{ old('vehicle_make_name') }}" list="vehicle-make-options" placeholder="Search make">
-                                <x-form-error name="vehicle_make_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="vehicle_model_name">Model name</label>
-                                <input class="form-control" id="vehicle_model_name" name="vehicle_model_name" value="{{ old('vehicle_model_name') }}" placeholder="Corolla">
-                                <x-form-error name="vehicle_model_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="vehicle_model_code">Model code</label>
-                                <input class="form-control" id="vehicle_model_code" name="vehicle_model_code" value="{{ old('vehicle_model_code') }}" placeholder="CO">
-                                <x-form-error name="vehicle_model_code" />
-                            </div>
-                            <div class="form-field">
-                                <label for="vehicle_body_style">Body style</label>
-                                <input class="form-control" id="vehicle_body_style" name="vehicle_body_style" value="{{ old('vehicle_body_style') }}" placeholder="Sedan">
-                                <x-form-error name="vehicle_body_style" />
-                            </div>
-                            <div class="form-field full">
-                                <label for="vehicle_model_description">Description</label>
-                                <textarea class="form-control" id="vehicle_model_description" name="vehicle_model_description" rows="3">{{ old('vehicle_model_description') }}</textarea>
-                                <x-form-error name="vehicle_model_description" />
-                            </div>
-                        </div>
-                        <div class="settings-dialog-actions">
-                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
-                            <button class="btn" type="submit" name="settings_action" value="create_vehicle_model">Save model</button>
                         </div>
                     </div>
                 </dialog>
@@ -439,46 +284,47 @@
                     </div>
                 </dialog>
 
-                <dialog class="settings-dialog" data-settings-dialog="edit-vehicle-model" aria-labelledby="settings-edit-vehicle-model-title">
-                    <div class="settings-dialog-card">
-                        <header>
-                            <span class="eyebrow">Edit model</span>
-                            <h3 id="settings-edit-vehicle-model-title">Update car model</h3>
-                        </header>
-                        <input type="hidden" name="edit_vehicle_model_id" data-settings-field="editVehicleModelId">
-                        <div class="form-grid">
-                            <div class="form-field">
-                                <label for="edit_vehicle_make_name">Make</label>
-                                <input class="form-control searchable-input" id="edit_vehicle_make_name" name="edit_vehicle_make_name" data-settings-field="editVehicleMakeName" list="vehicle-make-options" placeholder="Search make">
-                                <x-form-error name="edit_vehicle_make_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="edit_vehicle_model_name">Model name</label>
-                                <input class="form-control" id="edit_vehicle_model_name" name="edit_vehicle_model_name" data-settings-field="editVehicleModelName" placeholder="Corolla">
-                                <x-form-error name="edit_vehicle_model_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="edit_vehicle_model_code">Model code</label>
-                                <input class="form-control" id="edit_vehicle_model_code" name="edit_vehicle_model_code" data-settings-field="editVehicleModelCode" placeholder="CO">
-                                <x-form-error name="edit_vehicle_model_code" />
-                            </div>
-                            <div class="form-field">
-                                <label for="edit_vehicle_body_style">Body style</label>
-                                <input class="form-control" id="edit_vehicle_body_style" name="edit_vehicle_body_style" data-settings-field="editVehicleBodyStyle" placeholder="Sedan">
-                                <x-form-error name="edit_vehicle_body_style" />
-                            </div>
-                            <div class="form-field full">
-                                <label for="edit_vehicle_model_description">Description</label>
-                                <textarea class="form-control" id="edit_vehicle_model_description" name="edit_vehicle_model_description" data-settings-field="editVehicleModelDescription" rows="3"></textarea>
-                                <x-form-error name="edit_vehicle_model_description" />
-                            </div>
-                        </div>
-                        <div class="settings-dialog-actions">
-                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
-                            <button class="btn" type="submit" name="settings_action" value="update_vehicle_model">Update model</button>
-                        </div>
+            </section>
+
+            <section class="settings-panel" id="payment-accounts" data-settings-panel="payment-accounts" hidden>
+                <header class="settings-header">
+                    <span class="eyebrow">Payment accounts</span>
+                    <h2>Cash, bank, mobile money, and card accounts</h2>
+                    <p>Manage the accounts used by payments, purchases, sales, and expense workflows.</p>
+                </header>
+                <div class="settings-add-row">
+                    <div class="filter-form">
+                        <input type="search" placeholder="Search accounts..." aria-label="Search payment accounts" data-settings-list-search="payment-account-list">
                     </div>
-                </dialog>
+                    <a class="btn" href="{{ route('web.payment-accounts.create') }}">Create account</a>
+                </div>
+                <div class="site-list" data-settings-list="payment-account-list">
+                    @forelse ($paymentAccounts as $account)
+                        <article data-settings-list-item="{{ strtolower($account->account_name.' '.$account->account_holder_name.' '.$account->account_type) }}">
+                            <div>
+                                <strong>{{ $account->account_name }}</strong>
+                                <span>{{ $accountTypes[$account->account_type] ?? $account->account_type }} - {{ $account->account_holder_name ?: 'No holder recorded' }}</span>
+                            </div>
+                            <em>{{ $account->is_active ? 'Active' : 'Inactive' }}</em>
+                            <div class="settings-row-actions">
+                                <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $account) }}">View</a>
+                                <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', $account) }}" title="Edit payment account" aria-label="Edit payment account">
+                                    <x-icons.pencil />
+                                </a>
+                            </div>
+                        </article>
+                    @empty
+                        <article>
+                            <div>
+                                <strong>No payment accounts found</strong>
+                                <span>Create an account before recording payments.</span>
+                            </div>
+                        </article>
+                    @endforelse
+                </div>
+                <div class="settings-pagination">
+                    {{ $paymentAccounts->links() }}
+                </div>
             </section>
 
             <section class="settings-panel" id="document-numbering" data-settings-panel="document-numbering" hidden>

@@ -61,6 +61,7 @@ class MalawiVehicleMakeModelSeeder extends Seeder
                     ['car_make_id' => $make->id, 'name' => $modelName],
                     [
                         'code' => $modelCode,
+                        'year' => 2000,
                         'body_style' => null,
                         'description' => 'Model name available for Malawi vehicle identity selection.',
                         'is_active' => true,

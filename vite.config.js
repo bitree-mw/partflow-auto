@@ -24,6 +24,7 @@ export default defineConfig({
                 'resources/js/pos.js',
                 'resources/js/settings.js',
                 'resources/js/catalog.js',
+                'resources/js/site-documents.js',
                 'resources/js/sales.js',
                 'resources/js/purchases.js',
                 'resources/js/contacts.js',

@@ -11,6 +11,11 @@
     @vite('resources/js/catalog.js')
 @endpush
 
+@section('header_actions')
+    <a class="btn-secondary" href="{{ route('web.catalog.sites.index') }}">Warehouse</a>
+    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+@endsection
+
 @section('content')
     <section class="catalogue-hub">
         <div class="catalogue-summary">

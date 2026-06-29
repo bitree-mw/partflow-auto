@@ -1,4 +1,5 @@
 const ENHANCED_ATTR = 'data-searchable-select-enhanced';
+const SEARCHABLE_ATTR = 'data-searchable-select';
 const enhancedSelects = new WeakSet();
 
 function visibleOptions(select) {
@@ -10,7 +11,13 @@ function optionLabel(option) {
 }
 
 function selectedLabel(select) {
-    return optionLabel(select.selectedOptions[0]);
+    const option = select.selectedOptions[0];
+
+    if (!option || option.value === '') {
+        return '';
+    }
+
+    return optionLabel(option);
 }
 
 function emptyOption(select) {
@@ -47,6 +54,23 @@ function createOptionButton(option, select, input, list) {
 
 function enhanceSelect(select) {
     if (enhancedSelects.has(select)) {
+        return;
+    }
+
+    if (!select.hasAttribute(SEARCHABLE_ATTR)) {
+        if (select.hasAttribute(ENHANCED_ATTR)) {
+            const wrapper = select.closest('.app-combobox');
+
+            if (wrapper) {
+                wrapper.after(select);
+                wrapper.remove();
+            }
+
+            select.removeAttribute(ENHANCED_ATTR);
+            select.classList.remove('app-select-native');
+            enhancedSelects.delete(select);
+        }
+
         return;
     }
 
@@ -103,6 +127,7 @@ function enhanceSelect(select) {
     function render(query = '') {
         const normalizedQuery = query.trim().toLowerCase();
         const options = visibleOptions(select)
+            .filter((option) => option.value !== '')
             .filter((option) => {
                 const label = optionLabel(option);
 
@@ -128,8 +153,8 @@ function enhanceSelect(select) {
         });
     }
 
-    function open() {
-        render(input.value);
+    function open(showSuggestions = true) {
+        render(showSuggestions ? '' : input.value);
         list.hidden = false;
         input.setAttribute('aria-expanded', 'true');
     }
@@ -160,7 +185,18 @@ function enhanceSelect(select) {
         options[nextIndex].scrollIntoView({ block: 'nearest' });
     }
 
-    input.addEventListener('focus', open);
+    input.addEventListener('focus', () => {
+        open(true);
+        window.setTimeout(() => input.select(), 0);
+    });
+
+    input.addEventListener('click', () => {
+        input.select();
+    });
+
+    input.addEventListener('mouseup', (event) => {
+        event.preventDefault();
+    });
 
     input.addEventListener('input', () => {
         const empty = emptyOption(select);
@@ -170,7 +206,7 @@ function enhanceSelect(select) {
             select.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        open();
+        open(false);
     });
 
     input.addEventListener('keydown', (event) => {
@@ -215,7 +251,7 @@ function enhanceSelect(select) {
     select.addEventListener('change', () => {
         syncInputState();
         input.value = selectedLabel(select);
-        render(input.value);
+        render('');
     });
 
     syncInputState();
@@ -227,7 +263,7 @@ function enhanceWithin(root) {
         return;
     }
 
-    root.querySelectorAll?.('select').forEach(enhanceSelect);
+    root.querySelectorAll?.(`select[${SEARCHABLE_ATTR}]`).forEach(enhanceSelect);
 }
 
 export function initSearchableSelects() {

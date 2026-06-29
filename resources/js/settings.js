@@ -9,7 +9,6 @@ const activePanelInput = document.querySelector('[data-settings-active-panel]');
 const dialogButtons = Array.from(document.querySelectorAll('[data-open-settings-dialog]'));
 const dialogs = Array.from(document.querySelectorAll('[data-settings-dialog]'));
 const errorDialogMap = {
-    create_site: 'site',
     create_document_series: 'series',
     create_user: 'user',
     create_car_make: 'car-make',
@@ -17,6 +16,7 @@ const errorDialogMap = {
     update_car_make: 'edit-car-make',
     update_vehicle_model: 'edit-vehicle-model',
 };
+const listSearches = Array.from(document.querySelectorAll('[data-settings-list-search]'));
 
 let activeIndex = 0;
 
@@ -96,6 +96,10 @@ dialogButtons.forEach((button) => {
                     field.value = value;
                 }
             });
+
+            if (button.dataset.vehicleModelAction) {
+                document.querySelector('[data-dynamic-action]')?.setAttribute('action', button.dataset.vehicleModelAction);
+            }
         }
 
         openDialog(button.dataset.openSettingsDialog);
@@ -128,3 +132,16 @@ const errorDialog = errorDialogMap[settingsContent?.dataset.settingsErrorDialog]
 if (errorDialog) {
     openDialog(errorDialog);
 }
+
+listSearches.forEach((input) => {
+    const list = document.querySelector(`[data-settings-list="${input.dataset.settingsListSearch}"]`);
+    const items = Array.from(list?.querySelectorAll('[data-settings-list-item]') ?? []);
+
+    input.addEventListener('input', () => {
+        const needle = input.value.trim().toLowerCase();
+
+        items.forEach((item) => {
+            item.hidden = needle !== '' && !item.dataset.settingsListItem.includes(needle);
+        });
+    });
+});

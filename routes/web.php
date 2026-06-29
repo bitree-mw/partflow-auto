@@ -51,6 +51,18 @@ Route::prefix('back-office')
         Route::get('alerts', [AlertsController::class, 'index'])->name('alerts.index');
 
         Route::prefix('catalog')->name('catalog.')->controller(CatalogController::class)->group(function () {
+            Route::get('sites', 'siteManagement')->name('sites.index');
+            Route::get('sites/create', 'createSite')->name('sites.create');
+            Route::post('sites', 'storeSite')->name('sites.store');
+            Route::get('sites/transfers', 'siteTransfers')->name('sites.transfers.index');
+            Route::get('sites/transfers/create', 'createSiteTransfer')->name('sites.transfers.create');
+            Route::post('sites/transfers', 'storeSiteTransfer')->name('sites.transfers.store');
+            Route::get('sites/transfers/{inventoryDocument}', 'showSiteTransfer')->name('sites.transfers.show');
+            Route::get('sites/stock-takes', 'siteStockTakes')->name('sites.stock-takes.index');
+            Route::get('sites/stock-takes/create', 'createSiteStockTake')->name('sites.stock-takes.create');
+            Route::post('sites/stock-takes', 'storeSiteStockTake')->name('sites.stock-takes.store');
+            Route::get('sites/stock-takes/{inventoryDocument}', 'showSiteStockTake')->name('sites.stock-takes.show');
+
             Route::get('car-models', 'carModels')->name('car-models.index');
             Route::get('car-models/create', 'createCarModel')->name('car-models.create');
             Route::post('car-models', 'storeCarModel')->name('car-models.store');
@@ -89,6 +101,10 @@ Route::prefix('back-office')
 
         Route::get('settings', [AdminSettingsController::class, 'index'])->name('settings.index');
         Route::post('settings', [AdminSettingsController::class, 'update'])->name('settings.update');
+        Route::get('settings/vehicle-makes/{carMake}', [AdminSettingsController::class, 'showVehicleMake'])->name('settings.vehicle-makes.show');
+        Route::post('settings/vehicle-makes/{carMake}/models', [AdminSettingsController::class, 'storeVehicleModelForMake'])->name('settings.vehicle-makes.models.store');
+        Route::put('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'updateVehicleModelForMake'])->name('settings.vehicle-models.update');
+        Route::delete('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'deactivateVehicleModelForMake'])->name('settings.vehicle-models.destroy');
 
         Route::resource('payment-accounts', PaymentAccountController::class)
             ->parameters(['payment-accounts' => 'payment_account']);

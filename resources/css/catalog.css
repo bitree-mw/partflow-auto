@@ -139,6 +139,161 @@
         border-radius: 18px;
     }
 
+    .site-summary {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .site-workflows {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .site-workflow-panel {
+        overflow: hidden;
+    }
+
+    .site-workflow-panel > header {
+        padding: 18px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .site-workflow-panel > header h2 {
+        margin: 6px 0 0;
+        color: #111827;
+        font-size: 20px;
+    }
+
+    .site-workflow-panel > header p {
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .site-workflow-form {
+        padding: 18px;
+    }
+
+    .site-workflow-form label {
+        display: grid;
+        gap: 8px;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .site-workflow-form label.full {
+        grid-column: 1 / -1;
+    }
+
+    .site-workflow-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 18px;
+    }
+
+    .site-document-lines {
+        display: grid;
+        gap: 12px;
+    }
+
+    .site-document-line {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #f9fafb;
+    }
+
+    .site-document-line > span {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        color: #fff;
+        background: #1f3a5f;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .site-document-line-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 0.35fr) auto;
+        gap: 12px;
+        align-items: start;
+    }
+
+    .site-line-remove {
+        align-self: start;
+        width: 42px;
+        min-width: 42px;
+        height: 42px;
+        margin-top: 24px;
+        padding: 0;
+    }
+
+    .site-line-remove svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.2;
+    }
+
+    .field-hint {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .stock-live-summary {
+        display: block;
+        margin-top: 6px;
+        color: #1f3a5f;
+    }
+
+    .site-document-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
+        overflow: hidden;
+    }
+
+    .site-document-summary article {
+        display: grid;
+        gap: 8px;
+        padding: 18px;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .site-document-summary article:last-child {
+        border-right: 0;
+    }
+
+    .site-document-summary span {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .site-document-summary strong {
+        color: #111827;
+        font-size: 18px;
+    }
+
+    .site-document-report-header {
+        padding: 18px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
     .form-section {
         display: grid;
         gap: 14px;
@@ -219,6 +374,10 @@
     @media (max-width: 900px) {
         .catalog-reference-grid,
         .catalogue-summary,
+        .site-workflows,
+        .site-document-line,
+        .site-document-line-grid,
+        .site-document-summary,
         .compatibility-grid,
         .compatibility-variant-row,
         .fuel-type-panel {

@@ -19,12 +19,21 @@
         $mostSoldParts = collect($mostSoldParts);
         $salesTrend = collect($salesTrend);
         $branchPerformance = collect($branchPerformance);
+        $branchSalesMix = collect($branchSalesMix);
         $branchOptions = collect($branchOptions);
         $lossRisks = collect($lossRisks);
         $stockAlerts = collect($stockAlerts);
         $primaryMetric = $metrics->first() ?? ['value' => 'MWK 0', 'change' => 'No sales today', 'trend' => 'neutral'];
         $lossMetric = $metrics->get(3) ?? ['value' => 'MWK 0'];
         $peakPart = $mostSoldParts->first() ?? ['part' => 'No sales yet', 'units' => 0];
+        $pieStops = [];
+        $pieCursor = 0;
+        foreach ($branchSalesMix as $index => $slice) {
+            $nextCursor = $index === $branchSalesMix->count() - 1 ? 100 : min(100, $pieCursor + $slice['share']);
+            $pieStops[] = "{$slice['color']} {$pieCursor}% {$nextCursor}%";
+            $pieCursor = $nextCursor;
+        }
+        $pieGradient = $pieStops ? 'conic-gradient('.implode(', ', $pieStops).')' : 'conic-gradient(#e5e7eb 0 100%)';
     @endphp
 
     <section class="dashboard-hero">
@@ -182,7 +191,7 @@
             </header>
 
             <div class="stacked-list">
-                @foreach ($currentSales as $sale)
+                @foreach ($currentSales->take(5) as $sale)
                     <div class="stacked-row">
                         <div>
                             <strong>{{ $sale['invoice'] }}</strong>
@@ -209,7 +218,7 @@
             </header>
 
             <div class="stacked-list">
-                @foreach ($stockAlerts as $alert)
+                @foreach ($stockAlerts->take(5) as $alert)
                     <a href="{{ route('web.alerts.index') }}" @class(['stacked-row', 'warning', $alert['priority_tone'] ?? 'neutral'])>
                         <div>
                             <strong>{{ $alert['part'] }}</strong>
@@ -248,18 +257,27 @@
         <article class="insight-panel">
             <header class="insight-header">
                 <div>
-                    <span class="eyebrow">Branch movement</span>
-                    <h2>Stockouts By Branch</h2>
+                    <span class="eyebrow">Branch mix</span>
+                    <h2>Sales Distribution</h2>
+                    <p>Share of today sales for {{ $selectedBranchName }}.</p>
                 </div>
             </header>
 
-            <div class="branch-alert-list">
-                @foreach ($branchPerformance as $branch)
-                    <div>
-                        <strong>{{ $branch['branch'] }}</strong>
-                        <span>{{ $branch['stockouts'] }} stockouts</span>
-                    </div>
-                @endforeach
+            <div class="branch-pie-panel">
+                <div class="branch-pie" style="background: {{ $pieGradient }};">
+                    <span>{{ $branchSalesMix->isEmpty() ? 'No sales' : 'Sales' }}</span>
+                </div>
+                <div class="branch-pie-legend">
+                    @forelse ($branchSalesMix as $slice)
+                        <div @class(['selected' => $slice['selected']])>
+                            <i style="background: {{ $slice['color'] }};"></i>
+                            <span>{{ $slice['branch'] }}</span>
+                            <strong>{{ $slice['share'] }}%</strong>
+                        </div>
+                    @empty
+                        <p>No branch sales recorded for the selected view.</p>
+                    @endforelse
+                </div>
             </div>
         </article>
     </section>

@@ -26,6 +26,7 @@ return new class extends Migration
             $table->foreignId('car_make_id')->constrained('car_makes')->cascadeOnDelete();
             $table->string('name');
             $table->string('code', 20);
+            $table->unsignedSmallInteger('year')->nullable();
             $table->string('body_style')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
@@ -90,6 +91,7 @@ return new class extends Migration
                     'car_make_id' => $makeId,
                     'name' => $row->model,
                     'code' => $this->uniqueModelCode($makeId, $row->model_code ?: $row->model),
+                    'year' => null,
                     'body_style' => null,
                     'description' => 'Backfilled from existing vehicle fitment records.',
                     'is_active' => true,
