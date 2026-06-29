@@ -517,6 +517,7 @@ class CatalogController extends Controller
                     ->selectRaw('COALESCE(SUM(quantity_on_hand - reserved_quantity), 0)')
                     ->whereColumn('site_stocks.product_id', 'products.id');
             }, 'stock_total')
+            ->withCount('compatibilities')
             ->with(['carModel', 'partType', 'fuelType', 'brand', 'taxProfile', 'siteStocks.site'])
             ->search($filters['search'] ?? null)
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
@@ -525,10 +526,9 @@ class CatalogController extends Controller
 
         $this->applyCatalogueSort($productQuery, $filters, [
             'name' => 'product_name',
-            'code' => 'product_code',
-            'vehicle' => 'car_model_id',
             'type' => 'part_type_id',
             'brand' => 'brand_id',
+            'compatibility' => 'compatibilities_count',
             'price' => 'default_selling_price',
             'stock' => 'stock_total',
             'status' => 'is_active',
@@ -550,9 +550,9 @@ class CatalogController extends Controller
             'brandOptions' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'catalogueSummary' => [
                 ['label' => 'Parts available', 'value' => (string) Product::query()->count(), 'detail' => 'Sellable catalogue items'],
-                ['label' => 'Brands', 'value' => (string) Brand::query()->count(), 'detail' => 'Manufacturers and suppliers'],
+                ['label' => 'Brands', 'value' => (string) Brand::query()->count(), 'detail' => 'Part manufacturers'],
                 ['label' => 'Part types', 'value' => (string) PartType::query()->count(), 'detail' => 'Reusable product categories'],
-                ['label' => 'Fuel types', 'value' => (string) FuelType::query()->count(), 'detail' => 'Petrol, diesel, hybrid, and other setups'],
+                ['label' => 'Fuel types', 'value' => (string) FuelType::query()->count(), 'detail' => 'Vehicle power trim'],
                 ['label' => 'Car models', 'value' => (string) CarModel::query()->count(), 'detail' => 'Fitment and variant records'],
             ],
         ]);
@@ -642,6 +642,14 @@ class CatalogController extends Controller
 
         $payload = $this->productPayload($validated);
         $payload['is_active'] = $request->boolean('is_active');
+
+        if (! $payload['is_active'] && $this->productHasStock($product)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'This part has stock and cannot be made inactive.');
+        }
+
         $this->productService->update($product, $payload);
 
         return redirect()
@@ -651,6 +659,12 @@ class CatalogController extends Controller
 
     public function destroyProduct(Product $product): RedirectResponse
     {
+        if ($this->productHasStock($product)) {
+            return redirect()
+                ->route('web.catalog.products.index')
+                ->with('error', 'This part has stock and cannot be made inactive.');
+        }
+
         $this->productService->update($product, ['is_active' => false]);
 
         return redirect()
@@ -842,6 +856,7 @@ class CatalogController extends Controller
 
     private function productRow(Product $product): array
     {
+        $stockRows = $product->siteStocks;
         $branchStock = $product->siteStocks
             ->sortBy('site.name')
             ->map(fn ($stock): array => [
@@ -850,20 +865,33 @@ class CatalogController extends Controller
             ])
             ->values()
             ->all();
+        $compatibilityCount = (int) ($product->compatibilities_count ?? $product->compatibilities()->count());
 
         return [
             'id' => $product->id,
             'name' => $product->product_name,
             'code' => $product->product_code,
-            'model' => $this->carModelLabel($product->carModel),
             'type' => $product->partType?->name ?? 'Unassigned',
             'brand' => $product->brand?->name ?? 'Unbranded',
+            'compatible_count' => $compatibilityCount,
+            'compatible_label' => $compatibilityCount.' other '.($compatibilityCount === 1 ? 'car' : 'cars'),
             'price' => $this->money((float) $product->default_selling_price),
             'stock' => collect($branchStock)->sum('qty'),
             'branch_stock' => $branchStock,
+            'has_stock' => $stockRows->contains(fn ($stock): bool => $stock->quantity_on_hand > 0 || $stock->reserved_quantity > 0),
             'is_active' => (bool) $product->is_active,
             'status' => $product->is_active ? 'Active' : 'Inactive',
         ];
+    }
+
+    private function productHasStock(Product $product): bool
+    {
+        return $product->siteStocks()
+            ->where(function ($query): void {
+                $query->where('quantity_on_hand', '>', 0)
+                    ->orWhere('reserved_quantity', '>', 0);
+            })
+            ->exists();
     }
 
     private function carModelOptions(Collection $carModels): array

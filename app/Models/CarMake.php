@@ -14,7 +14,6 @@ class CarMake extends Model
     protected $fillable = [
         'name',
         'code',
-        'country',
         'description',
         'is_active',
     ];

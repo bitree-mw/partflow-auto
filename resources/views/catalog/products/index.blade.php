@@ -27,22 +27,30 @@
                     @elseif ($item['label'] === 'Brands')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.brands.index') }}">View</a>
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.brands.create') }}">Add</a>
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.brands.create') }}" title="Add brand" aria-label="Add brand">
+                                <x-icons.plus />
+                            </a>
                         </div>
                     @elseif ($item['label'] === 'Part types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">View</a>
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.part-types.create') }}">Add</a>
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.part-types.create') }}" title="Add part type" aria-label="Add part type">
+                                <x-icons.plus />
+                            </a>
                         </div>
                     @elseif ($item['label'] === 'Fuel types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.index') }}">View</a>
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.fuel-types.create') }}">Add</a>
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.fuel-types.create') }}" title="Add fuel type" aria-label="Add fuel type">
+                                <x-icons.plus />
+                            </a>
                         </div>
                     @elseif ($item['label'] === 'Car models')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.car-models.index') }}">View</a>
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.car-models.create') }}">Add</a>
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.car-models.create') }}" title="Add car model" aria-label="Add car model">
+                                <x-icons.plus />
+                            </a>
                         </div>
                     @endif
                 </article>
@@ -90,10 +98,9 @@
                 <thead>
                     <tr>
                         <th><x-sort-link field="name" label="Part" /></th>
-                        <th><x-sort-link field="code" label="Code" /></th>
-                        <th><x-sort-link field="vehicle" label="Main vehicle" /></th>
                         <th><x-sort-link field="type" label="Type" /></th>
                         <th><x-sort-link field="brand" label="Brand" /></th>
+                        <th><x-sort-link field="compatibility" label="Compatible" /></th>
                         <th><x-sort-link field="price" label="Price" /></th>
                         <th><x-sort-link field="stock" label="Stock" /></th>
                         <th><x-sort-link field="status" label="Status" /></th>
@@ -102,22 +109,18 @@
                 </thead>
                 <tbody>
                     @forelse ($products as $product)
-                        <tr>
+                        <tr class="product-row-main">
                             <td>
-                                <strong>{{ $product['name'] }}</strong>
-                                <span class="branch-stock-pills">
-                                    @foreach ($product['branch_stock'] as $branch)
-                                        <span @class(['branch-stock-pill', 'empty' => $branch['qty'] === 0])>
-                                            <span>{{ $branch['site'] }}</span>
-                                            <strong>{{ $branch['qty'] }}</strong>
-                                        </span>
-                                    @endforeach
-                                </span>
+                                <strong class="catalogue-part-title">
+                                    {{ $product['name'] }}
+                                    @if ($product['code'])
+                                        <span>({{ $product['code'] }})</span>
+                                    @endif
+                                </strong>
                             </td>
-                            <td>{{ $product['code'] }}</td>
-                            <td>{{ $product['model'] }}</td>
                             <td>{{ $product['type'] }}</td>
                             <td>{{ $product['brand'] }}</td>
+                            <td>{{ $product['compatible_label'] }}</td>
                             <td>{{ $product['price'] }}</td>
                             <td>{{ $product['stock'] }}</td>
                             <td>
@@ -126,9 +129,11 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="row-actions">
-                                    <a class="btn-secondary" href="{{ route('web.catalog.products.edit', $product['id']) }}">Edit</a>
-                                    @if ($product['is_active'])
+                                <div class="row-actions catalogue-row-actions">
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.products.edit', $product['id']) }}" title="Edit part" aria-label="Edit part">
+                                        <x-icons.pencil />
+                                    </a>
+                                    @if ($product['is_active'] && ! $product['has_stock'])
                                         <form method="POST" action="{{ route('web.catalog.products.destroy', $product['id']) }}">
                                             @csrf
                                             @method('DELETE')
@@ -140,9 +145,21 @@
                                 </div>
                             </td>
                         </tr>
+                        <tr class="product-row-stock">
+                            <td colspan="8">
+                                <span class="branch-stock-pills branch-stock-full">
+                                    @foreach ($product['branch_stock'] as $branch)
+                                        <span @class(['branch-stock-pill', 'empty' => $branch['qty'] === 0])>
+                                            <span>{{ $branch['site'] }}</span>
+                                            <strong>{{ $branch['qty'] }}</strong>
+                                        </span>
+                                    @endforeach
+                                </span>
+                            </td>
+                        </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="empty-state">No parts found.</td>
+                            <td colspan="8" class="empty-state">No parts found.</td>
                         </tr>
                     @endforelse
                 </tbody>

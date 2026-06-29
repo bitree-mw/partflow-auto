@@ -14,6 +14,8 @@ const errorDialogMap = {
     create_user: 'user',
     create_car_make: 'car-make',
     create_vehicle_model: 'vehicle-model',
+    update_car_make: 'edit-car-make',
+    update_vehicle_model: 'edit-vehicle-model',
 };
 
 let activeIndex = 0;
@@ -85,7 +87,19 @@ previousButton?.addEventListener('click', () => activateTab(activeIndex - 1));
 nextButton?.addEventListener('click', () => activateTab(activeIndex + 1));
 
 dialogButtons.forEach((button) => {
-    button.addEventListener('click', () => openDialog(button.dataset.openSettingsDialog));
+    button.addEventListener('click', () => {
+        if (button.hasAttribute('data-settings-fill')) {
+            Object.entries(button.dataset).forEach(([key, value]) => {
+                const field = document.querySelector(`[data-settings-field="${key}"]`);
+
+                if (field) {
+                    field.value = value;
+                }
+            });
+        }
+
+        openDialog(button.dataset.openSettingsDialog);
+    });
 });
 
 dialogs.forEach((dialog) => {

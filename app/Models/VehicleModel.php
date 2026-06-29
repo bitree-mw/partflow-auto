@@ -16,8 +16,6 @@ class VehicleModel extends Model
         'car_make_id',
         'name',
         'code',
-        'start_year',
-        'end_year',
         'body_style',
         'description',
         'is_active',
@@ -26,8 +24,6 @@ class VehicleModel extends Model
     protected function casts(): array
     {
         return [
-            'start_year' => 'integer',
-            'end_year' => 'integer',
             'is_active' => 'boolean',
         ];
     }

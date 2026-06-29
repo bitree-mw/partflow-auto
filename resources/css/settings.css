@@ -126,6 +126,18 @@
         min-width: 0;
     }
 
+    .settings-row-actions {
+        display: inline-flex;
+        flex: 0 0 auto;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .settings-pagination {
+        padding: 0 18px 18px;
+    }
+
     .site-list strong,
     .settings-groups strong {
         color: #111827;
@@ -494,9 +506,14 @@
         }
 
         .document-series-list article,
-        .profit-loss-account-list article {
+        .profit-loss-account-list article,
+        .site-list article {
             align-items: flex-start;
             flex-direction: column;
+        }
+
+        .settings-row-actions {
+            justify-content: flex-start;
         }
     }
 }

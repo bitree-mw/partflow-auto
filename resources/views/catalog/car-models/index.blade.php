@@ -61,7 +61,9 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a class="btn-secondary" href="{{ route('web.catalog.car-models.edit', $carModel['id']) }}">Edit</a>
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.car-models.edit', $carModel['id']) }}" title="Edit car model" aria-label="Edit car model">
+                                        <x-icons.pencil />
+                                    </a>
                                     @if ($carModel['is_active'] && $carModel['linked_products'] === 0)
                                         <form method="POST" action="{{ route('web.catalog.car-models.destroy', $carModel['id']) }}">
                                             @csrf

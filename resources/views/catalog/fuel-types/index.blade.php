@@ -57,7 +57,9 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.edit', $fuelType['id']) }}">Edit</a>
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.fuel-types.edit', $fuelType['id']) }}" title="Edit fuel type" aria-label="Edit fuel type">
+                                        <x-icons.pencil />
+                                    </a>
                                     @if ($fuelType['is_active'])
                                         <form method="POST" action="{{ route('web.catalog.fuel-types.destroy', $fuelType['id']) }}">
                                             @csrf

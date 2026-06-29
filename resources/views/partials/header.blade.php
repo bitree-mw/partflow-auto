@@ -13,17 +13,30 @@
     </div>
 
     <div class="header-actions">
-        <button class="icon-action" type="button" aria-label="Refresh" onclick="window.location.reload()">
-            <span class="refresh-glyph" aria-hidden="true"></span>
-        </button>
-        <a
-            @class(['icon-action', 'notification-action', 'has-notifications' => ($notificationSummary['count'] ?? 0) > 0])
-            href="{{ route('web.alerts.index') }}"
-            aria-label="Notifications"
-            data-count="{{ $notificationSummary['count'] ?? 0 }}"
-        >
-            <span class="alert-glyph" aria-hidden="true"></span>
-        </a>
+        <details class="notification-menu">
+            <summary
+                @class(['icon-action', 'notification-action', 'has-notifications' => ($notificationSummary['count'] ?? 0) > 0])
+                aria-label="Notifications"
+                data-count="{{ $notificationSummary['count'] ?? 0 }}"
+            >
+                <x-icons.bell />
+            </summary>
+            <div class="notification-dropdown">
+                <header>
+                    <strong>Notifications</strong>
+                    <span>{{ $notificationSummary['count'] ?? 0 }} open</span>
+                </header>
+                @forelse (($notificationSummary['latest'] ?? []) as $notification)
+                    <a href="{{ $notification['review_url'] ?? route('web.alerts.index') }}">
+                        <strong>{{ $notification['item'] }}</strong>
+                        <span>{{ $notification['type'] }} - {{ $notification['detail'] }}</span>
+                    </a>
+                @empty
+                    <p>No open notifications.</p>
+                @endforelse
+                <a class="notification-all-link" href="{{ route('web.alerts.index') }}">View all alerts</a>
+            </div>
+        </details>
 
         @hasSection('header_actions')
             @yield('header_actions')

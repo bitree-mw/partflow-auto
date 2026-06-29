@@ -13,7 +13,6 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('code', 10)->unique();
-            $table->string('country')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -27,8 +26,6 @@ return new class extends Migration
             $table->foreignId('car_make_id')->constrained('car_makes')->cascadeOnDelete();
             $table->string('name');
             $table->string('code', 20);
-            $table->year('start_year')->nullable();
-            $table->year('end_year')->nullable();
             $table->string('body_style')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
@@ -82,7 +79,6 @@ return new class extends Migration
                     $makeId = DB::table('car_makes')->insertGetId([
                         'name' => $row->make,
                         'code' => $this->uniqueCode('car_makes', $row->make_code ?: $row->make, 10),
-                        'country' => null,
                         'description' => 'Backfilled from existing vehicle fitment records.',
                         'is_active' => true,
                         'created_at' => now(),
@@ -94,8 +90,6 @@ return new class extends Migration
                     'car_make_id' => $makeId,
                     'name' => $row->model,
                     'code' => $this->uniqueModelCode($makeId, $row->model_code ?: $row->model),
-                    'start_year' => null,
-                    'end_year' => null,
                     'body_style' => null,
                     'description' => 'Backfilled from existing vehicle fitment records.',
                     'is_active' => true,

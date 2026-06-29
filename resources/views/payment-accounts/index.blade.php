@@ -78,7 +78,9 @@
                             <td>
                                 <div class="row-actions">
                                     <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $account) }}">View</a>
-                                    <a class="btn-secondary" href="{{ route('web.payment-accounts.edit', $account) }}">Edit</a>
+                                    <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', $account) }}" title="Edit payment account" aria-label="Edit payment account">
+                                        <x-icons.pencil />
+                                    </a>
                                     <form method="POST" action="{{ route('web.payment-accounts.destroy', $account) }}">
                                         @csrf
                                         @method('DELETE')

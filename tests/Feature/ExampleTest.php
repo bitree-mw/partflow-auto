@@ -377,6 +377,12 @@ class ExampleTest extends TestCase
         $this->assertEquals(44000, (float) $purchase->total_amount);
         $this->assertEquals(4, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
 
+        $this->delete(route('web.catalog.products.destroy', $product))
+            ->assertRedirect(route('web.catalog.products.index'))
+            ->assertSessionHas('error');
+
+        $this->assertTrue($product->fresh()->is_active);
+
         $this->delete(route('web.suppliers.destroy', $supplier))
             ->assertRedirect(route('web.suppliers.index'))
             ->assertSessionHas('error');

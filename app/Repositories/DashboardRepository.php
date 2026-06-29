@@ -10,90 +10,100 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardRepository
 {
-    public function todaySales(): float
+    public function todaySales(?int $siteId = null): float
     {
         return (float) InventoryDocument::query()
             ->where('document_type', 'sale')
             ->whereIn('status', ['completed', 'approved'])
             ->whereDate('document_date', today())
+            ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
             ->sum('total_amount');
     }
 
-    public function todaySaleCount(): int
+    public function todaySaleCount(?int $siteId = null): int
     {
         return (int) InventoryDocument::query()
             ->where('document_type', 'sale')
             ->whereIn('status', ['completed', 'approved'])
             ->whereDate('document_date', today())
+            ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
             ->count();
     }
 
-    public function todayProfit(): float
+    public function todayProfit(?int $siteId = null): float
     {
         return (float) DB::table('inventory_document_items')
             ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
             ->where('inventory_documents.document_type', 'sale')
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->whereDate('inventory_documents.document_date', today())
+            ->when($siteId, fn ($query) => $query->where('inventory_documents.source_site_id', $siteId))
             ->sum('inventory_document_items.profit_amount');
     }
 
-    public function totalStockValue(): float
+    public function totalStockValue(?int $siteId = null): float
     {
         return (float) DB::table('site_stocks')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
             ->sum(DB::raw('site_stocks.quantity_on_hand * products.default_purchase_price'));
     }
 
-    public function lowStockCount(): int
+    public function lowStockCount(?int $siteId = null): int
     {
         return (int) DB::table('site_stocks')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->count();
     }
 
-    public function outOfStockCount(): int
+    public function outOfStockCount(?int $siteId = null): int
     {
         return (int) DB::table('site_stocks')
+            ->when($siteId, fn ($query) => $query->where('site_id', $siteId))
             ->whereRaw('(quantity_on_hand - reserved_quantity) <= 0')
             ->count();
     }
 
-    public function outstandingCustomerBalances(): float
+    public function outstandingCustomerBalances(?int $siteId = null): float
     {
         return (float) InventoryDocument::query()
             ->where('document_type', 'sale')
             ->where('balance_amount', '>', 0)
+            ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
             ->sum('balance_amount');
     }
 
-    public function recentDocuments(string $documentType, int $limit = 5)
+    public function recentDocuments(string $documentType, int $limit = 5, ?int $siteId = null)
     {
         return InventoryDocument::query()
             ->with(['contact', 'sourceSite', 'destinationSite', 'items.product'])
             ->where('document_type', $documentType)
+            ->when($siteId, fn ($query) => $query->forSite($siteId))
             ->latest('document_date')
             ->limit($limit)
             ->get();
     }
 
-    public function recentStockMovements(int $limit = 10)
+    public function recentStockMovements(int $limit = 10, ?int $siteId = null)
     {
         return StockMovement::query()
             ->with(['product', 'site', 'inventoryDocument'])
+            ->when($siteId, fn ($query) => $query->where('site_id', $siteId))
             ->latest()
             ->limit($limit)
             ->get();
     }
 
-    public function salesTrend(int $days = 7): Collection
+    public function salesTrend(int $days = 7, ?int $siteId = null): Collection
     {
         $startDate = today()->subDays($days - 1);
         $rows = InventoryDocument::query()
             ->where('document_type', 'sale')
             ->whereIn('status', ['completed', 'approved'])
             ->whereDate('document_date', '>=', $startDate)
+            ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
             ->selectRaw('DATE(document_date) as sale_date')
             ->selectRaw('SUM(total_amount) as sales_amount')
             ->groupBy('sale_date')
@@ -118,6 +128,7 @@ class DashboardRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('SUM(inventory_document_items.quantity) as quantity_sold')
             ->selectRaw('SUM(inventory_document_items.line_total) as sales_amount')
@@ -135,6 +146,7 @@ class DashboardRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('inventory_documents.source_site_id as site_id')
             ->selectRaw('SUM(inventory_documents.total_amount) as sales_amount')
             ->groupBy('inventory_documents.source_site_id')
@@ -147,6 +159,7 @@ class DashboardRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('inventory_documents.source_site_id as site_id')
             ->selectRaw('SUM(inventory_document_items.profit_amount) as profit_amount')
             ->groupBy('inventory_documents.source_site_id')
@@ -154,6 +167,7 @@ class DashboardRepository
             ->keyBy('site_id');
 
         $stockouts = DB::table('site_stocks')
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('site_id', $filters['site_id']))
             ->whereRaw('(quantity_on_hand - reserved_quantity) <= 0')
             ->selectRaw('site_id, COUNT(*) as stockout_count')
             ->groupBy('site_id')
@@ -177,11 +191,12 @@ class DashboardRepository
             });
     }
 
-    public function lowStockAlerts(int $limit = 5): Collection
+    public function lowStockAlerts(int $limit = 5, array $filters = []): Collection
     {
         return DB::table('site_stocks')
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->selectRaw('sites.name as site_name, products.product_name')
             ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')
@@ -191,21 +206,23 @@ class DashboardRepository
             ->get();
     }
 
-    public function stockTakeVarianceTotal(): float
+    public function stockTakeVarianceTotal(?int $siteId = null): float
     {
         return (float) DB::table('inventory_document_items')
             ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
             ->join('products', 'products.id', '=', 'inventory_document_items.product_id')
             ->where('inventory_documents.document_type', 'stock_take')
             ->where('inventory_document_items.variance_quantity', '!=', 0)
+            ->when($siteId, fn ($query) => $query->where('inventory_documents.source_site_id', $siteId))
             ->sum(DB::raw('ABS(inventory_document_items.variance_quantity) * products.default_purchase_price'));
     }
 
-    public function pendingPurchaseReturnTotal(): float
+    public function pendingPurchaseReturnTotal(?int $siteId = null): float
     {
         return (float) InventoryDocument::query()
             ->where('document_type', 'purchase_return')
             ->whereIn('status', ['draft', 'pending'])
+            ->when($siteId, fn ($query) => $query->forSite($siteId))
             ->sum('total_amount');
     }
 }

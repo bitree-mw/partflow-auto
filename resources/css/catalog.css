@@ -22,7 +22,7 @@
     .catalogue-summary article {
         display: grid;
         gap: 8px;
-        align-content: start;
+        align-content: stretch;
         padding: 16px;
     }
 
@@ -52,11 +52,13 @@
         flex-wrap: nowrap;
         gap: 8px;
         align-items: center;
-        margin-top: 10px;
+        margin-top: auto;
+        padding-top: 12px;
     }
 
     .catalogue-card-actions .btn,
-    .catalogue-card-actions .btn-secondary {
+    .catalogue-card-actions .btn-secondary,
+    .catalogue-card-actions .icon-action {
         flex: 0 1 auto;
         min-height: 38px;
         padding: 0 16px;
@@ -65,15 +67,70 @@
     }
 
     .catalogue-card-actions .catalogue-add-button {
-        border-color: #2563eb;
+        border-color: #1f3a5f;
         color: #fff;
-        background: #2563eb;
-        box-shadow: 0 10px 24px rgb(37 99 235 / 20%);
+        background: #1f3a5f;
+        box-shadow: 0 10px 24px rgb(31 58 95 / 18%);
     }
 
     .catalogue-card-actions .catalogue-add-button:hover {
-        border-color: #1d4ed8;
-        background: #1d4ed8;
+        border-color: #172c49;
+        background: #172c49;
+    }
+
+    .catalogue-card-actions .catalogue-icon-add {
+        width: 42px;
+        min-width: 42px;
+        padding: 0;
+    }
+
+    .catalogue-card-actions .catalogue-add-button svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.4;
+    }
+
+    .catalogue-part-title {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: baseline;
+        color: #111827;
+    }
+
+    .catalogue-part-title span {
+        color: #6b7280;
+        font-weight: 800;
+    }
+
+    .product-row-main td {
+        border-bottom: 0;
+        vertical-align: top;
+    }
+
+    .product-row-stock td {
+        padding-top: 0;
+    }
+
+    .branch-stock-full {
+        flex-wrap: nowrap;
+        width: 100%;
+        margin-top: 0;
+        padding: 0 0 2px;
+        overflow-x: auto;
+    }
+
+    .branch-stock-full .branch-stock-pill {
+        flex: 0 0 auto;
+    }
+
+    .catalogue-row-actions {
+        flex-wrap: nowrap;
+        align-items: center;
     }
 
     .catalog-form {

@@ -40,6 +40,11 @@
             <option value="{{ $role }}"></option>
         @endforeach
     </datalist>
+    <datalist id="vehicle-make-options">
+        @foreach ($carMakeOptions as $make)
+            <option value="{{ $make['name'] }}"></option>
+        @endforeach
+    </datalist>
 
     <section class="settings-console">
         <aside class="settings-nav-panel" aria-label="Settings sections">
@@ -226,9 +231,38 @@
                                 <article>
                                     <div>
                                         <strong>{{ $make['name'] }}</strong>
-                                        <span>{{ $make['code'] }} - {{ $make['country'] }} - {{ $make['models'] }} models</span>
+                                        <span>{{ $make['code'] }} - {{ $make['models'] }} models</span>
                                     </div>
                                     <em>{{ $make['status'] }}</em>
+                                    <div class="settings-row-actions">
+                                        <button
+                                            class="icon-action icon-edit"
+                                            type="button"
+                                            title="Edit make"
+                                            aria-label="Edit make"
+                                            data-open-settings-dialog="edit-car-make"
+                                            data-settings-fill
+                                            data-edit-make-id="{{ $make['id'] }}"
+                                            data-edit-make-name="{{ $make['name'] }}"
+                                            data-edit-make-code="{{ $make['code'] }}"
+                                            data-edit-make-description="{{ $make['description'] }}"
+                                        >
+                                            <x-icons.pencil />
+                                        </button>
+                                        @if ($make['is_active'])
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                name="settings_action"
+                                                value="deactivate_car_make"
+                                                formaction="{{ route('web.settings.update', ['car_make_id' => $make['id']]) }}"
+                                                title="Make inactive"
+                                                aria-label="Make inactive"
+                                            >
+                                                <x-icons.trash />
+                                            </button>
+                                        @endif
+                                    </div>
                                 </article>
                             @empty
                                 <article>
@@ -238,6 +272,9 @@
                                     </div>
                                 </article>
                             @endforelse
+                        </div>
+                        <div class="settings-pagination">
+                            {{ $carMakes->links() }}
                         </div>
                     </section>
 
@@ -251,9 +288,40 @@
                                 <article>
                                     <div>
                                         <strong>{{ $model['make'] }} {{ $model['name'] }}</strong>
-                                        <span>{{ $model['code'] }} - {{ $model['years'] }} - {{ $model['body_style'] }}</span>
+                                        <span>{{ $model['code'] }} - {{ $model['body_style'] }}</span>
                                     </div>
                                     <em>{{ $model['status'] }}</em>
+                                    <div class="settings-row-actions">
+                                        <button
+                                            class="icon-action icon-edit"
+                                            type="button"
+                                            title="Edit model"
+                                            aria-label="Edit model"
+                                            data-open-settings-dialog="edit-vehicle-model"
+                                            data-settings-fill
+                                            data-edit-vehicle-model-id="{{ $model['id'] }}"
+                                            data-edit-vehicle-make-name="{{ $model['make'] }}"
+                                            data-edit-vehicle-model-name="{{ $model['name'] }}"
+                                            data-edit-vehicle-model-code="{{ $model['code'] }}"
+                                            data-edit-vehicle-body-style="{{ $model['body_style'] === 'Not set' ? '' : $model['body_style'] }}"
+                                            data-edit-vehicle-model-description="{{ $model['description'] }}"
+                                        >
+                                            <x-icons.pencil />
+                                        </button>
+                                        @if ($model['is_active'])
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                name="settings_action"
+                                                value="deactivate_vehicle_model"
+                                                formaction="{{ route('web.settings.update', ['vehicle_model_id' => $model['id']]) }}"
+                                                title="Make inactive"
+                                                aria-label="Make inactive"
+                                            >
+                                                <x-icons.trash />
+                                            </button>
+                                        @endif
+                                    </div>
                                 </article>
                             @empty
                                 <article>
@@ -263,6 +331,9 @@
                                     </div>
                                 </article>
                             @endforelse
+                        </div>
+                        <div class="settings-pagination">
+                            {{ $vehicleModels->links() }}
                         </div>
                     </section>
                 </div>
@@ -283,11 +354,6 @@
                                 <label for="make_code">Make code</label>
                                 <input class="form-control" id="make_code" name="make_code" value="{{ old('make_code') }}" placeholder="TY">
                                 <x-form-error name="make_code" />
-                            </div>
-                            <div class="form-field full">
-                                <label for="make_country">Country</label>
-                                <input class="form-control searchable-input" id="make_country" name="make_country" value="{{ old('make_country') }}" list="settings-countries" placeholder="Search country">
-                                <x-form-error name="make_country" />
                             </div>
                             <div class="form-field full">
                                 <label for="make_description">Description</label>
@@ -311,15 +377,8 @@
                         <div class="form-grid">
                             <div class="form-field">
                                 <label for="vehicle_make_id">Make</label>
-                                <select class="form-control" id="vehicle_make_id" name="vehicle_make_id">
-                                    <option value="">Select make</option>
-                                    @foreach ($carMakes as $make)
-                                        <option value="{{ $make['id'] }}" @selected((string) old('vehicle_make_id') === (string) $make['id'])>
-                                            {{ $make['name'] }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <x-form-error name="vehicle_make_id" />
+                                <input class="form-control searchable-input" id="vehicle_make_id" name="vehicle_make_name" value="{{ old('vehicle_make_name') }}" list="vehicle-make-options" placeholder="Search make">
+                                <x-form-error name="vehicle_make_name" />
                             </div>
                             <div class="form-field">
                                 <label for="vehicle_model_name">Model name</label>
@@ -336,16 +395,6 @@
                                 <input class="form-control" id="vehicle_body_style" name="vehicle_body_style" value="{{ old('vehicle_body_style') }}" placeholder="Sedan">
                                 <x-form-error name="vehicle_body_style" />
                             </div>
-                            <div class="form-field">
-                                <label for="vehicle_start_year">Start year</label>
-                                <input class="form-control" id="vehicle_start_year" name="vehicle_start_year" inputmode="numeric" value="{{ old('vehicle_start_year') }}" placeholder="2000">
-                                <x-form-error name="vehicle_start_year" />
-                            </div>
-                            <div class="form-field">
-                                <label for="vehicle_end_year">End year</label>
-                                <input class="form-control" id="vehicle_end_year" name="vehicle_end_year" inputmode="numeric" value="{{ old('vehicle_end_year') }}" placeholder="2026">
-                                <x-form-error name="vehicle_end_year" />
-                            </div>
                             <div class="form-field full">
                                 <label for="vehicle_model_description">Description</label>
                                 <textarea class="form-control" id="vehicle_model_description" name="vehicle_model_description" rows="3">{{ old('vehicle_model_description') }}</textarea>
@@ -355,6 +404,78 @@
                         <div class="settings-dialog-actions">
                             <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
                             <button class="btn" type="submit" name="settings_action" value="create_vehicle_model">Save model</button>
+                        </div>
+                    </div>
+                </dialog>
+
+                <dialog class="settings-dialog" data-settings-dialog="edit-car-make" aria-labelledby="settings-edit-car-make-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">Edit make</span>
+                            <h3 id="settings-edit-car-make-title">Update car make</h3>
+                        </header>
+                        <input type="hidden" name="edit_make_id" data-settings-field="editMakeId">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="edit_make_name">Make name</label>
+                                <input class="form-control" id="edit_make_name" name="edit_make_name" data-settings-field="editMakeName" placeholder="Toyota">
+                                <x-form-error name="edit_make_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_make_code">Make code</label>
+                                <input class="form-control" id="edit_make_code" name="edit_make_code" data-settings-field="editMakeCode" placeholder="TY">
+                                <x-form-error name="edit_make_code" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="edit_make_description">Description</label>
+                                <textarea class="form-control" id="edit_make_description" name="edit_make_description" data-settings-field="editMakeDescription" rows="3"></textarea>
+                                <x-form-error name="edit_make_description" />
+                            </div>
+                        </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="update_car_make">Update make</button>
+                        </div>
+                    </div>
+                </dialog>
+
+                <dialog class="settings-dialog" data-settings-dialog="edit-vehicle-model" aria-labelledby="settings-edit-vehicle-model-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">Edit model</span>
+                            <h3 id="settings-edit-vehicle-model-title">Update car model</h3>
+                        </header>
+                        <input type="hidden" name="edit_vehicle_model_id" data-settings-field="editVehicleModelId">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="edit_vehicle_make_name">Make</label>
+                                <input class="form-control searchable-input" id="edit_vehicle_make_name" name="edit_vehicle_make_name" data-settings-field="editVehicleMakeName" list="vehicle-make-options" placeholder="Search make">
+                                <x-form-error name="edit_vehicle_make_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_vehicle_model_name">Model name</label>
+                                <input class="form-control" id="edit_vehicle_model_name" name="edit_vehicle_model_name" data-settings-field="editVehicleModelName" placeholder="Corolla">
+                                <x-form-error name="edit_vehicle_model_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_vehicle_model_code">Model code</label>
+                                <input class="form-control" id="edit_vehicle_model_code" name="edit_vehicle_model_code" data-settings-field="editVehicleModelCode" placeholder="CO">
+                                <x-form-error name="edit_vehicle_model_code" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_vehicle_body_style">Body style</label>
+                                <input class="form-control" id="edit_vehicle_body_style" name="edit_vehicle_body_style" data-settings-field="editVehicleBodyStyle" placeholder="Sedan">
+                                <x-form-error name="edit_vehicle_body_style" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="edit_vehicle_model_description">Description</label>
+                                <textarea class="form-control" id="edit_vehicle_model_description" name="edit_vehicle_model_description" data-settings-field="editVehicleModelDescription" rows="3"></textarea>
+                                <x-form-error name="edit_vehicle_model_description" />
+                            </div>
+                        </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="update_vehicle_model">Update model</button>
                         </div>
                     </div>
                 </dialog>

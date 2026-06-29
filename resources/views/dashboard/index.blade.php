@@ -19,6 +19,7 @@
         $mostSoldParts = collect($mostSoldParts);
         $salesTrend = collect($salesTrend);
         $branchPerformance = collect($branchPerformance);
+        $branchOptions = collect($branchOptions);
         $lossRisks = collect($lossRisks);
         $stockAlerts = collect($stockAlerts);
         $primaryMetric = $metrics->first() ?? ['value' => 'MWK 0', 'change' => 'No sales today', 'trend' => 'neutral'];
@@ -30,9 +31,22 @@
         <div>
             <span class="eyebrow">Live business pulse</span>
             <h2>Good day, {{ $greetingName }}.</h2>
-            <p>Sales, profit, branch stock, low-stock warnings, and payment movement update from your operating records.</p>
+            <p>Sales, profit, branch stock, low-stock warnings, and payment movement update from {{ $selectedBranchName }}.</p>
         </div>
-        <a class="btn-secondary" href="{{ route('web.reports.index') }}">Open reports</a>
+        <div class="dashboard-hero-actions">
+            <form class="branch-switcher" method="GET" action="{{ route('web.dashboard') }}">
+                <label for="dashboard_site_id">Branch</label>
+                <select id="dashboard_site_id" name="site_id" onchange="this.form.submit()">
+                    <option value="">All branches</option>
+                    @foreach ($branchOptions as $branch)
+                        <option value="{{ $branch['id'] }}" @selected((string) $selectedBranchId === (string) $branch['id'])>
+                            {{ $branch['name'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+            <a class="btn-secondary" href="{{ route('web.reports.index') }}">Open reports</a>
+        </div>
     </section>
 
     <section class="dashboard-metrics" aria-label="Business summary">
@@ -255,16 +269,30 @@
             <div>
                 <span class="eyebrow">Branches</span>
                 <h2>Sales And Profit By Branch</h2>
+                <p>Comparing today across all branches. Selected branch is highlighted.</p>
             </div>
         </header>
 
-        <div class="branch-performance">
+        <div class="branch-comparison-chart">
             @foreach ($branchPerformance as $branch)
-                <article>
-                    <span>{{ $branch['branch'] }}</span>
-                    <strong>{{ $branch['sales'] }}</strong>
-                    <p @class(['margin-line', $branch['margin_tone'] ?? 'neutral'])>{{ $branch['profit'] }} profit &middot; {{ $branch['margin'] }} margin</p>
-                    <em>{{ $branch['stockouts'] }} stockouts</em>
+                <article @class(['selected' => $branch['selected']])>
+                    <div class="branch-chart-label">
+                        <strong>{{ $branch['branch'] }}</strong>
+                        <span>{{ $branch['stockouts'] }} stockouts</span>
+                    </div>
+                    <div class="branch-chart-bars">
+                        <div>
+                            <span>Sales</span>
+                            <em><b style="width: {{ $branch['sales_width'] }}%;"></b></em>
+                            <strong>{{ $branch['sales'] }}</strong>
+                        </div>
+                        <div>
+                            <span>Profit</span>
+                            <em><b style="width: {{ $branch['profit_width'] }}%;"></b></em>
+                            <strong>{{ $branch['profit'] }}</strong>
+                        </div>
+                    </div>
+                    <p @class(['margin-line', $branch['margin_tone'] ?? 'neutral'])>{{ $branch['margin'] }} margin</p>
                 </article>
             @endforeach
         </div>

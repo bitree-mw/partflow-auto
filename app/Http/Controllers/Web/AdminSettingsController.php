@@ -24,7 +24,7 @@ class AdminSettingsController extends Controller
         private readonly SystemConfigurationService $systemConfiguration
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         return view('settings.index', [
             'title' => 'Application Settings',
@@ -38,8 +38,9 @@ class AdminSettingsController extends Controller
             'documentSeries' => $this->systemConfiguration->documentSeries(),
             'roles' => $this->systemConfiguration->roles(),
             'users' => $this->systemConfiguration->users(),
-            'carMakes' => $this->carMakes(),
-            'vehicleModels' => $this->vehicleModels(),
+            'carMakes' => $this->carMakes($request),
+            'vehicleModels' => $this->vehicleModels($request),
+            'carMakeOptions' => $this->carMakeOptions(),
         ]);
     }
 
@@ -53,6 +54,10 @@ class AdminSettingsController extends Controller
             'create_user' => $this->createUser($request),
             'create_car_make' => $this->createCarMake($request),
             'create_vehicle_model' => $this->createVehicleModel($request),
+            'update_car_make' => $this->updateCarMake($request),
+            'deactivate_car_make' => $this->deactivateCarMake($request),
+            'update_vehicle_model' => $this->updateVehicleModel($request),
+            'deactivate_vehicle_model' => $this->deactivateVehicleModel($request),
             default => $this->saveSettings($request),
         };
     }
@@ -174,7 +179,6 @@ class AdminSettingsController extends Controller
         $validated = $request->validate([
             'make_name' => ['required', 'string', 'max:255', 'unique:car_makes,name'],
             'make_code' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]+$/', 'unique:car_makes,code'],
-            'make_country' => ['nullable', 'string', 'max:100'],
             'make_description' => ['nullable', 'string'],
             'settings_panel' => ['nullable', 'string', 'max:80'],
         ], [
@@ -184,7 +188,6 @@ class AdminSettingsController extends Controller
         CarMake::query()->create([
             'name' => $validated['make_name'],
             'code' => $this->uniqueMakeCode($validated['make_code'] ?? null, $validated['make_name']),
-            'country' => $validated['make_country'] ?? null,
             'description' => $validated['make_description'] ?? null,
             'is_active' => true,
         ]);
@@ -194,23 +197,25 @@ class AdminSettingsController extends Controller
 
     private function createVehicleModel(Request $request): RedirectResponse
     {
+        $make = CarMake::query()
+            ->where('name', $request->input('vehicle_make_name'))
+            ->first();
+
         $validated = $request->validate([
-            'vehicle_make_id' => ['required', 'integer', 'exists:car_makes,id'],
+            'vehicle_make_name' => ['required', 'string', 'max:255', 'exists:car_makes,name'],
             'vehicle_model_name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('vehicle_models', 'name')->where('car_make_id', $request->input('vehicle_make_id')),
+                Rule::unique('vehicle_models', 'name')->where('car_make_id', $make?->id),
             ],
             'vehicle_model_code' => [
                 'nullable',
                 'string',
                 'max:20',
                 'regex:/^[A-Za-z0-9\-]+$/',
-                Rule::unique('vehicle_models', 'code')->where('car_make_id', $request->input('vehicle_make_id')),
+                Rule::unique('vehicle_models', 'code')->where('car_make_id', $make?->id),
             ],
-            'vehicle_start_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
-            'vehicle_end_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
             'vehicle_body_style' => ['nullable', 'string', 'max:100'],
             'vehicle_model_description' => ['nullable', 'string'],
             'settings_panel' => ['nullable', 'string', 'max:80'],
@@ -219,21 +224,111 @@ class AdminSettingsController extends Controller
         ]);
 
         VehicleModel::query()->create([
-            'car_make_id' => $validated['vehicle_make_id'],
+            'car_make_id' => $make->id,
             'name' => $validated['vehicle_model_name'],
             'code' => $this->uniqueVehicleModelCode(
-                (int) $validated['vehicle_make_id'],
+                $make->id,
                 $validated['vehicle_model_code'] ?? null,
                 $validated['vehicle_model_name']
             ),
-            'start_year' => $validated['vehicle_start_year'] ?? null,
-            'end_year' => $validated['vehicle_end_year'] ?? null,
             'body_style' => $validated['vehicle_body_style'] ?? null,
             'description' => $validated['vehicle_model_description'] ?? null,
             'is_active' => true,
         ]);
 
         return $this->settingsRedirect('vehicle-library', 'Vehicle model added successfully.');
+    }
+
+    private function updateCarMake(Request $request): RedirectResponse
+    {
+        $make = CarMake::query()->findOrFail($request->input('edit_make_id'));
+        $validated = $request->validate([
+            'edit_make_id' => ['required', 'integer', 'exists:car_makes,id'],
+            'edit_make_name' => ['required', 'string', 'max:255', Rule::unique('car_makes', 'name')->ignore($make->id)],
+            'edit_make_code' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]+$/', Rule::unique('car_makes', 'code')->ignore($make->id)],
+            'edit_make_description' => ['nullable', 'string'],
+        ], [
+            'edit_make_code.regex' => 'The make code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        $make->update([
+            'name' => $validated['edit_make_name'],
+            'code' => $this->uniqueMakeCodeForUpdate($make, $validated['edit_make_code'] ?? null, $validated['edit_make_name']),
+            'description' => $validated['edit_make_description'] ?? null,
+        ]);
+
+        return $this->settingsRedirect('vehicle-library', 'Car make updated successfully.');
+    }
+
+    private function deactivateCarMake(Request $request): RedirectResponse
+    {
+        $make = CarMake::query()->findOrFail($request->query('car_make_id'));
+
+        if ($make->vehicleModels()->where('is_active', true)->exists() || $make->carModels()->exists()) {
+            return $this->settingsRedirect('vehicle-library', 'This make is linked to models or fitments and cannot be made inactive.', 'error');
+        }
+
+        $make->update(['is_active' => false]);
+
+        return $this->settingsRedirect('vehicle-library', 'Car make marked inactive.');
+    }
+
+    private function updateVehicleModel(Request $request): RedirectResponse
+    {
+        $model = VehicleModel::query()->findOrFail($request->input('edit_vehicle_model_id'));
+        $make = CarMake::query()
+            ->where('name', $request->input('edit_vehicle_make_name'))
+            ->first();
+
+        $validated = $request->validate([
+            'edit_vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
+            'edit_vehicle_make_name' => ['required', 'string', 'max:255', 'exists:car_makes,name'],
+            'edit_vehicle_model_name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('vehicle_models', 'name')->where('car_make_id', $make?->id)->ignore($model->id),
+            ],
+            'edit_vehicle_model_code' => [
+                'nullable',
+                'string',
+                'max:20',
+                'regex:/^[A-Za-z0-9\-]+$/',
+                Rule::unique('vehicle_models', 'code')->where('car_make_id', $make?->id)->ignore($model->id),
+            ],
+            'edit_vehicle_body_style' => ['nullable', 'string', 'max:100'],
+            'edit_vehicle_model_description' => ['nullable', 'string'],
+        ], [
+            'edit_vehicle_model_code.regex' => 'The model code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        $model->update([
+            'car_make_id' => $make->id,
+            'name' => $validated['edit_vehicle_model_name'],
+            'code' => $this->uniqueVehicleModelCodeForUpdate(
+                $model,
+                $make->id,
+                $validated['edit_vehicle_model_code'] ?? null,
+                $validated['edit_vehicle_model_name']
+            ),
+            'body_style' => $validated['edit_vehicle_body_style'] ?? null,
+            'description' => $validated['edit_vehicle_model_description'] ?? null,
+        ]);
+
+        return $this->settingsRedirect('vehicle-library', 'Vehicle model updated successfully.');
+    }
+
+    private function deactivateVehicleModel(Request $request): RedirectResponse
+    {
+        $model = VehicleModel::query()->findOrFail($request->query('vehicle_model_id'));
+
+        if ($model->carModels()->exists()) {
+            return $this->settingsRedirect('vehicle-library', 'This vehicle model is linked to fitments and cannot be made inactive.', 'error');
+        }
+
+        $model->update(['is_active' => false]);
+
+        return $this->settingsRedirect('vehicle-library', 'Vehicle model marked inactive.');
     }
 
     private function putSetting(string $key, mixed $value): BusinessSetting
@@ -249,10 +344,10 @@ class AdminSettingsController extends Controller
         return BusinessSetting::query()->where('key', $key)->first()?->value ?? $default;
     }
 
-    private function settingsRedirect(string $panel, string $message): RedirectResponse
+    private function settingsRedirect(string $panel, string $message, string $flashKey = 'success'): RedirectResponse
     {
         return redirect(route('web.settings.index').'#'.$panel)
-            ->with('success', $message)
+            ->with($flashKey, $message)
             ->with('settings_panel', $panel);
     }
 
@@ -275,39 +370,57 @@ class AdminSettingsController extends Controller
         return $code;
     }
 
-    private function carMakes(): array
+    private function carMakes(Request $request)
     {
         return CarMake::query()
             ->withCount('vehicleModels')
             ->orderByDesc('is_active')
             ->orderBy('name')
-            ->get()
-            ->map(fn (CarMake $make): array => [
+            ->paginate(8, ['*'], 'makes_page')
+            ->withQueryString()
+            ->fragment('vehicle-library')
+            ->through(fn (CarMake $make): array => [
                 'id' => $make->id,
                 'name' => $make->name,
                 'code' => $make->code,
-                'country' => $make->country ?: 'Not set',
+                'description' => $make->description ?: '',
                 'models' => $make->vehicle_models_count,
+                'is_active' => (bool) $make->is_active,
                 'status' => $make->is_active ? 'Active' : 'Inactive',
-            ])
-            ->all();
+            ]);
     }
 
-    private function vehicleModels(): array
+    private function vehicleModels(Request $request)
     {
         return VehicleModel::query()
             ->with('carMake')
             ->orderByDesc('is_active')
             ->orderBy('name')
-            ->get()
-            ->map(fn (VehicleModel $model): array => [
+            ->paginate(8, ['*'], 'models_page')
+            ->withQueryString()
+            ->fragment('vehicle-library')
+            ->through(fn (VehicleModel $model): array => [
+                'id' => $model->id,
                 'make_id' => $model->car_make_id,
                 'make' => $model->carMake?->name ?? 'Unknown make',
                 'name' => $model->name,
                 'code' => $model->code,
-                'years' => collect([$model->start_year, $model->end_year])->filter()->join(' - ') ?: 'Any years',
                 'body_style' => $model->body_style ?: 'Not set',
+                'description' => $model->description ?: '',
+                'is_active' => (bool) $model->is_active,
                 'status' => $model->is_active ? 'Active' : 'Inactive',
+            ]);
+    }
+
+    private function carMakeOptions(): array
+    {
+        return CarMake::query()
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (CarMake $make): array => [
+                'id' => $make->id,
+                'name' => $make->name,
             ])
             ->all();
     }
@@ -335,6 +448,20 @@ class AdminSettingsController extends Controller
         return $candidate;
     }
 
+    private function uniqueMakeCodeForUpdate(CarMake $make, ?string $code, string $name): string
+    {
+        $base = $this->makeCode($code, $name, 10) ?: 'MAKE';
+        $candidate = $base;
+        $suffix = 1;
+
+        while (CarMake::query()->whereKeyNot($make->id)->where('code', $candidate)->exists()) {
+            $candidate = substr($base, 0, 8).str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     private function uniqueVehicleModelCode(int $makeId, ?string $code, string $name): string
     {
         $base = $this->makeCode($code, $name, 20) ?: 'MODEL';
@@ -342,6 +469,24 @@ class AdminSettingsController extends Controller
         $suffix = 1;
 
         while (VehicleModel::query()->where('car_make_id', $makeId)->where('code', $candidate)->exists()) {
+            $candidate = substr($base, 0, 17).str_pad((string) $suffix, 3, '0', STR_PAD_LEFT);
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function uniqueVehicleModelCodeForUpdate(VehicleModel $model, int $makeId, ?string $code, string $name): string
+    {
+        $base = $this->makeCode($code, $name, 20) ?: 'MODEL';
+        $candidate = $base;
+        $suffix = 1;
+
+        while (VehicleModel::query()
+            ->whereKeyNot($model->id)
+            ->where('car_make_id', $makeId)
+            ->where('code', $candidate)
+            ->exists()) {
             $candidate = substr($base, 0, 17).str_pad((string) $suffix, 3, '0', STR_PAD_LEFT);
             $suffix++;
         }

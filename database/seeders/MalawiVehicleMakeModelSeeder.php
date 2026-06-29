@@ -48,7 +48,6 @@ class MalawiVehicleMakeModelSeeder extends Seeder
                 ['code' => $record['code']],
                 [
                     'name' => $makeName,
-                    'country' => $record['country'],
                     'description' => 'Vehicle make commonly found in Malawi imports, regional fleets, or dealer supply between 2000 and 2026.',
                     'is_active' => true,
                 ]
@@ -62,8 +61,6 @@ class MalawiVehicleMakeModelSeeder extends Seeder
                     ['car_make_id' => $make->id, 'name' => $modelName],
                     [
                         'code' => $modelCode,
-                        'start_year' => 2000,
-                        'end_year' => 2026,
                         'body_style' => null,
                         'description' => 'Model name available for Malawi vehicle identity selection.',
                         'is_active' => true,
@@ -90,7 +87,7 @@ class MalawiVehicleMakeModelSeeder extends Seeder
                     'make_code' => $make->code,
                     'model' => $model->name,
                     'model_code' => $model->code,
-                    'country_of_origin' => $fitment['country_of_origin'] ?? $make->country,
+                    'country_of_origin' => $fitment['country_of_origin'] ?? $fitment['origin'] ?? null,
                     'notes' => 'Common Malawi fitment variant seeded for catalogue compatibility.',
                     'is_active' => true,
                 ]

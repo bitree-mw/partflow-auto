@@ -5,7 +5,9 @@
 
 @section('header_actions')
     <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Back to list</a>
-    <a class="btn" href="{{ route('web.payment-accounts.edit', $paymentAccount) }}">Edit account</a>
+    <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', $paymentAccount) }}" title="Edit payment account" aria-label="Edit payment account">
+        <x-icons.pencil />
+    </a>
 @endsection
 
 @section('content')

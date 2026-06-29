@@ -8,6 +8,7 @@ use App\Http\Resources\StockMovementResource;
 use App\Services\DashboardService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -15,9 +16,9 @@ class DashboardController extends Controller
         private readonly DashboardService $dashboardService
     ) {}
 
-    public function summary(): JsonResponse
+    public function summary(Request $request): JsonResponse
     {
-        $summary = $this->dashboardService->summary();
+        $summary = $this->dashboardService->summary($request->only('site_id'));
         $summary['recent_sales'] = InventoryDocumentResource::collection($summary['recent_sales']);
         $summary['recent_purchases'] = InventoryDocumentResource::collection($summary['recent_purchases']);
         $summary['recent_transfers'] = InventoryDocumentResource::collection($summary['recent_transfers']);
