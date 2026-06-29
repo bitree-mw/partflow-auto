@@ -40,7 +40,7 @@
             <span></span>
             <div>
                 <strong>{{ $currentBranch }} activity</strong>
-                <small>{{ $cashier }} - not synced</small>
+                <small>{{ $cashier }} - active session</small>
             </div>
             <button type="button">Start activity</button>
         </article>
@@ -67,7 +67,7 @@
             </div>
 
             <div class="product-card-grid" aria-label="Matching parts">
-                @foreach ($products as $index => $product)
+                @forelse ($products as $index => $product)
                     <button class="part-card {{ $index === 0 ? 'selected' : '' }}" type="button" data-product-index="{{ $index }}">
                         <span class="part-type">{{ $product['part_type'] }}</span>
                         <span @class(['part-stock-pill', 'low' => $product['branch_stock'][0]['status'] === 'low', 'empty' => $product['branch_stock'][0]['available'] === 0])>
@@ -88,7 +88,9 @@
                         <span class="part-price">{{ $product['selling_price_display'] }}</span>
                         <span class="part-available">{{ $product['branch_stock'][0]['available'] }} available</span>
                     </button>
-                @endforeach
+                @empty
+                    <div class="empty-state">No stocked parts are available for POS yet.</div>
+                @endforelse
             </div>
 
             <footer class="product-browser-footer">
@@ -166,24 +168,33 @@
                 @endforeach
             </div>
 
-            <form class="checkout-form" aria-label="Checkout details">
+            <form class="checkout-form" method="POST" action="{{ route('web.pos.sales') }}" aria-label="Checkout details" data-pos-checkout-form>
+                @csrf
+                <input type="hidden" name="source_site_id" value="{{ $currentSiteId }}">
+                <input type="hidden" name="cart_payload" value="[]" data-cart-payload>
                 <label>
                     Customer
-                    <input type="text" value="Walk-in customer" autocomplete="off">
+                    <select name="contact_id">
+                        <option value="">Walk-in customer</option>
+                        @foreach ($customers as $customer)
+                            <option value="{{ $customer['id'] }}">{{ $customer['label'] }}</option>
+                        @endforeach
+                    </select>
                 </label>
 
                 <div class="checkout-form-grid">
                     <label>
-                        Payment method
-                        <select>
-                            @foreach ($paymentMethods as $paymentMethod)
-                                <option>{{ $paymentMethod }}</option>
+                        Payment account
+                        <select name="payment_account_id">
+                            <option value="">No payment account</option>
+                            @foreach ($paymentAccounts as $paymentAccount)
+                                <option value="{{ $paymentAccount['id'] }}">{{ $paymentAccount['label'] }}</option>
                             @endforeach
                         </select>
                     </label>
                     <label>
                         Amount received
-                        <input type="text" value="{{ $saleTotals['total'] }}">
+                        <input type="text" name="amount_paid" value="0" data-pos-amount-paid>
                     </label>
                 </div>
             </form>
@@ -210,7 +221,7 @@
             <div class="checkout-actions">
                 <button class="ghost-button" type="button">Hold</button>
                 <button class="ghost-button" type="button">Discount</button>
-                <button class="pay-button" type="button">Complete sale</button>
+                <button class="pay-button" type="button" data-complete-sale>Complete sale</button>
             </div>
         </aside>
     </section>

@@ -397,8 +397,7 @@
 
     .data-panel,
     .form-panel,
-    .detail-panel,
-    .flash-message {
+    .detail-panel {
         border: 1px solid #d1d5db;
         border-radius: 18px;
         background: #fff;
@@ -612,26 +611,6 @@
         margin-top: 20px;
         padding-top: 16px;
         border-top: 1px solid #e5e7eb;
-    }
-
-    .flash-message {
-        display: grid;
-        gap: 3px;
-        padding: 14px 16px;
-        font-size: 14px;
-        font-weight: 800;
-    }
-
-    .flash-message.success {
-        border-color: #bbf7d0;
-        color: #166534;
-        background: #f0fdf4;
-    }
-
-    .flash-message.error {
-        border-color: #fecaca;
-        color: #991b1b;
-        background: #fef2f2;
     }
 
     .detail-grid {

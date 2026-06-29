@@ -20,8 +20,8 @@
         @endforeach
     </datalist>
     <datalist id="site-type-options">
-        @foreach ($siteTypes as $siteType)
-            <option value="{{ $siteType }}"></option>
+        @foreach ($siteTypes as $value => $label)
+            <option value="{{ $value }}">{{ $label }}</option>
         @endforeach
     </datalist>
     <datalist id="costing-method-options">
@@ -70,8 +70,16 @@
             </button>
         </aside>
 
-        <form class="settings-content" method="POST" action="{{ route('web.settings.update') }}">
+        <form
+            class="settings-content"
+            method="POST"
+            action="{{ route('web.settings.update') }}"
+            data-settings-content
+            data-settings-initial-panel="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}"
+            data-settings-error-dialog="{{ old('settings_action') }}"
+        >
             @csrf
+            <input type="hidden" name="settings_panel" value="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}" data-settings-active-panel>
 
             <section class="settings-panel active" id="company-profile" data-settings-panel="company-profile">
                 <header class="settings-header">
@@ -84,26 +92,31 @@
                     <div class="form-field">
                         <label for="business_name">Trading name</label>
                         <input class="form-control" id="business_name" name="business_name" value="{{ $settings['business_name'] }}">
+                        <x-form-error name="business_name" />
                     </div>
 
                     <div class="form-field">
                         <label for="legal_name">Legal name</label>
                         <input class="form-control" id="legal_name" name="legal_name" value="{{ $settings['legal_name'] }}">
+                        <x-form-error name="legal_name" />
                     </div>
 
                     <div class="form-field">
                         <label for="registration_number">Registration number</label>
                         <input class="form-control" id="registration_number" name="registration_number" value="{{ $settings['registration_number'] }}">
+                        <x-form-error name="registration_number" />
                     </div>
 
                     <div class="form-field">
                         <label for="base_country">Base country</label>
                         <input class="form-control searchable-input" id="base_country" name="base_country" list="settings-countries" value="{{ $settings['base_country'] }}">
+                        <x-form-error name="base_country" />
                     </div>
 
                     <div class="form-field">
                         <label for="base_currency">Base currency</label>
                         <input class="form-control searchable-input" id="base_currency" name="base_currency" list="currency-options" value="{{ $settings['base_currency'] }}">
+                        <x-form-error name="base_currency" />
                     </div>
                 </div>
             </section>
@@ -119,16 +132,19 @@
                     <div class="form-field">
                         <label for="default_branch">Default branch</label>
                         <input class="form-control searchable-input" id="default_branch" name="default_branch" list="branch-options" value="{{ $settings['default_branch'] }}">
+                        <x-form-error name="default_branch" />
                     </div>
 
                     <div class="form-field">
                         <label for="stock_costing_method">Stock costing method</label>
                         <input class="form-control searchable-input" id="stock_costing_method" name="stock_costing_method" list="costing-method-options" value="{{ $settings['stock_costing_method'] }}">
+                        <x-form-error name="stock_costing_method" />
                     </div>
 
                     <div class="form-field">
                         <label for="low_stock_policy">Low stock policy</label>
                         <input class="form-control" id="low_stock_policy" name="low_stock_policy" value="{{ $settings['low_stock_policy'] }}">
+                        <x-form-error name="low_stock_policy" />
                     </div>
                 </div>
             </section>
@@ -153,30 +169,43 @@
                 </div>
 
                 <div class="site-create-actions">
-                    <button class="btn-secondary" type="button" data-add-site>Type in a new site</button>
+                    <button class="btn-secondary" type="button" data-open-settings-dialog="site">Add site</button>
                 </div>
 
-                <div class="site-create-card" data-site-form hidden>
-                    <span class="eyebrow">New site details</span>
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label for="site_name">Site name</label>
-                            <input class="form-control" id="site_name" name="site_name" placeholder="Kanengo Warehouse">
+                <dialog class="settings-dialog" data-settings-dialog="site" aria-labelledby="settings-site-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">New site</span>
+                            <h3 id="settings-site-title">Add stock location</h3>
+                        </header>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="site_name">Site name</label>
+                                <input class="form-control" id="site_name" name="site_name" value="{{ old('site_name') }}" placeholder="Kanengo Warehouse">
+                                <x-form-error name="site_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="site_type">Site type</label>
+                                <input class="form-control searchable-input" id="site_type" name="site_type" value="{{ old('site_type') }}" list="site-type-options" placeholder="Search site type">
+                                <x-form-error name="site_type" />
+                            </div>
+                            <div class="form-field">
+                                <label for="site_city">City</label>
+                                <input class="form-control" id="site_city" name="site_city" value="{{ old('site_city') }}" placeholder="Lilongwe">
+                                <x-form-error name="site_city" />
+                            </div>
+                            <div class="form-field">
+                                <label for="site_country">Country</label>
+                                <input class="form-control searchable-input" id="site_country" name="site_country" value="{{ old('site_country', $settings['base_country']) }}" list="settings-countries" placeholder="Search country">
+                                <x-form-error name="site_country" />
+                            </div>
                         </div>
-                        <div class="form-field">
-                            <label for="site_type">Site type</label>
-                            <input class="form-control searchable-input" id="site_type" name="site_type" list="site-type-options" placeholder="Search site type">
-                        </div>
-                        <div class="form-field">
-                            <label for="site_city">City</label>
-                            <input class="form-control" id="site_city" name="site_city" placeholder="Lilongwe">
-                        </div>
-                        <div class="form-field">
-                            <label for="site_country">Country</label>
-                            <input class="form-control searchable-input" id="site_country" name="site_country" list="settings-countries" placeholder="Search country">
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="create_site">Save site</button>
                         </div>
                     </div>
-                </div>
+                </dialog>
             </section>
 
             <section class="settings-panel" id="document-numbering" data-settings-panel="document-numbering" hidden>
@@ -198,23 +227,39 @@
                     @endforeach
                 </div>
 
-                <div class="admin-setup-card account-create-card">
-                    <span class="eyebrow">New series</span>
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label for="series_name">Document name</label>
-                            <input class="form-control" id="series_name" name="series_name" placeholder="Supplier returns">
+                <div class="settings-add-row">
+                    <button class="btn-secondary" type="button" data-open-settings-dialog="series">Add document series</button>
+                </div>
+
+                <dialog class="settings-dialog" data-settings-dialog="series" aria-labelledby="settings-series-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">New series</span>
+                            <h3 id="settings-series-title">Add document numbering</h3>
+                        </header>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="series_name">Document name</label>
+                                <input class="form-control" id="series_name" name="series_name" value="{{ old('series_name') }}" placeholder="Supplier returns">
+                                <x-form-error name="series_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="series_prefix">Prefix</label>
+                                <input class="form-control" id="series_prefix" name="series_prefix" value="{{ old('series_prefix') }}" placeholder="SRN">
+                                <x-form-error name="series_prefix" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="series_next_number">Next number</label>
+                                <input class="form-control" id="series_next_number" name="series_next_number" value="{{ old('series_next_number', 1001) }}" inputmode="numeric" placeholder="1001">
+                                <x-form-error name="series_next_number" />
+                            </div>
                         </div>
-                        <div class="form-field">
-                            <label for="series_prefix">Prefix</label>
-                            <input class="form-control" id="series_prefix" name="series_prefix" placeholder="SRN">
-                        </div>
-                        <div class="form-field full">
-                            <label for="series_next_number">Next number</label>
-                            <input class="form-control" id="series_next_number" name="series_next_number" placeholder="1001">
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="create_document_series">Save series</button>
                         </div>
                     </div>
-                </div>
+                </dialog>
             </section>
 
             <section class="settings-panel" id="user-management" data-settings-panel="user-management" hidden>
@@ -240,28 +285,50 @@
                         @endforeach
                     </section>
 
-                    <section class="user-create-card" aria-label="Invite user">
-                        <span class="eyebrow">New user</span>
+                    <div class="settings-add-row">
+                        <button class="btn-secondary" type="button" data-open-settings-dialog="user">Add user</button>
+                    </div>
+                </div>
+
+                <dialog class="settings-dialog" data-settings-dialog="user" aria-labelledby="settings-user-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">New user</span>
+                            <h3 id="settings-user-title">Add team member</h3>
+                        </header>
                         <div class="form-grid">
                             <div class="form-field">
                                 <label for="user_name">Full name</label>
-                                <input class="form-control" id="user_name" name="user_name" placeholder="Branch Manager">
+                                <input class="form-control" id="user_name" name="user_name" value="{{ old('user_name') }}" placeholder="Branch Manager">
+                                <x-form-error name="user_name" />
                             </div>
                             <div class="form-field">
                                 <label for="user_email">Email</label>
-                                <input class="form-control" id="user_email" name="user_email" type="email" placeholder="manager@partflow.test">
+                                <input class="form-control" id="user_email" name="user_email" type="email" value="{{ old('user_email') }}" placeholder="manager@partflow.test">
+                                <x-form-error name="user_email" />
                             </div>
                             <div class="form-field">
                                 <label for="user_role">Role</label>
-                                <input class="form-control searchable-input" id="user_role" name="user_role" list="role-options" placeholder="Search role">
+                                <input class="form-control searchable-input" id="user_role" name="user_role" value="{{ old('user_role') }}" list="role-options" placeholder="Search role">
+                                <x-form-error name="user_role" />
                             </div>
                             <div class="form-field">
                                 <label for="user_site">Site access</label>
-                                <input class="form-control searchable-input" id="user_site" name="user_site" list="branch-options" placeholder="Search site">
+                                <input class="form-control searchable-input" id="user_site" name="user_site" value="{{ old('user_site') }}" list="branch-options" placeholder="Search site">
+                                <x-form-error name="user_site" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="user_password">Temporary password</label>
+                                <input class="form-control" id="user_password" name="user_password" type="password" autocomplete="new-password" placeholder="Leave blank to auto-generate">
+                                <x-form-error name="user_password" />
                             </div>
                         </div>
-                    </section>
-                </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="create_user">Save user</button>
+                        </div>
+                    </div>
+                </dialog>
             </section>
 
             <section class="settings-panel" id="module-coverage" data-settings-panel="module-coverage" hidden>
@@ -289,7 +356,7 @@
                 <button class="btn-secondary" type="button" data-settings-prev>Previous</button>
                 <span data-settings-progress>Step 1 of 6</span>
                 <button class="btn-secondary" type="button" data-settings-next>Next</button>
-                <button class="btn" type="submit">Save settings</button>
+                <button class="btn" type="submit" name="settings_action" value="save_settings">Save settings</button>
             </div>
         </form>
     </section>

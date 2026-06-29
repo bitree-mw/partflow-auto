@@ -24,6 +24,11 @@
                         <div class="catalogue-card-actions">
                             <a class="btn" href="{{ route('web.catalog.products.create') }}">Add part</a>
                         </div>
+                    @elseif ($item['label'] === 'Brands')
+                        <div class="catalogue-card-actions">
+                            <a class="btn-secondary" href="{{ route('web.catalog.brands.index') }}">View brands</a>
+                            <a class="btn-secondary" href="{{ route('web.catalog.brands.create') }}">Add brand</a>
+                        </div>
                     @elseif ($item['label'] === 'Part types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">View types</a>
@@ -61,6 +66,7 @@
                         <th>Code</th>
                         <th>Main vehicle</th>
                         <th>Type</th>
+                        <th>Brand</th>
                         <th>Price</th>
                         <th>Stock</th>
                     </tr>
@@ -82,6 +88,7 @@
                             <td>{{ $product['code'] }}</td>
                             <td>{{ $product['model'] }}</td>
                             <td>{{ $product['type'] }}</td>
+                            <td>{{ $product['brand'] }}</td>
                             <td>{{ $product['price'] }}</td>
                             <td>{{ $product['stock'] }}</td>
                         </tr>

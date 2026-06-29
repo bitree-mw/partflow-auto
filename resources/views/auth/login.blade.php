@@ -75,7 +75,7 @@
                 <p>Use your system account to open the operations dashboard.</p>
             </header>
 
-            <form method="POST" action="{{ route('login.store') }}">
+            <form method="POST" action="{{ route('login.store') }}" data-login-form>
                 @csrf
 
                 <label>
@@ -115,7 +115,10 @@
                     </label>
                 </div>
 
-                <button class="login-submit" type="submit">Sign in</button>
+                <button class="login-submit" type="submit" data-login-submit>
+                    <span data-login-submit-label>Sign in</span>
+                    <span class="login-submit-spinner" aria-hidden="true"></span>
+                </button>
             </form>
         </section>
     </main>

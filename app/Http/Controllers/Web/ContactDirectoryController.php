@@ -3,51 +3,44 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
+use App\Services\ContactService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ContactDirectoryController extends Controller
 {
+    public function __construct(
+        private readonly ContactService $contactService
+    ) {}
+
     public function customers(): View
     {
+        $contacts = $this->contactService->list()->filter->isCustomer()->values();
+
         return view('contacts.index', [
             'title' => 'Customers',
             'description' => 'Manage customers, credit sales, balances, and buying performance.',
             'mode' => 'customers',
             'createRoute' => route('web.customers.create'),
-            'contacts' => [
-                ['code' => 'CUS-001', 'name' => 'AutoFix Garage', 'phone' => '+265 991 200 111', 'email' => 'orders@autofix.test', 'credit_limit' => 'MWK 750,000', 'balance' => 'MWK 186,500', 'performance' => '12 sales - 82% paid'],
-                ['code' => 'CUS-002', 'name' => 'Northern Motors', 'phone' => '+265 888 455 221', 'email' => 'parts@northern.test', 'credit_limit' => 'MWK 500,000', 'balance' => 'MWK 145,000', 'performance' => '7 sales - 71% paid'],
-                ['code' => 'CUS-003', 'name' => 'Walk-in Customers', 'phone' => 'N/A', 'email' => 'N/A', 'credit_limit' => 'MWK 0', 'balance' => 'MWK 0', 'performance' => '118 cash sales'],
-            ],
-            'analytics' => [
-                ['label' => 'Credit outstanding', 'value' => 'MWK 331,500', 'detail' => 'Across active customer accounts', 'tone' => 'warning'],
-                ['label' => 'Credit sales', 'value' => 'MWK 1.42M', 'detail' => 'Selected period', 'tone' => 'neutral'],
-                ['label' => 'Collections', 'value' => 'MWK 982K', 'detail' => '69% collected', 'tone' => 'success'],
-                ['label' => 'Overdue accounts', 'value' => '2', 'detail' => 'Require follow-up', 'tone' => 'danger'],
-            ],
+            'contacts' => $this->contactRows($contacts, 'sale'),
+            'analytics' => $this->customerAnalytics($contacts),
         ]);
     }
 
     public function suppliers(): View
     {
+        $contacts = $this->contactService->list()->filter->isSupplier()->values();
+
         return view('contacts.index', [
             'title' => 'Suppliers',
             'description' => 'Manage suppliers, purchase activity, payable balances, and supply performance.',
             'mode' => 'suppliers',
             'createRoute' => route('web.suppliers.create'),
-            'contacts' => [
-                ['code' => 'SUP-001', 'name' => 'Japan Auto Imports', 'phone' => '+265 999 800 441', 'email' => 'supply@japanimports.test', 'credit_limit' => 'MWK 2.5M', 'balance' => 'MWK 690,000', 'performance' => '9 purchases - 4.2 day lead'],
-                ['code' => 'SUP-002', 'name' => 'SA Parts Depot', 'phone' => '+27 11 555 9000', 'email' => 'orders@saparts.test', 'credit_limit' => 'MWK 1.8M', 'balance' => 'MWK 280,000', 'performance' => '6 purchases - 6.1 day lead'],
-                ['code' => 'SUP-003', 'name' => 'Local Consumables', 'phone' => '+265 882 401 771', 'email' => 'sales@localconsumables.test', 'credit_limit' => 'MWK 400,000', 'balance' => 'MWK 0', 'performance' => '14 purchases - paid'],
-            ],
-            'analytics' => [
-                ['label' => 'Purchases', 'value' => 'MWK 3.84M', 'detail' => 'Selected period', 'tone' => 'neutral'],
-                ['label' => 'Supplier payable', 'value' => 'MWK 970K', 'detail' => 'Outstanding purchases', 'tone' => 'warning'],
-                ['label' => 'Returns pending', 'value' => 'MWK 142K', 'detail' => 'Awaiting supplier approval', 'tone' => 'danger'],
-                ['label' => 'Avg lead time', 'value' => '5.3 days', 'detail' => 'Across active suppliers', 'tone' => 'success'],
-            ],
+            'contacts' => $this->contactRows($contacts, 'purchase'),
+            'analytics' => $this->supplierAnalytics($contacts),
         ]);
     }
 
@@ -63,16 +56,101 @@ class ContactDirectoryController extends Controller
 
     public function storeCustomer(Request $request): RedirectResponse
     {
-        return redirect()->route('web.customers.index')->with('success', 'Customer setup captured in the UI. API connection will be added later.');
+        $this->contactService->create($this->validatedContact($request, 'customer'));
+
+        return redirect()
+            ->route('web.customers.index')
+            ->with('success', 'Customer created successfully.');
     }
 
     public function storeSupplier(Request $request): RedirectResponse
     {
-        return redirect()->route('web.suppliers.index')->with('success', 'Supplier setup captured in the UI. API connection will be added later.');
+        $this->contactService->create($this->validatedContact($request, 'supplier'));
+
+        return redirect()
+            ->route('web.suppliers.index')
+            ->with('success', 'Supplier created successfully.');
     }
 
     private function contactForm(string $mode, string $title, string $description, string $action): View
     {
         return view('contacts.create', compact('mode', 'title', 'description', 'action'));
+    }
+
+    private function validatedContact(Request $request, string $type): array
+    {
+        $validated = $request->validate([
+            'code' => ['nullable', 'string', 'max:50', 'unique:contacts,code'],
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'tax_number' => ['nullable', 'string', 'max:100'],
+            'credit_limit' => ['nullable', 'numeric', 'min:0'],
+            'address' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        return $validated + ['contact_type' => $type, 'is_active' => true];
+    }
+
+    private function contactRows(Collection $contacts, string $documentType): array
+    {
+        return $contacts
+            ->load(['inventoryDocuments' => fn ($query) => $query->where('document_type', $documentType)])
+            ->map(function (Contact $contact) use ($documentType): array {
+                $documents = $contact->inventoryDocuments;
+                $total = (float) $documents->sum('total_amount');
+                $paid = (float) $documents->sum('paid_amount');
+                $balance = (float) $documents->sum('balance_amount');
+                $paidPercent = $total > 0 ? round(($paid / $total) * 100) : 0;
+                $noun = $documentType === 'sale' ? 'sales' : 'purchases';
+
+                return [
+                    'code' => $contact->code,
+                    'name' => $contact->name,
+                    'phone' => $contact->phone ?: 'N/A',
+                    'email' => $contact->email ?: 'N/A',
+                    'credit_limit' => $this->money((float) $contact->credit_limit),
+                    'balance' => $this->money($balance),
+                    'performance' => $documents->count()." {$noun} - {$paidPercent}% paid",
+                ];
+            })
+            ->all();
+    }
+
+    private function customerAnalytics(Collection $contacts): array
+    {
+        $documents = $contacts->load('inventoryDocuments')->pluck('inventoryDocuments')->flatten();
+        $sales = $documents->where('document_type', 'sale');
+        $total = (float) $sales->sum('total_amount');
+        $paid = (float) $sales->sum('paid_amount');
+        $balance = (float) $sales->sum('balance_amount');
+
+        return [
+            ['label' => 'Credit outstanding', 'value' => $this->money($balance), 'detail' => 'Across active customer accounts', 'tone' => $balance > 0 ? 'warning' : 'success'],
+            ['label' => 'Credit sales', 'value' => $this->money($total), 'detail' => 'All recorded sales', 'tone' => 'neutral'],
+            ['label' => 'Collections', 'value' => $this->money($paid), 'detail' => ($total > 0 ? round(($paid / $total) * 100) : 0).'% collected', 'tone' => 'success'],
+            ['label' => 'Open accounts', 'value' => (string) $sales->where('balance_amount', '>', 0)->pluck('contact_id')->unique()->count(), 'detail' => 'Require follow-up', 'tone' => 'danger'],
+        ];
+    }
+
+    private function supplierAnalytics(Collection $contacts): array
+    {
+        $documents = $contacts->load('inventoryDocuments')->pluck('inventoryDocuments')->flatten();
+        $purchases = $documents->where('document_type', 'purchase');
+        $payable = (float) $purchases->sum('balance_amount');
+        $returns = $documents->where('document_type', 'purchase_return');
+
+        return [
+            ['label' => 'Purchases', 'value' => $this->money((float) $purchases->sum('total_amount')), 'detail' => 'All recorded purchases', 'tone' => 'neutral'],
+            ['label' => 'Supplier payable', 'value' => $this->money($payable), 'detail' => 'Outstanding purchases', 'tone' => $payable > 0 ? 'warning' : 'success'],
+            ['label' => 'Returns pending', 'value' => $this->money((float) $returns->whereIn('status', ['draft', 'pending'])->sum('total_amount')), 'detail' => 'Awaiting supplier approval', 'tone' => 'danger'],
+            ['label' => 'Active suppliers', 'value' => (string) $contacts->count(), 'detail' => 'Available for purchasing', 'tone' => 'success'],
+        ];
+    }
+
+    private function money(float $amount): string
+    {
+        return config('services.partflow.base_currency', 'MWK').' '.number_format($amount, 0);
     }
 }

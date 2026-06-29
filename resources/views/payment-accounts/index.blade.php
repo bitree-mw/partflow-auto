@@ -16,24 +16,6 @@
 @endsection
 
 @section('content')
-    <section class="payment-sample-strip" aria-label="Payment account display samples">
-        <article>
-            <span>Cash</span>
-            <strong>Area 23 Till</strong>
-            <p>Location: Main counter - Drawer: TILL-A23 - Custodian: Cashier Desk 01</p>
-        </article>
-        <article>
-            <span>Mobile Money</span>
-            <strong>Airtel Money Sales</strong>
-            <p>Provider: Airtel Money - Wallet: +265 991 000 200 - Merchant: PF-AIRTEL-01</p>
-        </article>
-        <article>
-            <span>Bank</span>
-            <strong>National Bank Current</strong>
-            <p>Bank: National Bank - Account: 1002044001 - Holder: PartFlow Auto Limited</p>
-        </article>
-    </section>
-
     <section class="data-panel">
         <div class="panel-toolbar">
             <form class="filter-form" method="GET" action="{{ route('web.payment-accounts.index') }}">

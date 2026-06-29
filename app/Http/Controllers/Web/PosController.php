@@ -3,214 +3,270 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Site;
+use App\Models\SiteStock;
+use App\Services\ContactService;
+use App\Services\InventoryDocumentService;
+use App\Services\PaymentAccountService;
+use App\Services\PosProductSearchService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
+    public function __construct(
+        private readonly PosProductSearchService $posProductSearchService,
+        private readonly PaymentAccountService $paymentAccountService,
+        private readonly ContactService $contactService,
+        private readonly InventoryDocumentService $inventoryDocumentService
+    ) {}
+
     public function index(): View
     {
-        $products = $this->products();
-        $selectedProduct = $products[0];
+        $currentSite = Site::query()->active()->orderBy('name')->first();
+        $currentBranch = $currentSite?->name ?? 'All sites';
+        $products = $this->products($currentSite?->id);
+        $selectedProduct = $products[0] ?? $this->emptyProduct($currentBranch);
 
         return view('pos', [
             'title' => 'Point Of Sale',
-            'currentBranch' => 'Area 23',
-            'cashier' => 'Cashier Desk 01',
-            'saleNumber' => 'POS-1042',
-            'quickSearches' => ['oil filter', 'demio', 'shock absorber', 'fuel pump'],
-            'vehicleFilters' => [
-                'All vehicles',
-                'Toyota Corolla 1.6L Sedan (2014)',
-                'Nissan Tiida 1.5L Sedan (2012)',
-                'Mazda Demio 1.3L DE (2012)',
-                'Honda Fit 1.3L Hybrid (2015)',
-            ],
-            'partTypeFilters' => ['All part types', 'Brake Pads', 'Oil Filter', 'Shock Absorber', 'Fuel Pump'],
+            'currentBranch' => $currentBranch,
+            'currentSiteId' => $currentSite?->id,
+            'cashier' => auth()->user()?->name ?? 'Cashier',
+            'saleNumber' => 'Draft sale',
+            'quickSearches' => collect($products)->pluck('part_type')->filter()->unique()->take(4)->values()->all(),
+            'vehicleFilters' => collect(['All vehicles'])->merge(collect($products)->pluck('vehicle')->filter()->unique())->values()->all(),
+            'partTypeFilters' => collect(['All part types'])->merge(collect($products)->pluck('part_type')->filter()->unique())->values()->all(),
             'products' => $products,
             'selectedProduct' => $selectedProduct,
-            'cartLines' => [
-                $this->cartLine($products[0], 1),
-                $this->cartLine($products[1], 2),
-            ],
+            'cartLines' => [],
             'saleTotals' => [
-                'subtotal' => $this->money(56500),
-                'discount' => $this->money(2500),
-                'tax' => $this->money(8043),
-                'total' => $this->money(54000),
-                'profit' => $this->money(13400),
+                'subtotal' => $this->money(0),
+                'discount' => $this->money(0),
+                'tax' => $this->money(0),
+                'total' => $this->money(0),
+                'profit' => $this->money(0),
             ],
-            'paymentMethods' => ['Cash', 'Mobile Money', 'Card', 'Bank Transfer'],
+            'paymentAccounts' => $this->paymentAccountOptions(),
+            'customers' => $this->customerOptions(),
         ]);
     }
 
-    private function products(): array
+    public function store(Request $request): RedirectResponse
     {
-        // UI fixtures mirror the POS product resource shape without calling the API yet.
-        return [
-            $this->product(
-                id: 1,
-                code: 'TYCO14BP-I',
-                name: 'Toyota Corolla Brake Pads Front',
-                description: 'Front axle ceramic brake pad set, pack of 4.',
-                vehicle: 'Toyota Corolla 2014 1.6L Sedan',
-                partType: 'Brake Pads',
-                brand: 'Denso',
-                origin: 'Japan',
-                barcode: '60012900421',
-                oem: '04465-02340',
-                price: 32500,
-                cost: 24200,
-                stock: [
-                    ['branch' => 'Area 23', 'on_hand' => 15, 'reserved' => 3],
-                    ['branch' => 'Old Town', 'on_hand' => 31, 'reserved' => 1],
-                    ['branch' => 'City Centre', 'on_hand' => 8, 'reserved' => 0],
-                    ['branch' => 'Mzuzu', 'on_hand' => 0, 'reserved' => 0],
-                ],
-                compatibleCars: ['Toyota Corolla 2012-2016', 'Toyota Axio 2013-2016']
-            ),
-            $this->product(
-                id: 2,
-                code: 'NSNT12OF-I',
-                name: 'Nissan Tiida Oil Filter',
-                description: 'Spin-on oil filter for petrol engines.',
-                vehicle: 'Nissan Tiida 2012 1.5L Hatchback',
-                partType: 'Oil Filter',
-                brand: 'Bosch',
-                origin: 'South Africa',
-                barcode: '60012900438',
-                oem: '15208-9F60A',
-                price: 12000,
-                cost: 8200,
-                stock: [
-                    ['branch' => 'Area 23', 'on_hand' => 6, 'reserved' => 0],
-                    ['branch' => 'Old Town', 'on_hand' => 18, 'reserved' => 2],
-                    ['branch' => 'City Centre', 'on_hand' => 10, 'reserved' => 1],
-                    ['branch' => 'Mzuzu', 'on_hand' => 0, 'reserved' => 0],
-                ],
-                compatibleCars: ['Nissan Tiida 2008-2013', 'Nissan Note 2011-2014']
-            ),
-            $this->product(
-                id: 3,
-                code: 'MZDM12SA-I',
-                name: 'Mazda Demio Rear Shock Absorber',
-                description: 'Rear gas shock absorber, sold each.',
-                vehicle: 'Mazda Demio 2012 1.3L DE',
-                partType: 'Shock Absorber',
-                brand: 'Aftermarket',
-                origin: 'China',
-                barcode: '60012900445',
-                oem: 'D651-28-700',
-                price: 83000,
-                cost: 62400,
-                stock: [
-                    ['branch' => 'Area 23', 'on_hand' => 2, 'reserved' => 0],
-                    ['branch' => 'Old Town', 'on_hand' => 7, 'reserved' => 1],
-                    ['branch' => 'City Centre', 'on_hand' => 4, 'reserved' => 0],
-                    ['branch' => 'Mzuzu', 'on_hand' => 3, 'reserved' => 0],
-                ],
-                compatibleCars: ['Mazda Demio 2008-2014', 'Ford Fiesta 2009-2012']
-            ),
-            $this->product(
-                id: 4,
-                code: 'HNFT15FP-I',
-                name: 'Honda Fit Fuel Pump',
-                description: 'Electric in-tank fuel pump assembly.',
-                vehicle: 'Honda Fit 2015 1.3L Hybrid',
-                partType: 'Fuel Pump',
-                brand: 'Denso',
-                origin: 'Japan',
-                barcode: '60012900452',
-                oem: '17045-T5A-J00',
-                price: 145000,
-                cost: 112000,
-                stock: [
-                    ['branch' => 'Area 23', 'on_hand' => 1, 'reserved' => 0],
-                    ['branch' => 'Old Town', 'on_hand' => 2, 'reserved' => 0],
-                    ['branch' => 'City Centre', 'on_hand' => 0, 'reserved' => 0],
-                    ['branch' => 'Mzuzu', 'on_hand' => 1, 'reserved' => 0],
-                ],
-                compatibleCars: ['Honda Fit 2014-2017', 'Honda Grace 2015-2017']
-            ),
+        $validated = $request->validate([
+            'source_site_id' => ['required', 'integer', 'exists:sites,id'],
+            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
+            'cart_payload' => ['required', 'string'],
+            'payment_account_id' => ['nullable', 'integer', 'exists:payment_accounts,id'],
+            'amount_paid' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $cart = json_decode($validated['cart_payload'], true);
+
+        if (! is_array($cart)) {
+            throw ValidationException::withMessages([
+                'cart_payload' => 'The cart could not be read. Please rebuild the sale.',
+            ]);
+        }
+
+        $items = collect($cart)
+            ->filter(fn ($item): bool => ! empty($item['product_id']) && ! empty($item['quantity']))
+            ->map(fn (array $item): array => [
+                'product_id' => (int) $item['product_id'],
+                'quantity' => (int) $item['quantity'],
+                'unit_price' => (float) ($item['unit_price'] ?? 0),
+                'discount_amount' => 0,
+            ])
+            ->values()
+            ->all();
+
+        if (empty($items)) {
+            throw ValidationException::withMessages([
+                'cart_payload' => 'Add at least one part before completing the sale.',
+            ]);
+        }
+
+        $payload = [
+            'source_site_id' => $validated['source_site_id'],
+            'contact_id' => $validated['contact_id'] ?? null,
+            'status' => 'completed',
+            'items' => $items,
         ];
+
+        if ((float) ($validated['amount_paid'] ?? 0) > 0) {
+            if (empty($validated['payment_account_id'])) {
+                throw ValidationException::withMessages([
+                    'payment_account_id' => 'Choose the account receiving this payment.',
+                ]);
+            }
+
+            $payload['payment'] = [
+                'payment_account_id' => $validated['payment_account_id'],
+                'amount' => (float) $validated['amount_paid'],
+                'payment_date' => now(),
+            ];
+        }
+
+        $this->inventoryDocumentService->createSale($payload, $request->user());
+
+        return redirect()
+            ->route('web.pos')
+            ->with('success', 'Sale completed successfully.');
     }
 
-    private function product(
-        int $id,
-        string $code,
-        string $name,
-        string $description,
-        string $vehicle,
-        string $partType,
-        string $brand,
-        string $origin,
-        string $barcode,
-        string $oem,
-        int $price,
-        int $cost,
-        array $stock,
-        array $compatibleCars
-    ): array {
-        $branchStock = collect($stock)->map(function (array $branch): array {
-            $available = max(0, $branch['on_hand'] - $branch['reserved']);
+    private function products(?int $currentSiteId): array
+    {
+        return $this->posProductSearchService
+            ->search()
+            ->groupBy('product_id')
+            ->map(fn (Collection $stocks): array => $this->product($stocks, $currentSiteId))
+            ->values()
+            ->all();
+    }
+
+    private function product(Collection $stocks, ?int $currentSiteId): array
+    {
+        /** @var SiteStock $primaryStock */
+        $primaryStock = $stocks->firstWhere('site_id', $currentSiteId) ?? $stocks->first();
+        $product = $primaryStock->product;
+        $branchStock = $stocks->sortBy('site.name')->map(function (SiteStock $stock): array {
+            $available = $stock->available_quantity;
 
             return [
-                'branch' => $branch['branch'],
-                'on_hand' => $branch['on_hand'],
-                'reserved' => $branch['reserved'],
+                'branch' => $stock->site?->name ?? 'Unassigned',
+                'on_hand' => $stock->quantity_on_hand,
+                'reserved' => $stock->reserved_quantity,
                 'available' => $available,
                 'status' => $available === 0 ? 'out' : ($available <= 2 ? 'low' : 'ok'),
             ];
-        })->all();
+        })->values()->all();
 
         $totalAvailable = collect($branchStock)->sum('available');
         $bestBranch = collect($branchStock)->sortByDesc('available')->first();
+        $price = (float) $product->default_selling_price;
+        $cost = (float) $product->default_purchase_price;
         $margin = $price - $cost;
         $branchStockSummary = collect($branchStock)
             ->map(fn (array $branch): string => "{$branch['branch']} {$branch['available']}")
             ->implode(' - ');
+        $references = $product->references;
+        $vehicle = $this->vehicleLabel($product->carModel);
+        $compatibleCars = collect([$vehicle])
+            ->merge($product->compatibilities->map(fn ($compatibility) => $this->vehicleLabel($compatibility->carModel)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         return [
-            'id' => $id,
-            'product_id' => $id,
-            'product_code' => $code,
-            'product_name' => $name,
-            'pos_description' => $description,
+            'id' => $product->id,
+            'product_id' => $product->id,
+            'product_code' => $product->product_code,
+            'product_name' => $product->product_name,
+            'pos_description' => $product->pos_description ?: $product->description ?: $product->product_name,
             'vehicle' => $vehicle,
-            'part_type' => $partType,
-            'brand' => $brand,
-            'part_country_of_origin' => $origin,
-            'barcode' => $barcode,
-            'oem_number' => $oem,
+            'part_type' => $product->partType?->name ?? 'Unassigned',
+            'brand' => $product->brand?->name ?? 'Unbranded',
+            'part_country_of_origin' => $product->part_country_of_origin ?: 'Not set',
+            'barcode' => $this->reference($references, 'barcode'),
+            'oem_number' => $this->reference($references, 'oem_number'),
             'selling_price' => $price,
             'selling_price_display' => $this->money($price),
             'unit_cost' => $cost,
             'margin_display' => $this->money($margin),
-            'tax_profile' => 'VAT Inclusive 17.5%',
+            'tax_profile' => $product->taxProfile?->name ?? 'No tax profile',
             'compatible_cars' => $compatibleCars,
             'branch_stock' => $branchStock,
             'branch_stock_summary' => $branchStockSummary,
             'total_available' => $totalAvailable,
-            'best_branch' => $bestBranch['branch'],
-            'best_branch_available' => $bestBranch['available'],
+            'best_branch' => $bestBranch['branch'] ?? 'No stock',
+            'best_branch_available' => $bestBranch['available'] ?? 0,
         ];
     }
 
-    private function money(int $amount): string
+    private function emptyProduct(string $currentBranch): array
     {
-        return 'MWK '.number_format($amount);
-    }
-
-    private function cartLine(array $product, int $quantity): array
-    {
-        $lineTotal = $product['selling_price'] * $quantity;
-
         return [
-            'name' => $product['product_name'],
-            'code' => $product['product_code'],
-            'quantity' => $quantity,
-            'unit_price' => $product['selling_price'],
-            'unit_price_display' => $product['selling_price_display'],
-            'line_total_display' => $this->money($lineTotal),
+            'id' => null,
+            'product_id' => null,
+            'product_code' => 'N/A',
+            'product_name' => 'No stocked parts yet',
+            'pos_description' => 'Receive or add parts before selling from POS.',
+            'vehicle' => 'No vehicle',
+            'part_type' => 'No part type',
+            'brand' => 'Unbranded',
+            'part_country_of_origin' => 'Not set',
+            'barcode' => 'N/A',
+            'oem_number' => 'N/A',
+            'selling_price' => 0,
+            'selling_price_display' => $this->money(0),
+            'unit_cost' => 0,
+            'margin_display' => $this->money(0),
+            'tax_profile' => 'No tax profile',
+            'compatible_cars' => [],
+            'branch_stock' => [[
+                'branch' => $currentBranch,
+                'on_hand' => 0,
+                'reserved' => 0,
+                'available' => 0,
+                'status' => 'out',
+            ]],
+            'branch_stock_summary' => "{$currentBranch} 0",
+            'total_available' => 0,
+            'best_branch' => $currentBranch,
+            'best_branch_available' => 0,
         ];
+    }
+
+    private function vehicleLabel($carModel): string
+    {
+        if (! $carModel) {
+            return 'Universal fitment';
+        }
+
+        return collect([
+            $carModel->make,
+            $carModel->model,
+            $carModel->year,
+            $carModel->engine_size,
+            $carModel->variant_name,
+        ])->filter()->join(' ');
+    }
+
+    private function reference(Collection $references, string $type): string
+    {
+        return $references->firstWhere('reference_type', $type)?->reference_value ?? 'N/A';
+    }
+
+    private function money(float $amount): string
+    {
+        return config('services.partflow.base_currency', 'MWK').' '.number_format($amount);
+    }
+
+    private function paymentAccountOptions(): array
+    {
+        return $this->paymentAccountService
+            ->list(['is_active' => true])
+            ->map(fn ($account) => [
+                'id' => $account->id,
+                'label' => "{$account->account_name} - ".str($account->account_type)->headline()->toString(),
+            ])
+            ->all();
+    }
+
+    private function customerOptions(): array
+    {
+        return $this->contactService
+            ->list()
+            ->filter->isCustomer()
+            ->map(fn ($contact) => [
+                'id' => $contact->id,
+                'label' => "{$contact->name} ({$contact->code})",
+            ])
+            ->all();
     }
 }

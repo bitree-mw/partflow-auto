@@ -121,6 +121,44 @@ class CatalogController extends Controller
             ->with('success', 'Part type saved successfully.');
     }
 
+    public function brands(): View
+    {
+        $brands = $this->brandService->list()->loadCount('products');
+
+        return view('catalog.brands.index', [
+            'title' => 'Brands',
+            'description' => 'Maintain manufacturers and suppliers used when adding catalogue parts.',
+            'brands' => $this->brandRows($brands),
+        ]);
+    }
+
+    public function createBrand(): View
+    {
+        return view('catalog.brands.create', [
+            'title' => 'Add Brand',
+            'description' => 'Create a reusable brand before assigning it to parts.',
+            'countries' => config('countries'),
+        ]);
+    }
+
+    public function storeBrand(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:brands,name'],
+            'code' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-]+$/', 'unique:brands,code'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'description' => ['nullable', 'string'],
+        ], [
+            'code.regex' => 'The brand code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        $this->brandService->create($validated);
+
+        return redirect()
+            ->route('web.catalog.brands.index')
+            ->with('success', 'Brand saved successfully.');
+    }
+
     public function fuelTypes(): View
     {
         $fuelTypes = $this->fuelTypeService->list()->loadCount('products');
@@ -163,6 +201,7 @@ class CatalogController extends Controller
         $partTypes = $this->partTypeService->list()->loadCount('products');
         $fuelTypes = $this->fuelTypeService->list()->loadCount('products');
         $carModels = $this->carModelService->list()->loadCount('products');
+        $brands = $this->brandService->list()->loadCount('products');
 
         return view('catalog.products.index', [
             'title' => 'Parts Catalogue',
@@ -171,8 +210,10 @@ class CatalogController extends Controller
             'partTypes' => $this->partTypeRows($partTypes),
             'fuelTypes' => $this->fuelTypeRows($fuelTypes),
             'carModels' => $this->carModelRows($carModels),
+            'brands' => $this->brandRows($brands),
             'catalogueSummary' => [
                 ['label' => 'Parts available', 'value' => (string) $products->count(), 'detail' => 'Sellable catalogue items'],
+                ['label' => 'Brands', 'value' => (string) $brands->count(), 'detail' => 'Manufacturers and suppliers'],
                 ['label' => 'Part types', 'value' => (string) $partTypes->count(), 'detail' => 'Reusable product categories'],
                 ['label' => 'Fuel types', 'value' => (string) $fuelTypes->count(), 'detail' => 'Petrol, diesel, hybrid, and other setups'],
                 ['label' => 'Car models', 'value' => (string) $carModels->count(), 'detail' => 'Fitment and variant records'],
@@ -210,9 +251,6 @@ class CatalogController extends Controller
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
             'pos_description' => ['nullable', 'string'],
-            'barcode' => ['nullable', 'string', 'max:255'],
-            'oem_number' => ['nullable', 'string', 'max:255'],
-            'supplier_code' => ['nullable', 'string', 'max:255'],
             'compatible_car_model_ids' => ['nullable', 'array'],
             'compatible_car_model_ids.*' => ['nullable', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
@@ -228,20 +266,6 @@ class CatalogController extends Controller
 
     private function productPayload(array $validated): array
     {
-        $references = collect([
-            'barcode' => $validated['barcode'] ?? null,
-            'oem_number' => $validated['oem_number'] ?? null,
-            'supplier_code' => $validated['supplier_code'] ?? null,
-        ])
-            ->filter(fn (?string $value): bool => filled($value))
-            ->map(fn (string $value, string $type): array => [
-                'reference_type' => $type,
-                'reference_value' => $value,
-                'is_primary' => $type === 'barcode',
-            ])
-            ->values()
-            ->all();
-
         $compatibilities = collect($validated['compatible_car_model_ids'] ?? [])
             ->filter()
             ->unique()
@@ -255,14 +279,11 @@ class CatalogController extends Controller
 
         return collect($validated)
             ->except([
-                'barcode',
-                'oem_number',
-                'supplier_code',
                 'compatible_car_model_ids',
                 'compatibility_notes',
             ])
             ->merge([
-                'references' => $references,
+                'references' => [],
                 'compatibilities' => $compatibilities,
             ])
             ->all();
@@ -307,6 +328,19 @@ class CatalogController extends Controller
             ->all();
     }
 
+    private function brandRows(Collection $brands): array
+    {
+        return $brands
+            ->map(fn (Brand $brand): array => [
+                'name' => $brand->name,
+                'code' => $brand->code ?: 'N/A',
+                'country' => $brand->country ?: 'Not set',
+                'products' => $brand->products_count ?? 0,
+                'status' => $brand->is_active ? 'Active' : 'Inactive',
+            ])
+            ->all();
+    }
+
     private function productRows(Collection $products): array
     {
         return $products
@@ -325,6 +359,7 @@ class CatalogController extends Controller
                     'code' => $product->product_code,
                     'model' => $this->carModelLabel($product->carModel),
                     'type' => $product->partType?->name ?? 'Unassigned',
+                    'brand' => $product->brand?->name ?? 'Unbranded',
                     'price' => $this->money((float) $product->default_selling_price),
                     'stock' => collect($branchStock)->sum('qty'),
                     'branch_stock' => $branchStock,
@@ -412,6 +447,6 @@ class CatalogController extends Controller
 
     private function money(float $amount): string
     {
-        return 'MWK '.number_format($amount);
+        return config('services.partflow.base_currency', 'MWK').' '.number_format($amount);
     }
 }

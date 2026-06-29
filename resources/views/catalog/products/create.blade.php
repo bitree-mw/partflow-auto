@@ -12,6 +12,8 @@
 @endpush
 
 @section('header_actions')
+    <a class="btn-secondary" href="{{ route('web.catalog.brands.create') }}">Add brand</a>
+    <a class="btn-secondary" href="{{ route('web.catalog.part-types.create') }}">Add part type</a>
     <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Back to catalogue</a>
 @endsection
 
@@ -149,25 +151,7 @@
         </section>
 
         <section class="form-section">
-            <span class="eyebrow">References and compatibility</span>
-            <div class="catalog-reference-grid">
-                <label>
-                    Barcode
-                    <input class="form-control" name="barcode" value="{{ old('barcode') }}" placeholder="Scan or enter barcode">
-                    <x-form-error name="barcode" />
-                </label>
-                <label>
-                    OEM number
-                    <input class="form-control" name="oem_number" value="{{ old('oem_number') }}" placeholder="OEM reference">
-                    <x-form-error name="oem_number" />
-                </label>
-                <label>
-                    Supplier code
-                    <input class="form-control" name="supplier_code" value="{{ old('supplier_code') }}" placeholder="Supplier code">
-                    <x-form-error name="supplier_code" />
-                </label>
-            </div>
-
+            <span class="eyebrow">Compatibility</span>
             <div class="compatibility-panel">
                 <div>
                     <strong>Other compatible car variants</strong>

@@ -6,34 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\PaymentAccount\StorePaymentAccountRequest;
 use App\Http\Requests\Web\PaymentAccount\UpdatePaymentAccountRequest;
 use App\Models\PaymentAccount;
-use App\Services\PaymentAccountService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route as RouteFacade;
+use Illuminate\Validation\ValidationException;
 
 class PaymentAccountController extends Controller
 {
-    public function __construct(
-        private readonly PaymentAccountService $paymentAccountService
-    ) {}
-
     public function index(Request $request): View
     {
-        // List pages paginate directly here so Blade screens stay responsive as records grow.
-        $paymentAccounts = PaymentAccount::query()
-            ->search($request->query('search'))
-            ->type($request->query('account_type'))
-            ->when($request->filled('is_active'), function ($query) use ($request) {
-                $query->where('is_active', filter_var($request->query('is_active'), FILTER_VALIDATE_BOOLEAN));
-            })
-            ->orderBy('account_name')
-            ->paginate(15)
-            ->withQueryString();
+        $accounts = $this->apiCollection($request, 'GET', 'payment-accounts', $request->only(['search', 'account_type', 'is_active']));
 
         return view('payment-accounts.index', [
             'title' => 'Payment Accounts',
             'description' => 'Manage cash, bank, mobile money, and card accounts used for payments.',
-            'paymentAccounts' => $paymentAccounts,
+            'paymentAccounts' => $this->paginateAccounts($accounts, $request),
             'filters' => $request->only(['search', 'account_type', 'is_active']),
             'accountTypes' => $this->accountTypes(),
         ]);
@@ -51,15 +41,18 @@ class PaymentAccountController extends Controller
 
     public function store(StorePaymentAccountRequest $request): RedirectResponse
     {
-        $paymentAccount = $this->paymentAccountService->create($request->validated());
+        $response = $this->apiCall($request, 'POST', 'payment-accounts', $request->validated());
+        $paymentAccount = $this->hydratePaymentAccount($response['data'] ?? []);
 
         return redirect()
             ->route('web.payment-accounts.show', $paymentAccount)
-            ->with('success', 'Payment account created successfully.');
+            ->with('success', $response['message'] ?? 'Payment account created successfully.');
     }
 
-    public function show(PaymentAccount $paymentAccount): View
+    public function show(Request $request, PaymentAccount $paymentAccount): View
     {
+        $paymentAccount = $this->apiAccount($request, $paymentAccount);
+
         return view('payment-accounts.show', [
             'title' => 'Payment Account Details',
             'description' => 'Review account setup and status.',
@@ -67,8 +60,10 @@ class PaymentAccountController extends Controller
         ]);
     }
 
-    public function edit(PaymentAccount $paymentAccount): View
+    public function edit(Request $request, PaymentAccount $paymentAccount): View
     {
+        $paymentAccount = $this->apiAccount($request, $paymentAccount);
+
         return view('payment-accounts.edit', [
             'title' => 'Edit Payment Account',
             'description' => 'Update account details used by payment and expense workflows.',
@@ -79,20 +74,111 @@ class PaymentAccountController extends Controller
 
     public function update(UpdatePaymentAccountRequest $request, PaymentAccount $paymentAccount): RedirectResponse
     {
-        $paymentAccount = $this->paymentAccountService->update($paymentAccount, $request->validated());
+        $response = $this->apiCall($request, 'PUT', "payment-accounts/{$paymentAccount->getKey()}", $request->validated());
+        $paymentAccount = $this->hydratePaymentAccount($response['data'] ?? []);
 
         return redirect()
             ->route('web.payment-accounts.show', $paymentAccount)
-            ->with('success', 'Payment account updated successfully.');
+            ->with('success', $response['message'] ?? 'Payment account updated successfully.');
     }
 
-    public function destroy(PaymentAccount $paymentAccount): RedirectResponse
+    public function destroy(Request $request, PaymentAccount $paymentAccount): RedirectResponse
     {
-        $this->paymentAccountService->delete($paymentAccount);
+        $response = $this->apiCall($request, 'DELETE', "payment-accounts/{$paymentAccount->getKey()}");
 
         return redirect()
             ->route('web.payment-accounts.index')
-            ->with('success', 'Payment account deleted successfully.');
+            ->with('success', $response['message'] ?? 'Payment account deleted successfully.');
+    }
+
+    private function apiAccount(Request $request, PaymentAccount $paymentAccount): PaymentAccount
+    {
+        $response = $this->apiCall($request, 'GET', "payment-accounts/{$paymentAccount->getKey()}");
+
+        return $this->hydratePaymentAccount($response['data'] ?? []);
+    }
+
+    private function apiCollection(Request $request, string $method, string $endpoint, array $payload = []): Collection
+    {
+        $response = $this->apiCall($request, $method, $endpoint, $payload);
+
+        return collect($response['data'] ?? [])
+            ->map(fn (array $account): PaymentAccount => $this->hydratePaymentAccount($account))
+            ->values();
+    }
+
+    private function apiCall(Request $request, string $method, string $endpoint, array $payload = []): array
+    {
+        $token = $this->sessionApiToken($request);
+        $parameters = strtoupper($method) === 'GET' ? $payload : [];
+        $requestPayload = strtoupper($method) === 'GET' ? [] : $payload;
+        $apiRequest = Request::create("/api/{$endpoint}", $method, $parameters);
+
+        $apiRequest->headers->set('Accept', 'application/json');
+        $apiRequest->headers->set('Authorization', "Bearer {$token}");
+        $apiRequest->setUserResolver(fn () => $request->user());
+
+        if ($requestPayload !== []) {
+            $apiRequest->request->replace($requestPayload);
+        }
+
+        $response = RouteFacade::dispatch($apiRequest);
+        $body = json_decode($response->getContent(), true) ?: [];
+
+        if ($response->getStatusCode() === 422) {
+            throw ValidationException::withMessages($body['errors'] ?? ['payment_account' => $body['message'] ?? 'Payment account validation failed.']);
+        }
+
+        if ($response->getStatusCode() >= 400 || ! ($body['success'] ?? false)) {
+            abort($response->getStatusCode(), $body['message'] ?? 'Payment account API request failed.');
+        }
+
+        return $body;
+    }
+
+    private function sessionApiToken(Request $request): string
+    {
+        $token = $request->session()->get('partflow_api_token');
+
+        if ($token) {
+            return $token;
+        }
+
+        $user = $request->user();
+
+        abort_unless($user, 401);
+
+        $token = $user->createToken('partflow-web-session')->plainTextToken;
+        $request->session()->put('partflow_api_token', $token);
+        $request->session()->put('partflow_api_token_id', strtok($token, '|') ?: null);
+
+        return $token;
+    }
+
+    private function hydratePaymentAccount(array $data): PaymentAccount
+    {
+        $paymentAccount = new PaymentAccount();
+        $paymentAccount->forceFill($data);
+        $paymentAccount->exists = true;
+
+        return $paymentAccount;
+    }
+
+    private function paginateAccounts(Collection $accounts, Request $request): LengthAwarePaginator
+    {
+        $perPage = 15;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        return (new LengthAwarePaginator(
+            $accounts->forPage($page, $perPage)->values(),
+            $accounts->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        ));
     }
 
     private function accountTypes(): array

@@ -1,11 +1,18 @@
-// Local settings wizard behavior before API-backed persistence is connected.
+// Settings wizard navigation and dialog behavior.
+const settingsContent = document.querySelector('[data-settings-content]');
 const tabButtons = Array.from(document.querySelectorAll('[data-settings-tab]'));
 const tabPanels = Array.from(document.querySelectorAll('[data-settings-panel]'));
 const progressLabel = document.querySelector('[data-settings-progress]');
 const previousButton = document.querySelector('[data-settings-prev]');
 const nextButton = document.querySelector('[data-settings-next]');
-const addSiteButton = document.querySelector('[data-add-site]');
-const siteForm = document.querySelector('[data-site-form]');
+const activePanelInput = document.querySelector('[data-settings-active-panel]');
+const dialogButtons = Array.from(document.querySelectorAll('[data-open-settings-dialog]'));
+const dialogs = Array.from(document.querySelectorAll('[data-settings-dialog]'));
+const errorDialogMap = {
+    create_site: 'site',
+    create_document_series: 'series',
+    create_user: 'user',
+};
 
 let activeIndex = 0;
 
@@ -34,6 +41,38 @@ function activateTab(index) {
     if (nextButton) {
         nextButton.disabled = activeIndex === tabButtons.length - 1;
     }
+
+    if (activePanelInput && activeKey) {
+        activePanelInput.value = activeKey;
+    }
+
+    if (activeKey) {
+        window.history.replaceState(null, '', `#${activeKey}`);
+    }
+}
+
+function openDialog(name) {
+    const dialog = dialogs.find((item) => item.dataset.settingsDialog === name);
+
+    if (!dialog) {
+        return;
+    }
+
+    if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+    } else {
+        dialog.setAttribute('open', '');
+    }
+
+    dialog.querySelector('input, select, textarea')?.focus();
+}
+
+function closeDialog(dialog) {
+    if (typeof dialog.close === 'function') {
+        dialog.close();
+    } else {
+        dialog.removeAttribute('open');
+    }
 }
 
 tabButtons.forEach((button, index) => {
@@ -43,14 +82,22 @@ tabButtons.forEach((button, index) => {
 previousButton?.addEventListener('click', () => activateTab(activeIndex - 1));
 nextButton?.addEventListener('click', () => activateTab(activeIndex + 1));
 
-addSiteButton?.addEventListener('click', () => {
-    if (!siteForm) {
-        return;
-    }
-
-    siteForm.hidden = false;
-    addSiteButton.hidden = true;
-    siteForm.querySelector('input')?.focus();
+dialogButtons.forEach((button) => {
+    button.addEventListener('click', () => openDialog(button.dataset.openSettingsDialog));
 });
 
-activateTab(0);
+dialogs.forEach((dialog) => {
+    dialog.querySelectorAll('[data-close-settings-dialog]').forEach((button) => {
+        button.addEventListener('click', () => closeDialog(dialog));
+    });
+});
+
+const initialPanel = window.location.hash.replace('#', '') || settingsContent?.dataset.settingsInitialPanel;
+const initialIndex = tabButtons.findIndex((button) => button.dataset.settingsTab === initialPanel);
+activateTab(initialIndex >= 0 ? initialIndex : 0);
+
+const errorDialog = errorDialogMap[settingsContent?.dataset.settingsErrorDialog];
+
+if (errorDialog) {
+    openDialog(errorDialog);
+}

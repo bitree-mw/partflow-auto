@@ -173,6 +173,85 @@
         font-weight: 900;
     }
 
+    .purchase-line-body {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .purchase-line-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .purchase-line-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+
+    .purchase-line-remove:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+    }
+
+    .purchase-line-total {
+        display: grid;
+        min-height: 74px;
+        align-content: center;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .purchase-line-total span,
+    .purchase-totals span {
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .purchase-line-total strong {
+        color: #111827;
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .purchase-line-actions {
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .purchase-totals {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .purchase-totals div {
+        display: grid;
+        gap: 8px;
+        min-height: 86px;
+        align-content: center;
+        padding: 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .purchase-totals strong {
+        color: #111827;
+        font-size: 20px;
+        line-height: 1;
+    }
+
     @media (max-width: 1100px) {
         .operation-summary {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -194,6 +273,13 @@
 
     @media (max-width: 680px) {
         .operation-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .purchase-lines article,
+        .purchase-line-top,
+        .purchase-line-grid,
+        .purchase-totals {
             grid-template-columns: 1fr;
         }
     }

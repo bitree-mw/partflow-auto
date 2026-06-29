@@ -13,10 +13,15 @@ const quantityInput = document.querySelector('[data-pos-quantity]');
 const cartList = document.querySelector('[data-cart-list]');
 const subtotalLabel = document.querySelector('[data-subtotal]');
 const totalDueLabel = document.querySelector('[data-total-due]');
+const cartPayload = document.querySelector('[data-cart-payload]');
+const amountPaidInput = document.querySelector('[data-pos-amount-paid]');
+const checkoutForm = document.querySelector('[data-pos-checkout-form]');
+const completeSaleButton = document.querySelector('[data-complete-sale]');
 
 let selectedProduct = products[0] || null;
 let subtotal = parseCurrency(subtotalLabel?.textContent || '0');
 let totalDue = parseCurrency(totalDueLabel?.textContent || '0');
+let cartItems = [];
 
 function formatCurrency(value) {
     return `MWK ${Math.round(value).toLocaleString('en-US')}`;
@@ -145,25 +150,32 @@ function selectProduct(index) {
 }
 
 function addSelectedProductToCart() {
-    if (!selectedProduct || !cartList) {
+    if (!selectedProduct?.product_id || !cartList) {
         return;
     }
 
     const quantity = Math.max(1, Number(quantityInput?.value || 1));
-    const lineTotal = selectedProduct.selling_price * quantity;
+    const unitPrice = parseCurrency(document.querySelector('[data-pos-unit-price]')?.value || selectedProduct.selling_price);
+    const lineTotal = unitPrice * quantity;
     const line = document.createElement('article');
 
     line.className = 'cart-line';
     line.innerHTML = `
         <div>
             <strong>${selectedProduct.product_name}</strong>
-            <span>${selectedProduct.product_code} x ${quantity} at ${selectedProduct.selling_price_display}</span>
+            <span>${selectedProduct.product_code} x ${quantity} at ${formatCurrency(unitPrice)}</span>
         </div>
         <em>${formatCurrency(lineTotal)}</em>
     `;
 
     cartList.appendChild(line);
+    cartItems.push({
+        product_id: selectedProduct.product_id,
+        quantity,
+        unit_price: unitPrice,
+    });
     updateCartCount();
+    updateCartPayload();
     subtotal += lineTotal;
     totalDue += lineTotal;
 
@@ -174,6 +186,10 @@ function addSelectedProductToCart() {
     if (totalDueLabel) {
         totalDueLabel.textContent = formatCurrency(totalDue);
     }
+
+    if (amountPaidInput) {
+        amountPaidInput.value = Math.round(totalDue);
+    }
 }
 
 function updateCartCount() {
@@ -181,6 +197,12 @@ function updateCartCount() {
 
     if (cartCount && cartList) {
         cartCount.textContent = cartList.querySelectorAll('.cart-line').length;
+    }
+}
+
+function updateCartPayload() {
+    if (cartPayload) {
+        cartPayload.value = JSON.stringify(cartItems);
     }
 }
 
@@ -235,6 +257,8 @@ document.querySelector('[data-pos-clear-cart]')?.addEventListener('click', (even
     }
 
     cartList.innerHTML = '';
+    cartItems = [];
+    updateCartPayload();
     subtotal = 0;
     totalDue = 0;
 
@@ -249,5 +273,10 @@ document.querySelector('[data-pos-clear-cart]')?.addEventListener('click', (even
     updateCartCount();
 });
 
+completeSaleButton?.addEventListener('click', () => {
+    checkoutForm?.requestSubmit();
+});
+
 filterResults();
 updateCartCount();
+updateCartPayload();

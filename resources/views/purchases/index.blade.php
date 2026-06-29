@@ -45,7 +45,7 @@
             <span>3</span>
             <div>
                 <strong>Stock update</strong>
-                <p>After API wiring, approved purchases will increase branch stock and feed supplier analytics.</p>
+                <p>Completed purchases increase site stock immediately and feed supplier analytics.</p>
             </div>
         </article>
     </section>

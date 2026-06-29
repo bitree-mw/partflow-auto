@@ -25,6 +25,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthSessionController::class, 'destroy'])->name('logout');
     Route::get('/pos', [PosController::class, 'index'])->name('web.pos');
+    Route::post('/pos/sales', [PosController::class, 'store'])->name('web.pos.sales');
 });
 
 // Web back-office routes are kept separate from API routes and receive auth/role middleware as the session UI grows.
@@ -51,6 +52,10 @@ Route::prefix('back-office')
             Route::get('car-models', 'carModels')->name('car-models.index');
             Route::get('car-models/create', 'createCarModel')->name('car-models.create');
             Route::post('car-models', 'storeCarModel')->name('car-models.store');
+
+            Route::get('brands', 'brands')->name('brands.index');
+            Route::get('brands/create', 'createBrand')->name('brands.create');
+            Route::post('brands', 'storeBrand')->name('brands.store');
 
             Route::get('part-types', 'partTypes')->name('part-types.index');
             Route::get('part-types/create', 'createPartType')->name('part-types.create');

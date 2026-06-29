@@ -11,3 +11,21 @@ document.querySelectorAll('[data-password-toggle]').forEach((button) => {
         button.textContent = isPassword ? 'Hide' : 'Show';
     });
 });
+
+document.querySelectorAll('[data-login-form]').forEach((form) => {
+    const submitButton = form.querySelector('[data-login-submit]');
+    const submitLabel = form.querySelector('[data-login-submit-label]');
+
+    form.addEventListener('submit', () => {
+        if (! submitButton) {
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.classList.add('is-loading');
+
+        if (submitLabel) {
+            submitLabel.textContent = 'Signing in...';
+        }
+    });
+});

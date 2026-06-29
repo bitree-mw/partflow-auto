@@ -133,43 +133,6 @@
         text-align: right;
     }
 
-    .payment-sample-strip {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .payment-sample-strip article {
-        display: grid;
-        gap: 7px;
-        padding: 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 18px 45px rgb(17 24 39 / 6%);
-    }
-
-    .payment-sample-strip span {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-    }
-
-    .payment-sample-strip strong {
-        color: #111827;
-        font-size: 14px;
-    }
-
-    .payment-sample-strip p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 12px;
-        font-weight: 800;
-        line-height: 1.45;
-    }
-
     .themed-checkbox input {
         width: 18px;
         height: 18px;
@@ -178,8 +141,7 @@
 
     @media (max-width: 760px) {
         .payment-type-options,
-        .payment-account-layout,
-        .payment-sample-strip {
+        .payment-account-layout {
             grid-template-columns: 1fr;
         }
     }

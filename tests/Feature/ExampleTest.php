@@ -2,7 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Models\Brand;
+use App\Models\BusinessSetting;
+use App\Models\CarModel;
+use App\Models\Contact;
+use App\Models\InventoryDocument;
+use App\Models\PartType;
+use App\Models\PaymentAccount;
+use App\Models\Product;
+use App\Models\Role;
+use App\Models\Site;
+use App\Models\SiteStock;
 use App\Models\User;
+use App\Models\UserSiteAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -46,6 +58,8 @@ class ExampleTest extends TestCase
             '/back-office/settings',
             '/back-office/catalog/car-models',
             '/back-office/catalog/car-models/create',
+            '/back-office/catalog/brands',
+            '/back-office/catalog/brands/create',
             '/back-office/catalog/part-types',
             '/back-office/catalog/part-types/create',
             '/back-office/catalog/fuel-types',
@@ -81,5 +95,260 @@ class ExampleTest extends TestCase
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
+    }
+
+    public function test_payment_accounts_web_flow_uses_api_backed_records(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('web.payment-accounts.index'))
+            ->assertOk()
+            ->assertDontSee('Payment account display samples');
+
+        $this->post(route('web.payment-accounts.store'), [
+            'account_name' => 'API Till',
+            'account_type' => 'cash',
+            'bank_name' => 'Main counter',
+            'account_number' => 'TILL-01',
+            'account_holder_name' => 'Cashier Desk',
+            'is_active' => 1,
+        ])->assertRedirect();
+
+        $paymentAccount = PaymentAccount::where('account_name', 'API Till')->firstOrFail();
+
+        $this->get(route('web.payment-accounts.show', $paymentAccount))
+            ->assertOk()
+            ->assertSee('API Till');
+
+        $this->put(route('web.payment-accounts.update', $paymentAccount), [
+            'account_name' => 'API Till Updated',
+            'account_type' => 'mobile_money',
+            'bank_name' => 'Airtel Money',
+            'mobile_number' => '+265991000200',
+            'account_holder_name' => 'Sales Desk',
+            'is_active' => 1,
+        ])->assertRedirect(route('web.payment-accounts.show', $paymentAccount));
+
+        $this->assertDatabaseHas(PaymentAccount::class, [
+            'id' => $paymentAccount->id,
+            'account_name' => 'API Till Updated',
+            'account_type' => 'mobile_money',
+        ]);
+
+        $this->delete(route('web.payment-accounts.destroy', $paymentAccount))
+            ->assertRedirect(route('web.payment-accounts.index'));
+
+        $this->assertSoftDeleted(PaymentAccount::class, [
+            'id' => $paymentAccount->id,
+        ]);
+    }
+
+    public function test_admin_settings_persist_and_add_entities_from_dialog_actions(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'save_settings',
+            'settings_panel' => 'operating-defaults',
+            'business_name' => 'PartFlow Test Auto',
+            'legal_name' => 'PartFlow Test Auto Limited',
+            'registration_number' => 'MW-TEST-001',
+            'base_country' => 'Malawi',
+            'base_currency' => 'MWK',
+            'default_branch' => 'All sites',
+            'stock_costing_method' => 'Weighted average cost',
+            'low_stock_policy' => 'Warn before checkout',
+        ])->assertRedirect(route('web.settings.index').'#operating-defaults');
+
+        $this->assertSame('PartFlow Test Auto', BusinessSetting::where('key', 'business_name')->firstOrFail()->value);
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'create_site',
+            'settings_panel' => 'company-sites',
+            'site_name' => 'Settings Branch',
+            'site_type' => 'branch',
+            'site_city' => 'Lilongwe',
+            'site_country' => 'Malawi',
+        ])->assertRedirect(route('web.settings.index').'#company-sites');
+
+        $site = Site::where('name', 'Settings Branch')->firstOrFail();
+
+        $this->get(route('web.settings.index').'#company-sites')
+            ->assertOk()
+            ->assertSee('Settings Branch');
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'create_document_series',
+            'settings_panel' => 'document-numbering',
+            'series_name' => 'Supplier returns',
+            'series_prefix' => 'SRN',
+            'series_next_number' => 1001,
+        ])->assertRedirect(route('web.settings.index').'#document-numbering');
+
+        $this->get(route('web.settings.index').'#document-numbering')
+            ->assertOk()
+            ->assertSee('Supplier returns')
+            ->assertSee('SRN');
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'create_user',
+            'settings_panel' => 'user-management',
+            'user_name' => 'Settings Manager',
+            'user_email' => 'settings-manager@example.test',
+            'user_role' => 'Settings Role',
+            'user_site' => $site->name,
+            'user_password' => 'password123',
+        ])->assertRedirect(route('web.settings.index').'#user-management');
+
+        $role = Role::where('name', 'Settings Role')->firstOrFail();
+        $user = User::where('email', 'settings-manager@example.test')->firstOrFail();
+
+        $this->assertSame($role->id, $user->role_id);
+        $this->assertDatabaseHas(UserSiteAccess::class, [
+            'user_id' => $user->id,
+            'site_id' => $site->id,
+            'is_default' => true,
+        ]);
+    }
+
+    public function test_catalogue_can_create_brand_part_type_and_product(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('web.catalog.brands.store'), [
+            'name' => 'Test Brand',
+            'code' => 'TB',
+            'country' => 'Malawi',
+            'description' => 'A test catalogue brand.',
+        ])->assertRedirect(route('web.catalog.brands.index'));
+
+        $brand = Brand::where('code', 'TB')->firstOrFail();
+
+        $this->post(route('web.catalog.part-types.store'), [
+            'name' => 'Water Pump',
+            'code' => 'WP',
+            'description' => 'Cooling system water pumps.',
+        ])->assertRedirect(route('web.catalog.part-types.index'));
+
+        $partType = PartType::where('code', 'WP')->firstOrFail();
+        $carModel = CarModel::create([
+            'make' => 'Toyota',
+            'make_code' => 'TY',
+            'model' => 'Corolla',
+            'model_code' => 'CO',
+            'year' => 2016,
+            'engine_size' => '1.6L',
+            'variant_name' => 'Sedan',
+            'country_of_origin' => 'Japan',
+            'is_active' => true,
+        ]);
+
+        $this->post(route('web.catalog.products.store'), [
+            'car_model_id' => $carModel->id,
+            'part_type_id' => $partType->id,
+            'brand_id' => $brand->id,
+            'part_country_of_origin' => 'Japan',
+            'default_purchase_price' => 45000,
+            'default_selling_price' => 68000,
+            'default_low_stock_level' => 3,
+            'pack_size' => 1,
+        ])->assertRedirect(route('web.catalog.products.index'));
+
+        $product = Product::where('brand_id', $brand->id)->firstOrFail();
+
+        $this->assertSame('TYCO1616WP', $product->product_code);
+        $this->assertSame('Toyota Corolla 2016 1.6L Sedan Water Pump', $product->product_name);
+    }
+
+    public function test_contacts_and_purchase_workflows_create_real_records(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $this->post(route('web.customers.store'), [
+            'name' => 'Test Customer Garage',
+            'email' => 'customer@example.test',
+            'credit_limit' => 250000,
+        ])->assertRedirect(route('web.customers.index'));
+
+        $this->post(route('web.suppliers.store'), [
+            'name' => 'Test Supplier Depot',
+            'email' => 'supplier@example.test',
+            'credit_limit' => 500000,
+        ])->assertRedirect(route('web.suppliers.index'));
+
+        $supplier = Contact::where('email', 'supplier@example.test')->firstOrFail();
+        $site = Site::create([
+            'name' => 'Main Warehouse',
+            'code' => 'MWH',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+        $carModel = CarModel::create([
+            'make' => 'Nissan',
+            'make_code' => 'NS',
+            'model' => 'Tiida',
+            'model_code' => 'NT',
+            'year' => 2014,
+            'is_active' => true,
+        ]);
+        $partType = PartType::create([
+            'name' => 'Oil Filter',
+            'code' => 'OF',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'product_code' => 'NSNT14OF',
+            'product_name' => 'Nissan Tiida Oil Filter',
+            'car_model_id' => $carModel->id,
+            'part_type_id' => $partType->id,
+            'default_purchase_price' => 10000,
+            'default_selling_price' => 15000,
+            'default_low_stock_level' => 2,
+            'is_active' => true,
+        ]);
+        $account = PaymentAccount::create([
+            'account_name' => 'Main Cash',
+            'account_type' => 'cash',
+            'is_active' => true,
+        ]);
+
+        $this->post(route('web.purchases.store'), [
+            'contact_id' => $supplier->id,
+            'destination_site_id' => $site->id,
+            'document_date' => '2026-06-28',
+            'status' => 'completed',
+            'items' => [
+                1 => [
+                    'product_id' => $product->id,
+                    'quantity' => 4,
+                    'unit_cost' => 11000,
+                ],
+            ],
+            'payment_account_id' => $account->id,
+            'amount_paid' => 22000,
+            'payment_method' => 'cash',
+        ])->assertRedirect(route('web.purchases.index'));
+
+        $purchase = InventoryDocument::where('document_type', 'purchase')->firstOrFail();
+
+        $this->assertSame('partial', $purchase->payment_status);
+        $this->assertEquals(44000, (float) $purchase->total_amount);
+        $this->assertEquals(4, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
+
+        $this->post(route('web.pos.sales'), [
+            'source_site_id' => $site->id,
+            'cart_payload' => json_encode([
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 16000],
+            ]),
+            'payment_account_id' => $account->id,
+            'amount_paid' => 16000,
+        ])->assertRedirect(route('web.pos'));
+
+        $sale = InventoryDocument::where('document_type', 'sale')->firstOrFail();
+
+        $this->assertSame('paid', $sale->payment_status);
+        $this->assertEquals(16000, (float) $sale->total_amount);
+        $this->assertEquals(3, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
     }
 }
