@@ -196,7 +196,7 @@
 
             <div class="stacked-list">
                 @foreach ($stockAlerts as $alert)
-                    <div @class(['stacked-row', 'warning', $alert['priority_tone'] ?? 'neutral'])>
+                    <a href="{{ route('web.alerts.index') }}" @class(['stacked-row', 'warning', $alert['priority_tone'] ?? 'neutral'])>
                         <div>
                             <strong>{{ $alert['part'] }}</strong>
                             <span>{{ $alert['branch'] }}</span>
@@ -205,7 +205,7 @@
                             <strong>{{ $alert['available'] }}</strong>
                             <span>Recommended {{ $alert['recommended'] }}</span>
                         </div>
-                    </div>
+                    </a>
                 @endforeach
             </div>
         </article>

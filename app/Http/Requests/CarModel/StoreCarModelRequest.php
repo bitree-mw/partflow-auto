@@ -4,22 +4,23 @@ namespace App\Http\Requests\CarModel;
 
 use App\Http\Requests\ApiRequest;
 use App\Models\CarModel;
+use App\Models\VehicleModel;
 
 class StoreCarModelRequest extends ApiRequest
 {
     public function rules(): array
     {
         return [
-            'make' => [
+            'car_make_id' => [
                 'required',
-                'string',
-                'max:100',
+                'integer',
+                'exists:car_makes,id',
             ],
 
-            'model' => [
+            'vehicle_model_id' => [
                 'required',
-                'string',
-                'max:100',
+                'integer',
+                'exists:vehicle_models,id',
             ],
 
             'year' => [
@@ -62,9 +63,23 @@ class StoreCarModelRequest extends ApiRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            $modelBelongsToMake = VehicleModel::query()
+                ->whereKey($this->input('vehicle_model_id'))
+                ->where('car_make_id', $this->input('car_make_id'))
+                ->exists();
+
+            if (! $modelBelongsToMake) {
+                $validator->errors()->add(
+                    'vehicle_model_id',
+                    'Choose a model that belongs to the selected make.'
+                );
+
+                return;
+            }
+
             $exists = CarModel::query()
-                ->where('make', $this->input('make'))
-                ->where('model', $this->input('model'))
+                ->where('car_make_id', $this->input('car_make_id'))
+                ->where('vehicle_model_id', $this->input('vehicle_model_id'))
                 ->where('year', $this->input('year'))
                 ->where('engine_size', $this->input('engine_size'))
                 ->where('variant_name', $this->input('variant_name'))
@@ -73,8 +88,8 @@ class StoreCarModelRequest extends ApiRequest
 
             if ($exists) {
                 $validator->errors()->add(
-                    'model',
-                    'This car make, model, year, and country of origin already exists.'
+                    'vehicle_model_id',
+                    'This car make, model, year, engine, variant, and country of origin already exists.'
                 );
             }
         });

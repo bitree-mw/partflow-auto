@@ -37,8 +37,18 @@ class PurchasesController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $prefillItem = [];
+
+        if ($request->filled('product_id')) {
+            $prefillItem = [
+                'product_id' => (int) $request->query('product_id'),
+                'quantity' => max((int) $request->query('quantity', 1), 1),
+                'unit_cost' => null,
+            ];
+        }
+
         return view('purchases.create', [
             'title' => 'Add Purchase',
             'description' => 'Record parts bought from a supplier and receive stock into the selected site.',
@@ -48,6 +58,8 @@ class PurchasesController extends Controller
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
             'documentStatuses' => ['draft' => 'Draft', 'completed' => 'Completed and received'],
             'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
+            'prefillItem' => $prefillItem,
+            'prefillDestinationSiteId' => $request->query('destination_site_id'),
         ]);
     }
 

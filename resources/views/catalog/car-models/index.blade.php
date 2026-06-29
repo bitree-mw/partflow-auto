@@ -18,35 +18,73 @@
 @section('content')
     <section class="data-panel">
         <div class="panel-toolbar">
-            <strong>Vehicle fitment records</strong>
-            <div class="table-tools">
-                <input class="table-search" type="search" data-table-search placeholder="Search car models..." aria-label="Search car models">
+            <form class="filter-form" method="GET" action="{{ route('web.catalog.car-models.index') }}">
+                <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search car models..." aria-label="Search car models">
+
+                <select name="is_active" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="1" @selected(($filters['is_active'] ?? '') === '1')>Active</option>
+                    <option value="0" @selected(($filters['is_active'] ?? '') === '0')>Inactive</option>
+                </select>
+
+                <button class="btn-secondary" type="submit">Filter</button>
+                <a class="btn-secondary" href="{{ route('web.catalog.car-models.index') }}">Reset</a>
                 <x-page-size-controls />
-            </div>
+            </form>
         </div>
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Vehicle</th>
-                        <th>Engine</th>
-                        <th>Variant</th>
-                        <th>Origin</th>
-                        <th>Products</th>
+                        <th><x-sort-link field="vehicle" label="Vehicle" /></th>
+                        <th><x-sort-link field="engine" label="Engine" /></th>
+                        <th><x-sort-link field="variant" label="Variant" /></th>
+                        <th><x-sort-link field="origin" label="Origin" /></th>
+                        <th><x-sort-link field="products" label="Products" /></th>
+                        <th><x-sort-link field="status" label="Status" /></th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($carModels as $carModel)
+                    @forelse ($carModels as $carModel)
                         <tr>
                             <td><strong>{{ $carModel['make'] }} {{ $carModel['model'] }}</strong><br>{{ $carModel['year'] }}</td>
                             <td>{{ $carModel['engine'] }}</td>
                             <td>{{ $carModel['variant'] }}</td>
                             <td>{{ $carModel['origin'] }}</td>
                             <td>{{ $carModel['products'] }}</td>
+                            <td>
+                                <span @class(['status-pill', 'inactive' => ! $carModel['is_active']])>
+                                    {{ $carModel['status'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="btn-secondary" href="{{ route('web.catalog.car-models.edit', $carModel['id']) }}">Edit</a>
+                                    @if ($carModel['is_active'] && $carModel['linked_products'] === 0)
+                                        <form method="POST" action="{{ route('web.catalog.car-models.destroy', $carModel['id']) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                                <x-icons.trash />
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="7" class="empty-state">No car models found.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="pagination-wrap">
+            {{ $carModels->links() }}
         </div>
     </section>
 @endsection

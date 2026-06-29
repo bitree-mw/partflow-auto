@@ -18,21 +18,31 @@
 @section('content')
     <section class="data-panel">
         <div class="panel-toolbar">
-            <strong>Brand library</strong>
-            <div class="table-tools">
-                <input class="table-search" type="search" data-table-search placeholder="Search brands..." aria-label="Search brands">
+            <form class="filter-form" method="GET" action="{{ route('web.catalog.brands.index') }}">
+                <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search brands..." aria-label="Search brands">
+
+                <select name="is_active" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="1" @selected(($filters['is_active'] ?? '') === '1')>Active</option>
+                    <option value="0" @selected(($filters['is_active'] ?? '') === '0')>Inactive</option>
+                </select>
+
+                <button class="btn-secondary" type="submit">Filter</button>
+                <a class="btn-secondary" href="{{ route('web.catalog.brands.index') }}">Reset</a>
                 <x-page-size-controls />
-            </div>
+            </form>
         </div>
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Brand</th>
-                        <th>Code</th>
-                        <th>Country</th>
-                        <th>Products</th>
-                        <th>Status</th>
+                        <th><x-sort-link field="name" label="Brand" /></th>
+                        <th><x-sort-link field="code" label="Code" /></th>
+                        <th><x-sort-link field="country" label="Country" /></th>
+                        <th><x-sort-link field="products" label="Products" /></th>
+                        <th><x-sort-link field="status" label="Status" /></th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,15 +52,37 @@
                             <td>{{ $brand['code'] }}</td>
                             <td>{{ $brand['country'] }}</td>
                             <td>{{ $brand['products'] }}</td>
-                            <td><span class="status-pill">{{ $brand['status'] }}</span></td>
+                            <td>
+                                <span @class(['status-pill', 'inactive' => ! $brand['is_active']])>
+                                    {{ $brand['status'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="btn-secondary" href="{{ route('web.catalog.brands.edit', $brand['id']) }}">Edit</a>
+                                    @if ($brand['is_active'])
+                                        <form method="POST" action="{{ route('web.catalog.brands.destroy', $brand['id']) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                                <x-icons.trash />
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="empty-state">No brands have been added yet.</td>
+                            <td colspan="6" class="empty-state">No brands found.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="pagination-wrap">
+            {{ $brands->links() }}
         </div>
     </section>
 @endsection

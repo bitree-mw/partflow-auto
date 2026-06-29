@@ -82,7 +82,9 @@
                                     <form method="POST" action="{{ route('web.payment-accounts.destroy', $account) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn-danger" type="submit">Delete</button>
+                                        <button class="icon-action icon-danger" type="submit" title="Delete account" aria-label="Delete account">
+                                            <x-icons.trash />
+                                        </button>
                                     </form>
                                 </div>
                             </td>

@@ -17,7 +17,7 @@
 
 @section('content')
     @php
-        $purchaseLineItems = collect(old('items', [[]]))->filter(fn ($item): bool => is_array($item))->values();
+        $purchaseLineItems = collect(old('items', ! empty($prefillItem ?? []) ? [$prefillItem] : [[]]))->filter(fn ($item): bool => is_array($item))->values();
         $purchaseLineItems = $purchaseLineItems->isEmpty() ? collect([[]]) : $purchaseLineItems;
         $purchaseCurrency = $appSystem['currency'] ?? config('services.partflow.base_currency', 'MWK');
     @endphp
@@ -51,7 +51,7 @@
                     <select class="form-control" id="destination_site_id" name="destination_site_id" required>
                         <option value="">Select site</option>
                         @foreach ($sites as $site)
-                            <option value="{{ $site['id'] }}" @selected((string) old('destination_site_id') === (string) $site['id'])>
+                            <option value="{{ $site['id'] }}" @selected((string) old('destination_site_id', $prefillDestinationSiteId ?? '') === (string) $site['id'])>
                                 {{ $site['label'] }}
                             </option>
                         @endforeach

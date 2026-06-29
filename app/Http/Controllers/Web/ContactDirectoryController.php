@@ -72,6 +72,20 @@ class ContactDirectoryController extends Controller
             ->with('success', 'Supplier created successfully.');
     }
 
+    public function destroyCustomer(Contact $contact): RedirectResponse
+    {
+        abort_unless($contact->isCustomer(), 404);
+
+        return $this->deactivateContact($contact, 'sale', 'web.customers.index', 'Customer');
+    }
+
+    public function destroySupplier(Contact $contact): RedirectResponse
+    {
+        abort_unless($contact->isSupplier(), 404);
+
+        return $this->deactivateContact($contact, 'purchase', 'web.suppliers.index', 'Supplier');
+    }
+
     private function contactForm(string $mode, string $title, string $description, string $action): View
     {
         return view('contacts.create', compact('mode', 'title', 'description', 'action'));
@@ -106,16 +120,39 @@ class ContactDirectoryController extends Controller
                 $noun = $documentType === 'sale' ? 'sales' : 'purchases';
 
                 return [
+                    'id' => $contact->id,
                     'code' => $contact->code,
                     'name' => $contact->name,
                     'phone' => $contact->phone ?: 'N/A',
                     'email' => $contact->email ?: 'N/A',
                     'credit_limit' => $this->money((float) $contact->credit_limit),
+                    'balance_amount' => $balance,
                     'balance' => $this->money($balance),
                     'performance' => $documents->count()." {$noun} - {$paidPercent}% paid",
+                    'is_active' => (bool) $contact->is_active,
+                    'status' => $contact->is_active ? 'Active' : 'Inactive',
                 ];
             })
             ->all();
+    }
+
+    private function deactivateContact(Contact $contact, string $documentType, string $routeName, string $label): RedirectResponse
+    {
+        $balance = (float) $contact->inventoryDocuments()
+            ->where('document_type', $documentType)
+            ->sum('balance_amount');
+
+        if ($balance > 0) {
+            return redirect()
+                ->route($routeName)
+                ->with('error', "{$label} has an outstanding balance and cannot be made inactive.");
+        }
+
+        $this->contactService->update($contact, ['is_active' => false]);
+
+        return redirect()
+            ->route($routeName)
+            ->with('success', "{$label} marked inactive.");
     }
 
     private function customerAnalytics(Collection $contacts): array

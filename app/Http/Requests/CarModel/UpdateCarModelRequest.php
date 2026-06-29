@@ -4,24 +4,25 @@ namespace App\Http\Requests\CarModel;
 
 use App\Http\Requests\ApiRequest;
 use App\Models\CarModel;
+use App\Models\VehicleModel;
 
 class UpdateCarModelRequest extends ApiRequest
 {
     public function rules(): array
     {
         return [
-            'make' => [
+            'car_make_id' => [
                 'sometimes',
                 'required',
-                'string',
-                'max:100',
+                'integer',
+                'exists:car_makes,id',
             ],
 
-            'model' => [
+            'vehicle_model_id' => [
                 'sometimes',
                 'required',
-                'string',
-                'max:100',
+                'integer',
+                'exists:vehicle_models,id',
             ],
 
             'year' => [
@@ -71,17 +72,31 @@ class UpdateCarModelRequest extends ApiRequest
                 return;
             }
 
-            $make = $this->input('make', $carModel->make);
-            $model = $this->input('model', $carModel->model);
+            $makeId = $this->input('car_make_id', $carModel->car_make_id);
+            $modelId = $this->input('vehicle_model_id', $carModel->vehicle_model_id);
             $year = $this->input('year', $carModel->year);
             $engineSize = $this->input('engine_size', $carModel->engine_size);
             $variantName = $this->input('variant_name', $carModel->variant_name);
             $country = $this->input('country_of_origin', $carModel->country_of_origin);
 
+            $modelBelongsToMake = VehicleModel::query()
+                ->whereKey($modelId)
+                ->where('car_make_id', $makeId)
+                ->exists();
+
+            if (! $modelBelongsToMake) {
+                $validator->errors()->add(
+                    'vehicle_model_id',
+                    'Choose a model that belongs to the selected make.'
+                );
+
+                return;
+            }
+
             $exists = CarModel::query()
                 ->where('id', '!=', $carModel->id)
-                ->where('make', $make)
-                ->where('model', $model)
+                ->where('car_make_id', $makeId)
+                ->where('vehicle_model_id', $modelId)
                 ->where('year', $year)
                 ->where('engine_size', $engineSize)
                 ->where('variant_name', $variantName)
@@ -90,8 +105,8 @@ class UpdateCarModelRequest extends ApiRequest
 
             if ($exists) {
                 $validator->errors()->add(
-                    'model',
-                    'This car make, model, year, and country of origin already exists.'
+                    'vehicle_model_id',
+                    'This car make, model, year, engine, variant, and country of origin already exists.'
                 );
             }
         });

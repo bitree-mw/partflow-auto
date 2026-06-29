@@ -117,6 +117,109 @@
         cursor: pointer;
     }
 
+    .app-combobox {
+        position: relative;
+        min-width: min(240px, 100%);
+        width: 100%;
+    }
+
+    .filter-form .app-combobox,
+    .table-tools .app-combobox {
+        width: auto;
+        min-width: 180px;
+    }
+
+    .app-select-native {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .app-combobox-input {
+        width: 100%;
+        min-height: 46px;
+        padding: 0 38px 0 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 14px;
+        color: #20261f;
+        background:
+            linear-gradient(45deg, transparent 50%, #6b7280 50%),
+            linear-gradient(135deg, #6b7280 50%, transparent 50%),
+            #fff;
+        background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%, 0 0;
+        background-repeat: no-repeat;
+        background-size: 6px 6px, 6px 6px, auto;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .app-combobox-input:focus {
+        border-color: #111827;
+        box-shadow: 0 0 0 4px rgb(17 24 39 / 12%);
+    }
+
+    .app-combobox-input:disabled {
+        color: #6b7280;
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+    }
+
+    .app-combobox-list {
+        position: absolute;
+        z-index: 70;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        display: grid;
+        max-height: 260px;
+        padding: 6px;
+        border: 1px solid #d1d5db;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 22px 55px rgb(17 24 39 / 16%);
+        overflow: auto;
+    }
+
+    .app-combobox-list[hidden] {
+        display: none;
+    }
+
+    .app-combobox-option {
+        width: 100%;
+        min-height: 36px;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 10px;
+        color: #20261f;
+        background: transparent;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .app-combobox-option:hover,
+    .app-combobox-option.highlighted,
+    .app-combobox-option[aria-selected="true"] {
+        background: #f3f4f6;
+    }
+
+    .app-combobox-option[aria-selected="true"] {
+        color: #111827;
+        font-weight: 900;
+    }
+
+    .app-combobox-empty {
+        padding: 10px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
     @media (max-width: 520px) {
         .app-alert-dialog-card {
             grid-template-columns: 1fr;

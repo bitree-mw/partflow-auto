@@ -16,6 +16,7 @@ class ContactService
             ->when(isset($filters['is_active']), function ($query) use ($filters) {
                 $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
             })
+            ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
     }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\BusinessSetting;
+use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\Contact;
 use App\Models\InventoryDocument;
@@ -15,6 +16,7 @@ use App\Models\Site;
 use App\Models\SiteStock;
 use App\Models\User;
 use App\Models\UserSiteAccess;
+use App\Models\VehicleModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -231,7 +233,21 @@ class ExampleTest extends TestCase
         ])->assertRedirect(route('web.catalog.part-types.index'));
 
         $partType = PartType::where('code', 'WP')->firstOrFail();
+        $make = CarMake::create([
+            'name' => 'Toyota',
+            'code' => 'TY',
+            'country' => 'Japan',
+            'is_active' => true,
+        ]);
+        $model = VehicleModel::create([
+            'car_make_id' => $make->id,
+            'name' => 'Corolla',
+            'code' => 'CO',
+            'is_active' => true,
+        ]);
         $carModel = CarModel::create([
+            'car_make_id' => $make->id,
+            'vehicle_model_id' => $model->id,
             'make' => 'Toyota',
             'make_code' => 'TY',
             'model' => 'Corolla',
@@ -258,6 +274,17 @@ class ExampleTest extends TestCase
 
         $this->assertSame('TYCO1616WP', $product->product_code);
         $this->assertSame('Toyota Corolla 2016 1.6L Sedan Water Pump', $product->product_name);
+
+        $this->delete(route('web.catalog.part-types.destroy', $partType))
+            ->assertRedirect(route('web.catalog.part-types.index'))
+            ->assertSessionHas('error');
+
+        $this->delete(route('web.catalog.car-models.destroy', $carModel))
+            ->assertRedirect(route('web.catalog.car-models.index'))
+            ->assertSessionHas('error');
+
+        $this->assertTrue($partType->fresh()->is_active);
+        $this->assertTrue($carModel->fresh()->is_active);
     }
 
     public function test_contacts_and_purchase_workflows_create_real_records(): void
@@ -284,7 +311,21 @@ class ExampleTest extends TestCase
             'type' => 'warehouse',
             'is_active' => true,
         ]);
+        $make = CarMake::create([
+            'name' => 'Nissan',
+            'code' => 'NS',
+            'country' => 'Japan',
+            'is_active' => true,
+        ]);
+        $model = VehicleModel::create([
+            'car_make_id' => $make->id,
+            'name' => 'Tiida',
+            'code' => 'NT',
+            'is_active' => true,
+        ]);
         $carModel = CarModel::create([
+            'car_make_id' => $make->id,
+            'vehicle_model_id' => $model->id,
             'make' => 'Nissan',
             'make_code' => 'NS',
             'model' => 'Tiida',
@@ -336,6 +377,35 @@ class ExampleTest extends TestCase
         $this->assertEquals(44000, (float) $purchase->total_amount);
         $this->assertEquals(4, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
 
+        $this->delete(route('web.suppliers.destroy', $supplier))
+            ->assertRedirect(route('web.suppliers.index'))
+            ->assertSessionHas('error');
+
+        $this->assertTrue($supplier->fresh()->is_active);
+
+        InventoryDocument::create([
+            'document_number' => 'SALE-TEST-BAL',
+            'document_type' => 'sale',
+            'contact_id' => Contact::where('email', 'customer@example.test')->firstOrFail()->id,
+            'source_site_id' => $site->id,
+            'document_date' => '2026-06-28',
+            'status' => 'completed',
+            'subtotal_amount' => 25000,
+            'total_amount' => 25000,
+            'paid_amount' => 5000,
+            'balance_amount' => 20000,
+            'payment_status' => 'partial',
+            'created_by' => $user->id,
+        ]);
+
+        $customer = Contact::where('email', 'customer@example.test')->firstOrFail();
+
+        $this->delete(route('web.customers.destroy', $customer))
+            ->assertRedirect(route('web.customers.index'))
+            ->assertSessionHas('error');
+
+        $this->assertTrue($customer->fresh()->is_active);
+
         $this->post(route('web.pos.sales'), [
             'source_site_id' => $site->id,
             'cart_payload' => json_encode([
@@ -345,7 +415,7 @@ class ExampleTest extends TestCase
             'amount_paid' => 16000,
         ])->assertRedirect(route('web.pos'));
 
-        $sale = InventoryDocument::where('document_type', 'sale')->firstOrFail();
+        $sale = InventoryDocument::where('document_type', 'sale')->latest('id')->firstOrFail();
 
         $this->assertSame('paid', $sale->payment_status);
         $this->assertEquals(16000, (float) $sale->total_amount);

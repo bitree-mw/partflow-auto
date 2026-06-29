@@ -3,16 +3,20 @@
 namespace App\Services;
 
 use App\Models\CarModel;
+use App\Models\CarMake;
+use App\Models\VehicleModel;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Str;
 
 class CarModelService
 {
     public function list(array $filters = []): Collection
     {
         return CarModel::query()
+            ->with(['carMake', 'vehicleModel'])
             ->search($filters['search'] ?? null)
             ->forMake($filters['make'] ?? null)
+            ->forCarMake(isset($filters['car_make_id']) ? (int) $filters['car_make_id'] : null)
+            ->forVehicleModel(isset($filters['vehicle_model_id']) ? (int) $filters['vehicle_model_id'] : null)
             ->year(isset($filters['year']) ? (int) $filters['year'] : null)
             ->engineSize($filters['engine_size'] ?? null)
             ->when(isset($filters['country_of_origin']), function ($query) use ($filters) {
@@ -29,11 +33,18 @@ class CarModelService
 
     public function create(array $data): CarModel
     {
+        $make = CarMake::query()->findOrFail($data['car_make_id']);
+        $model = VehicleModel::query()
+            ->where('car_make_id', $make->id)
+            ->findOrFail($data['vehicle_model_id']);
+
         return CarModel::create([
-            'make' => $data['make'],
-            'make_code' => $this->generateMakeCode($data['make']),
-            'model' => $data['model'],
-            'model_code' => $this->generateModelCode($data['model']),
+            'car_make_id' => $make->id,
+            'vehicle_model_id' => $model->id,
+            'make' => $make->name,
+            'make_code' => $make->code,
+            'model' => $model->name,
+            'model_code' => $model->code,
             'year' => $data['year'],
             'engine_size' => $data['engine_size'] ?? null,
             'variant_name' => $data['variant_name'] ?? null,
@@ -45,12 +56,18 @@ class CarModelService
 
     public function update(CarModel $carModel, array $data): CarModel
     {
-        if (isset($data['make'])) {
-            $data['make_code'] = $this->generateMakeCode($data['make']);
-        }
+        if (isset($data['car_make_id']) || isset($data['vehicle_model_id'])) {
+            $make = CarMake::query()->findOrFail($data['car_make_id'] ?? $carModel->car_make_id);
+            $model = VehicleModel::query()
+                ->where('car_make_id', $make->id)
+                ->findOrFail($data['vehicle_model_id'] ?? $carModel->vehicle_model_id);
 
-        if (isset($data['model'])) {
-            $data['model_code'] = $this->generateModelCode($data['model']);
+            $data['car_make_id'] = $make->id;
+            $data['vehicle_model_id'] = $model->id;
+            $data['make'] = $make->name;
+            $data['make_code'] = $make->code;
+            $data['model'] = $model->name;
+            $data['model_code'] = $model->code;
         }
 
         $carModel->update($data);
@@ -63,21 +80,4 @@ class CarModelService
         $carModel->delete();
     }
 
-    private function generateMakeCode(string $make): string
-    {
-        return Str::of($make)
-            ->upper()
-            ->replaceMatches('/[^A-Z0-9]/', '')
-            ->substr(0, 3)
-            ->toString();
-    }
-
-    private function generateModelCode(string $model): string
-    {
-        return Str::of($model)
-            ->upper()
-            ->replaceMatches('/[^A-Z0-9]/', '')
-            ->substr(0, 4)
-            ->toString();
-    }
 }

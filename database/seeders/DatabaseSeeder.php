@@ -15,9 +15,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            PartFlowBaseTestingSeeder::class,
-            MalawiVehicleBrandSeeder::class,
+            CommonPartBrandSeeder::class,
+            MalawiVehicleMakeModelSeeder::class,
             CommonVehiclePartTypeSeeder::class,
+            PartFlowBaseTestingSeeder::class,
             PartFlowPurchaseSalesTestingSeeder::class,
             DefaultSystemUserSeeder::class,
         ]);

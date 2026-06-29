@@ -49,10 +49,31 @@
 
     .catalogue-card-actions {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 8px;
         align-items: center;
         margin-top: 10px;
+    }
+
+    .catalogue-card-actions .btn,
+    .catalogue-card-actions .btn-secondary {
+        flex: 0 1 auto;
+        min-height: 38px;
+        padding: 0 16px;
+        border-radius: 13px;
+        white-space: nowrap;
+    }
+
+    .catalogue-card-actions .catalogue-add-button {
+        border-color: #2563eb;
+        color: #fff;
+        background: #2563eb;
+        box-shadow: 0 10px 24px rgb(37 99 235 / 20%);
+    }
+
+    .catalogue-card-actions .catalogue-add-button:hover {
+        border-color: #1d4ed8;
+        background: #1d4ed8;
     }
 
     .catalog-form {

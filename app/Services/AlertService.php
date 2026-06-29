@@ -41,7 +41,7 @@ class AlertService
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
-            ->selectRaw('products.product_name, products.product_code, sites.name as site_name')
+            ->selectRaw('products.id as product_id, products.product_name, products.product_code, sites.id as site_id, sites.name as site_name')
             ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')
             ->selectRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) as low_stock_level')
             ->orderBy('available_quantity')
@@ -63,6 +63,12 @@ class AlertService
                     'priority_rank' => $isOut || $available <= floor($recommended / 2) ? 0 : 1,
                     'available' => $available,
                     'recommended' => $recommended,
+                    'review_url' => route('web.catalog.products.edit', $row->product_id),
+                    'purchase_url' => route('web.purchases.create', [
+                        'product_id' => $row->product_id,
+                        'destination_site_id' => $row->site_id,
+                        'quantity' => max($recommended - $available, 1),
+                    ]),
                 ];
             });
     }
@@ -88,6 +94,8 @@ class AlertService
                 'priority_rank' => 1,
                 'available' => null,
                 'recommended' => null,
+                'review_url' => route('web.purchases.index'),
+                'purchase_url' => null,
             ]);
     }
 
@@ -99,9 +107,9 @@ class AlertService
             ->where('inventory_documents.document_type', 'sale')
             ->where('inventory_documents.balance_amount', '>', 0)
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
-            ->selectRaw('contacts.name as customer_name, sites.name as site_name')
+            ->selectRaw('contacts.id as contact_id, contacts.name as customer_name, sites.name as site_name')
             ->selectRaw('SUM(inventory_documents.balance_amount) as balance_amount')
-            ->groupBy('contacts.name', 'sites.name')
+            ->groupBy('contacts.id', 'contacts.name', 'sites.name')
             ->orderByDesc('balance_amount')
             ->limit(8)
             ->get()
@@ -116,6 +124,8 @@ class AlertService
                 'priority_rank' => ((float) $row->balance_amount) >= 500000 ? 0 : 1,
                 'available' => null,
                 'recommended' => null,
+                'review_url' => route('web.customers.index', ['search' => $row->customer_name]),
+                'purchase_url' => null,
             ]);
     }
 

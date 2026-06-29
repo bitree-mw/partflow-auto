@@ -349,6 +349,11 @@
         gap: 14px;
     }
 
+    a.stacked-row {
+        color: inherit;
+        text-decoration: none;
+    }
+
     .stacked-row > div {
         display: grid;
         gap: 5px;

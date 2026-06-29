@@ -1,3 +1,7 @@
+import { initAppDialogs } from './modules/dialogs';
+
+initAppDialogs();
+
 document.querySelectorAll('[data-password-toggle]').forEach((button) => {
     const input = button.closest('.password-control')?.querySelector('[data-password-input]');
 

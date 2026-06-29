@@ -56,6 +56,10 @@
                 <strong>Company sites</strong>
                 <small>Shops, branches, and warehouses</small>
             </button>
+            <button type="button" data-settings-tab="vehicle-library">
+                <strong>Vehicle library</strong>
+                <small>Car makes and model dropdowns</small>
+            </button>
             <button type="button" data-settings-tab="document-numbering">
                 <strong>Document numbering</strong>
                 <small>Sales, purchases, transfers, stock counts</small>
@@ -63,10 +67,6 @@
             <button type="button" data-settings-tab="user-management">
                 <strong>User management</strong>
                 <small>Admins, roles, site access, and status</small>
-            </button>
-            <button type="button" data-settings-tab="module-coverage">
-                <strong>Module coverage</strong>
-                <small>What has been configured so far</small>
             </button>
         </aside>
 
@@ -208,6 +208,158 @@
                 </dialog>
             </section>
 
+            <section class="settings-panel" id="vehicle-library" data-settings-panel="vehicle-library" hidden>
+                <header class="settings-header">
+                    <span class="eyebrow">Vehicle library</span>
+                    <h2>Car makes and models</h2>
+                    <p>Manage the dropdown source used when adding vehicle identities and fitment records.</p>
+                </header>
+
+                <div class="vehicle-library-grid">
+                    <section>
+                        <header>
+                            <strong>Car makes</strong>
+                            <button class="btn-secondary" type="button" data-open-settings-dialog="car-make">Add make</button>
+                        </header>
+                        <div class="site-list">
+                            @forelse ($carMakes as $make)
+                                <article>
+                                    <div>
+                                        <strong>{{ $make['name'] }}</strong>
+                                        <span>{{ $make['code'] }} - {{ $make['country'] }} - {{ $make['models'] }} models</span>
+                                    </div>
+                                    <em>{{ $make['status'] }}</em>
+                                </article>
+                            @empty
+                                <article>
+                                    <div>
+                                        <strong>No makes added</strong>
+                                        <span>Add a make to start loading model dropdowns.</span>
+                                    </div>
+                                </article>
+                            @endforelse
+                        </div>
+                    </section>
+
+                    <section>
+                        <header>
+                            <strong>Car models</strong>
+                            <button class="btn-secondary" type="button" data-open-settings-dialog="vehicle-model">Add model</button>
+                        </header>
+                        <div class="site-list">
+                            @forelse ($vehicleModels as $model)
+                                <article>
+                                    <div>
+                                        <strong>{{ $model['make'] }} {{ $model['name'] }}</strong>
+                                        <span>{{ $model['code'] }} - {{ $model['years'] }} - {{ $model['body_style'] }}</span>
+                                    </div>
+                                    <em>{{ $model['status'] }}</em>
+                                </article>
+                            @empty
+                                <article>
+                                    <div>
+                                        <strong>No models added</strong>
+                                        <span>Add a model and link it to a make.</span>
+                                    </div>
+                                </article>
+                            @endforelse
+                        </div>
+                    </section>
+                </div>
+
+                <dialog class="settings-dialog" data-settings-dialog="car-make" aria-labelledby="settings-car-make-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">New make</span>
+                            <h3 id="settings-car-make-title">Add car make</h3>
+                        </header>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="make_name">Make name</label>
+                                <input class="form-control" id="make_name" name="make_name" value="{{ old('make_name') }}" placeholder="Toyota">
+                                <x-form-error name="make_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="make_code">Make code</label>
+                                <input class="form-control" id="make_code" name="make_code" value="{{ old('make_code') }}" placeholder="TY">
+                                <x-form-error name="make_code" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="make_country">Country</label>
+                                <input class="form-control searchable-input" id="make_country" name="make_country" value="{{ old('make_country') }}" list="settings-countries" placeholder="Search country">
+                                <x-form-error name="make_country" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="make_description">Description</label>
+                                <textarea class="form-control" id="make_description" name="make_description" rows="3">{{ old('make_description') }}</textarea>
+                                <x-form-error name="make_description" />
+                            </div>
+                        </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="create_car_make">Save make</button>
+                        </div>
+                    </div>
+                </dialog>
+
+                <dialog class="settings-dialog" data-settings-dialog="vehicle-model" aria-labelledby="settings-vehicle-model-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">New model</span>
+                            <h3 id="settings-vehicle-model-title">Add car model</h3>
+                        </header>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="vehicle_make_id">Make</label>
+                                <select class="form-control" id="vehicle_make_id" name="vehicle_make_id">
+                                    <option value="">Select make</option>
+                                    @foreach ($carMakes as $make)
+                                        <option value="{{ $make['id'] }}" @selected((string) old('vehicle_make_id') === (string) $make['id'])>
+                                            {{ $make['name'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-form-error name="vehicle_make_id" />
+                            </div>
+                            <div class="form-field">
+                                <label for="vehicle_model_name">Model name</label>
+                                <input class="form-control" id="vehicle_model_name" name="vehicle_model_name" value="{{ old('vehicle_model_name') }}" placeholder="Corolla">
+                                <x-form-error name="vehicle_model_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="vehicle_model_code">Model code</label>
+                                <input class="form-control" id="vehicle_model_code" name="vehicle_model_code" value="{{ old('vehicle_model_code') }}" placeholder="CO">
+                                <x-form-error name="vehicle_model_code" />
+                            </div>
+                            <div class="form-field">
+                                <label for="vehicle_body_style">Body style</label>
+                                <input class="form-control" id="vehicle_body_style" name="vehicle_body_style" value="{{ old('vehicle_body_style') }}" placeholder="Sedan">
+                                <x-form-error name="vehicle_body_style" />
+                            </div>
+                            <div class="form-field">
+                                <label for="vehicle_start_year">Start year</label>
+                                <input class="form-control" id="vehicle_start_year" name="vehicle_start_year" inputmode="numeric" value="{{ old('vehicle_start_year') }}" placeholder="2000">
+                                <x-form-error name="vehicle_start_year" />
+                            </div>
+                            <div class="form-field">
+                                <label for="vehicle_end_year">End year</label>
+                                <input class="form-control" id="vehicle_end_year" name="vehicle_end_year" inputmode="numeric" value="{{ old('vehicle_end_year') }}" placeholder="2026">
+                                <x-form-error name="vehicle_end_year" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="vehicle_model_description">Description</label>
+                                <textarea class="form-control" id="vehicle_model_description" name="vehicle_model_description" rows="3">{{ old('vehicle_model_description') }}</textarea>
+                                <x-form-error name="vehicle_model_description" />
+                            </div>
+                        </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button class="btn" type="submit" name="settings_action" value="create_vehicle_model">Save model</button>
+                        </div>
+                    </div>
+                </dialog>
+            </section>
+
             <section class="settings-panel" id="document-numbering" data-settings-panel="document-numbering" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Document numbering</span>
@@ -331,30 +483,9 @@
                 </dialog>
             </section>
 
-            <section class="settings-panel" id="module-coverage" data-settings-panel="module-coverage" hidden>
-                <header class="settings-header">
-                    <span class="eyebrow">Coverage</span>
-                    <h2>Configured admin modules</h2>
-                    <p>Quickly see what the admin has already prepared before API wiring is connected.</p>
-                </header>
-
-                <div class="settings-groups">
-                    @foreach ($settingGroups as $group)
-                        <article>
-                            <strong>{{ $group['name'] }}</strong>
-                            <div>
-                                @foreach ($group['items'] as $item)
-                                    <span>{{ $item }}</span>
-                                @endforeach
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
-            </section>
-
             <div class="settings-save-bar">
                 <button class="btn-secondary" type="button" data-settings-prev>Previous</button>
-                <span data-settings-progress>Step 1 of 6</span>
+                <span data-settings-progress>Step 1</span>
                 <button class="btn-secondary" type="button" data-settings-next>Next</button>
                 <button class="btn" type="submit" name="settings_action" value="save_settings">Save settings</button>
             </div>

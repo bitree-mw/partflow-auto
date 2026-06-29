@@ -18,8 +18,9 @@
 @section('content')
     <x-country-datalist id="car-model-origin-countries" :countries="$countries" />
 
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.store') }}">
+    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.update', $carModel) }}">
         @csrf
+        @method('PUT')
 
         <section class="form-section">
             <span class="eyebrow">Vehicle identity</span>
@@ -29,7 +30,7 @@
                     <select class="form-control" id="car_make_id" name="car_make_id" data-car-make-select required>
                         <option value="">Select make</option>
                         @foreach ($carMakes as $make)
-                            <option value="{{ $make['id'] }}" @selected((string) old('car_make_id') === (string) $make['id'])>
+                            <option value="{{ $make['id'] }}" @selected((string) old('car_make_id', $carModel->car_make_id) === (string) $make['id'])>
                                 {{ $make['label'] }}
                             </option>
                         @endforeach
@@ -42,7 +43,7 @@
                     <select class="form-control" id="vehicle_model_id" name="vehicle_model_id" data-vehicle-model-select required>
                         <option value="">Select make first</option>
                         @foreach ($vehicleModels as $model)
-                            <option value="{{ $model['id'] }}" data-car-make-id="{{ $model['car_make_id'] }}" @selected((string) old('vehicle_model_id') === (string) $model['id'])>
+                            <option value="{{ $model['id'] }}" data-car-make-id="{{ $model['car_make_id'] }}" @selected((string) old('vehicle_model_id', $carModel->vehicle_model_id) === (string) $model['id'])>
                                 {{ $model['label'] }}
                             </option>
                         @endforeach
@@ -52,25 +53,25 @@
 
                 <div class="form-field">
                     <label for="year">Year</label>
-                    <input class="form-control" id="year" name="year" type="number" value="{{ old('year') }}" placeholder="2014" required>
+                    <input class="form-control" id="year" name="year" type="number" value="{{ old('year', $carModel->year) }}" required>
                     <x-form-error name="year" />
                 </div>
 
                 <div class="form-field">
                     <label for="engine_size">Engine size</label>
-                    <input class="form-control" id="engine_size" name="engine_size" value="{{ old('engine_size') }}" placeholder="1.3L">
+                    <input class="form-control" id="engine_size" name="engine_size" value="{{ old('engine_size', $carModel->engine_size) }}">
                     <x-form-error name="engine_size" />
                 </div>
 
                 <div class="form-field">
                     <label for="variant_name">Variant</label>
-                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name') }}" placeholder="Hatchback">
+                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name', $carModel->variant_name) }}">
                     <x-form-error name="variant_name" />
                 </div>
 
                 <div class="form-field">
                     <label for="country_of_origin">Country of origin</label>
-                    <input class="form-control searchable-input" id="country_of_origin" name="country_of_origin" value="{{ old('country_of_origin') }}" list="car-model-origin-countries" placeholder="Search country">
+                    <input class="form-control searchable-input" id="country_of_origin" name="country_of_origin" value="{{ old('country_of_origin', $carModel->country_of_origin) }}" list="car-model-origin-countries" placeholder="Search country">
                     <x-form-error name="country_of_origin" />
                 </div>
             </div>
@@ -80,13 +81,19 @@
             <span class="eyebrow">Notes</span>
             <div class="form-field full">
                 <label for="notes">Fitment notes</label>
-                <textarea class="form-control" id="notes" name="notes" rows="4">{{ old('notes') }}</textarea>
+                <textarea class="form-control" id="notes" name="notes" rows="4">{{ old('notes', $carModel->notes) }}</textarea>
                 <x-form-error name="notes" />
             </div>
         </section>
 
+        <input type="hidden" name="is_active" value="0">
+        <label class="checkbox-field">
+            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $carModel->is_active))>
+            Active
+        </label>
+
         <div class="form-actions">
-            <button class="btn" type="submit">Save car model</button>
+            <button class="btn" type="submit">Update car model</button>
         </div>
     </form>
 @endsection

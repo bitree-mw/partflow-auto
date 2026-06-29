@@ -67,10 +67,12 @@
                         <th>Credit limit</th>
                         <th>{{ $mode === 'customers' ? 'Customer balance' : 'Supplier payable' }}</th>
                         <th>Performance</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($contacts as $contact)
+                    @forelse ($contacts as $contact)
                         <tr>
                             <td><strong>{{ $contact['name'] }}</strong><br><span>{{ $contact['code'] }}</span></td>
                             <td>{{ $contact['phone'] }}</td>
@@ -78,8 +80,30 @@
                             <td>{{ $contact['credit_limit'] }}</td>
                             <td><span class="status-pill warning">{{ $contact['balance'] }}</span></td>
                             <td>{{ $contact['performance'] }}</td>
+                            <td>
+                                <span @class(['status-pill', 'inactive' => ! $contact['is_active']])>
+                                    {{ $contact['status'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    @if ($contact['is_active'] && (float) $contact['balance_amount'] <= 0)
+                                        <form method="POST" action="{{ $mode === 'customers' ? route('web.customers.destroy', $contact['id']) : route('web.suppliers.destroy', $contact['id']) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                                <x-icons.trash />
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="8" class="empty-state">No {{ $mode }} found.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

@@ -42,3 +42,45 @@ document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
         input?.focus();
     });
 });
+
+document.querySelectorAll('[data-car-make-select]').forEach((makeSelect) => {
+    const form = makeSelect.closest('form');
+    const modelSelect = form?.querySelector('[data-vehicle-model-select]');
+
+    if (!modelSelect) {
+        return;
+    }
+
+    const options = Array.from(modelSelect.options);
+
+    function syncModels() {
+        const selectedMakeId = makeSelect.value;
+        const currentValue = modelSelect.value;
+        let currentValueStillVisible = false;
+
+        options.forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                option.textContent = selectedMakeId ? 'Select model' : 'Select make first';
+                return;
+            }
+
+            const visible = option.dataset.carMakeId === selectedMakeId;
+            option.hidden = !visible;
+
+            if (visible && option.value === currentValue) {
+                currentValueStillVisible = true;
+            }
+        });
+
+        if (!currentValueStillVisible) {
+            modelSelect.value = '';
+        }
+
+        modelSelect.disabled = !selectedMakeId;
+        modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    makeSelect.addEventListener('change', syncModels);
+    syncModels();
+});

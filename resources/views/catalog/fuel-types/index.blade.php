@@ -18,33 +18,69 @@
 @section('content')
     <section class="data-panel">
         <div class="panel-toolbar">
-            <strong>Fuel type library</strong>
-            <div class="table-tools">
-                <input class="table-search" type="search" data-table-search placeholder="Search fuel types..." aria-label="Search fuel types">
+            <form class="filter-form" method="GET" action="{{ route('web.catalog.fuel-types.index') }}">
+                <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search fuel types..." aria-label="Search fuel types">
+
+                <select name="is_active" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="1" @selected(($filters['is_active'] ?? '') === '1')>Active</option>
+                    <option value="0" @selected(($filters['is_active'] ?? '') === '0')>Inactive</option>
+                </select>
+
+                <button class="btn-secondary" type="submit">Filter</button>
+                <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.index') }}">Reset</a>
                 <x-page-size-controls />
-            </div>
+            </form>
         </div>
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Fuel type</th>
-                        <th>Code</th>
-                        <th>Products</th>
-                        <th>Status</th>
+                        <th><x-sort-link field="name" label="Fuel type" /></th>
+                        <th><x-sort-link field="code" label="Code" /></th>
+                        <th><x-sort-link field="products" label="Products" /></th>
+                        <th><x-sort-link field="status" label="Status" /></th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($fuelTypes as $fuelType)
+                    @forelse ($fuelTypes as $fuelType)
                         <tr>
                             <td><strong>{{ $fuelType['name'] }}</strong></td>
                             <td>{{ $fuelType['code'] }}</td>
                             <td>{{ $fuelType['products'] }}</td>
-                            <td><span class="status-pill">{{ $fuelType['status'] }}</span></td>
+                            <td>
+                                <span @class(['status-pill', 'inactive' => ! $fuelType['is_active']])>
+                                    {{ $fuelType['status'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.edit', $fuelType['id']) }}">Edit</a>
+                                    @if ($fuelType['is_active'])
+                                        <form method="POST" action="{{ route('web.catalog.fuel-types.destroy', $fuelType['id']) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                                <x-icons.trash />
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="5" class="empty-state">No fuel types found.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="pagination-wrap">
+            {{ $fuelTypes->links() }}
         </div>
     </section>
 @endsection

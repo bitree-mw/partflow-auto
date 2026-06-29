@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -14,6 +15,8 @@ class CarModel extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'car_make_id',
+        'vehicle_model_id',
         'make',
         'make_code',
         'model',
@@ -37,6 +40,16 @@ class CarModel extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function carMake(): BelongsTo
+    {
+        return $this->belongsTo(CarMake::class);
+    }
+
+    public function vehicleModel(): BelongsTo
+    {
+        return $this->belongsTo(VehicleModel::class);
     }
 
     public function compatibleProducts(): BelongsToMany
@@ -78,6 +91,16 @@ class CarModel extends Model
         return $query->when($make, function (Builder $query) use ($make) {
             $query->where('make', 'like', "%{$make}%");
         });
+    }
+
+    public function scopeForCarMake(Builder $query, ?int $carMakeId): Builder
+    {
+        return $query->when($carMakeId, fn (Builder $query) => $query->where('car_make_id', $carMakeId));
+    }
+
+    public function scopeForVehicleModel(Builder $query, ?int $vehicleModelId): Builder
+    {
+        return $query->when($vehicleModelId, fn (Builder $query) => $query->where('vehicle_model_id', $vehicleModelId));
     }
 
     public function scopeYear(Builder $query, ?int $year): Builder

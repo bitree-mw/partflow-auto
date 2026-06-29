@@ -12,6 +12,8 @@ const errorDialogMap = {
     create_site: 'site',
     create_document_series: 'series',
     create_user: 'user',
+    create_car_make: 'car-make',
+    create_vehicle_model: 'vehicle-model',
 };
 
 let activeIndex = 0;
@@ -89,6 +91,17 @@ dialogButtons.forEach((button) => {
 dialogs.forEach((dialog) => {
     dialog.querySelectorAll('[data-close-settings-dialog]').forEach((button) => {
         button.addEventListener('click', () => closeDialog(dialog));
+    });
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+            closeDialog(dialog);
+        }
+    });
+
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        closeDialog(dialog);
     });
 });
 
