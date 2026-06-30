@@ -35,12 +35,14 @@ class UpdateCarModelRequest extends ApiRequest
 
             'engine_size' => [
                 'nullable',
-                'string',
-                'max:50',
+                'numeric',
+                'min:0',
+                'max:20000',
             ],
 
             'variant_name' => [
-                'nullable',
+                'sometimes',
+                'required',
                 'string',
                 'max:100',
             ],
@@ -75,7 +77,7 @@ class UpdateCarModelRequest extends ApiRequest
             $makeId = $this->input('car_make_id', $carModel->car_make_id);
             $modelId = $this->input('vehicle_model_id', $carModel->vehicle_model_id);
             $year = $this->input('year', $carModel->year);
-            $engineSize = $this->input('engine_size', $carModel->engine_size);
+            $engineSize = $this->normalizeEngineSize($this->input('engine_size', $carModel->engine_size));
             $variantName = $this->input('variant_name', $carModel->variant_name);
             $country = $this->input('country_of_origin', $carModel->country_of_origin);
 
@@ -110,5 +112,24 @@ class UpdateCarModelRequest extends ApiRequest
                 );
             }
         });
+    }
+
+    private function normalizeEngineSize(mixed $engineSize): ?string
+    {
+        $value = trim((string) $engineSize);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $numeric = (float) preg_replace('/[^0-9.]/', '', $value);
+
+        if ($numeric > 0 && $numeric < 100) {
+            $numeric *= 1000;
+        }
+
+        $number = rtrim(rtrim(number_format($numeric, 1, '.', ''), '0'), '.');
+
+        return $number === '' ? null : "{$number}cc";
     }
 }

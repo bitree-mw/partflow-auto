@@ -78,7 +78,7 @@ class ProductService
                 'main_image_path' => $data['main_image_path'] ?? null,
                 'description' => $data['description'] ?? null,
                 'pos_description' => $data['pos_description'] ?? null,
-                'default_purchase_price' => $data['default_purchase_price'] ?? 0,
+                'default_purchase_price' => 0,
                 'default_selling_price' => $data['default_selling_price'] ?? 0,
                 'default_low_stock_level' => $data['default_low_stock_level'] ?? 0,
                 'unit_name' => $data['unit_name'] ?? 'piece',
@@ -131,6 +131,8 @@ class ProductService
                 $mergedData = array_merge($product->toArray(), $data);
                 $data['product_name'] = $this->generateProductName($mergedData);
             }
+
+            unset($data['default_purchase_price']);
 
             $references = $data['references'] ?? null;
             $compatibilities = $data['compatibilities'] ?? null;

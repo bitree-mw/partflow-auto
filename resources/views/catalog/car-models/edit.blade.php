@@ -20,6 +20,9 @@
     @php
         $engineSizeValue = old('engine_size', $carModel->engine_size);
         $engineSizeValue = $engineSizeValue ? preg_replace('/[^0-9.]/', '', $engineSizeValue) : '';
+        $engineSizeValue = $engineSizeValue !== '' && (float) $engineSizeValue > 0 && (float) $engineSizeValue < 100
+            ? rtrim(rtrim(number_format((float) $engineSizeValue * 1000, 1, '.', ''), '0'), '.')
+            : $engineSizeValue;
     @endphp
 
     <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.update', $carModel) }}">
@@ -62,14 +65,14 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="engine_size">Engine size (L)</label>
-                    <input class="form-control" id="engine_size" name="engine_size" type="number" min="0" max="20" step="0.1" inputmode="decimal" value="{{ $engineSizeValue }}" placeholder="1.3">
+                    <label for="engine_size">Engine size (cc)</label>
+                    <input class="form-control" id="engine_size" name="engine_size" type="number" min="0" max="20000" step="0.1" inputmode="decimal" value="{{ $engineSizeValue }}" placeholder="1800">
                     <x-form-error name="engine_size" />
                 </div>
 
                 <div class="form-field">
-                    <label for="variant_name">Variant</label>
-                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name', $carModel->variant_name) }}">
+                    <label for="variant_name">Variant identifier</label>
+                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name', $carModel->variant_name) }}" placeholder="C200, C220D, NZE, TDCi" required>
                     <x-form-error name="variant_name" />
                 </div>
 

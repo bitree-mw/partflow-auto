@@ -37,6 +37,7 @@ class CarModelService
         $model = VehicleModel::query()
             ->where('car_make_id', $make->id)
             ->findOrFail($data['vehicle_model_id']);
+        $data['engine_size'] = $this->normalizeEngineSize($data['engine_size'] ?? null);
 
         return CarModel::create([
             'car_make_id' => $make->id,
@@ -56,6 +57,10 @@ class CarModelService
 
     public function update(CarModel $carModel, array $data): CarModel
     {
+        if (array_key_exists('engine_size', $data)) {
+            $data['engine_size'] = $this->normalizeEngineSize($data['engine_size']);
+        }
+
         if (isset($data['car_make_id']) || isset($data['vehicle_model_id'])) {
             $make = CarMake::query()->findOrFail($data['car_make_id'] ?? $carModel->car_make_id);
             $model = VehicleModel::query()
@@ -80,4 +85,22 @@ class CarModelService
         $carModel->delete();
     }
 
+    private function normalizeEngineSize(mixed $engineSize): ?string
+    {
+        $value = trim((string) $engineSize);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $numeric = (float) preg_replace('/[^0-9.]/', '', $value);
+
+        if ($numeric > 0 && $numeric < 100) {
+            $numeric *= 1000;
+        }
+
+        $number = rtrim(rtrim(number_format($numeric, 1, '.', ''), '0'), '.');
+
+        return $number === '' ? null : "{$number}cc";
+    }
 }

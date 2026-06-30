@@ -157,7 +157,7 @@ class InventoryDocumentService
                 $items[] = $document->items()->create([
                     'product_id' => $product->id,
                     'quantity' => abs($quantityChange),
-                    'unit_cost' => $row['unit_cost'] ?? $product->default_purchase_price,
+                    'unit_cost' => $row['unit_cost'] ?? $this->latestPurchaseCost($product),
                     'unit_price' => 0,
                     'discount_amount' => 0,
                     'tax_rate' => 0,
@@ -219,7 +219,7 @@ class InventoryDocumentService
                 $items[] = $document->items()->create([
                     'product_id' => $product->id,
                     'quantity' => abs($varianceQuantity),
-                    'unit_cost' => $row['unit_cost'] ?? $product->default_purchase_price,
+                    'unit_cost' => $row['unit_cost'] ?? $this->latestPurchaseCost($product),
                     'unit_price' => 0,
                     'discount_amount' => 0,
                     'tax_rate' => 0,
@@ -360,7 +360,7 @@ class InventoryDocumentService
                 ->findOrFail($row['product_id']);
 
             $quantity = (int) $row['quantity'];
-            $unitCost = round((float) ($row['unit_cost'] ?? $product->default_purchase_price), 2);
+            $unitCost = round((float) ($row['unit_cost'] ?? $this->latestPurchaseCost($product)), 2);
             $unitPrice = round((float) ($row['unit_price'] ?? $product->default_selling_price), 2);
             $lineUnitAmount = $priceBasis === 'cost' ? $unitCost : $unitPrice;
             $lineSubtotal = round($quantity * $lineUnitAmount, 2);
@@ -450,7 +450,7 @@ class InventoryDocumentService
             $documentItems[] = $document->items()->create([
                 'product_id' => $product->id,
                 'quantity' => (int) $row['quantity'],
-                'unit_cost' => $row['unit_cost'] ?? $product->default_purchase_price,
+                'unit_cost' => $row['unit_cost'] ?? $this->latestPurchaseCost($product),
                 'unit_price' => 0,
                 'discount_amount' => 0,
                 'tax_rate' => 0,
@@ -464,6 +464,21 @@ class InventoryDocumentService
         $this->setDocumentTotals($document, 0, 0, 0, 0, 0);
 
         return $documentItems;
+    }
+
+    private function latestPurchaseCost(Product $product): float
+    {
+        $cost = InventoryDocumentItem::query()
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
+            ->where('inventory_document_items.product_id', $product->id)
+            ->where('inventory_documents.document_type', 'purchase')
+            ->whereIn('inventory_documents.status', ['completed', 'approved'])
+            ->where('inventory_document_items.unit_cost', '>', 0)
+            ->latest('inventory_documents.document_date')
+            ->latest('inventory_document_items.id')
+            ->value('inventory_document_items.unit_cost');
+
+        return (float) ($cost ?? $product->default_purchase_price ?? 0);
     }
 
     private function setDocumentTotals(

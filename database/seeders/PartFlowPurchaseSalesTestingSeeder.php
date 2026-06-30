@@ -71,7 +71,9 @@ class PartFlowPurchaseSalesTestingSeeder extends Seeder
 
         foreach ($products as $index => $product) {
             $quantity = $index + 2;
-            $unitCost = (float) $product->default_purchase_price;
+            $unitCost = $type === 'purchase'
+                ? $this->seedPurchaseCost($product)
+                : $this->latestPurchaseCost($product);
             $unitPrice = $type === 'purchase' ? $unitCost : (float) $product->default_selling_price;
             $lineTotal = $unitPrice * $quantity;
             $lineTax = round($lineTotal * 0.175 / 1.175, 2);
@@ -111,6 +113,24 @@ class PartFlowPurchaseSalesTestingSeeder extends Seeder
         ]);
 
         return $document->refresh();
+    }
+
+    private function seedPurchaseCost(Product $product): float
+    {
+        return round(((float) $product->default_selling_price) * 0.72, 2);
+    }
+
+    private function latestPurchaseCost(Product $product): float
+    {
+        return (float) (InventoryDocumentItem::query()
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
+            ->where('inventory_document_items.product_id', $product->id)
+            ->where('inventory_documents.document_type', 'purchase')
+            ->whereIn('inventory_documents.status', ['completed', 'approved'])
+            ->where('inventory_document_items.unit_cost', '>', 0)
+            ->latest('inventory_documents.document_date')
+            ->latest('inventory_document_items.id')
+            ->value('inventory_document_items.unit_cost') ?? $this->seedPurchaseCost($product));
     }
 
     private function payment(InventoryDocument $document, PaymentAccount $paymentAccount, User $user, string $method): void

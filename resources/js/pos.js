@@ -1,4 +1,4 @@
-// Local POS interactions only. API-backed search and sale creation can replace these fixtures later.
+// POS UI interactions. Product data and sale creation are supplied by the API-backed web controller.
 const products = JSON.parse(document.querySelector('#pos-products-data')?.textContent || '[]');
 const currentBranch = JSON.parse(document.querySelector('#pos-current-branch')?.textContent || '""');
 

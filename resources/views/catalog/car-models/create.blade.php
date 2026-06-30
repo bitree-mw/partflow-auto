@@ -57,14 +57,14 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="engine_size">Engine size (L)</label>
-                    <input class="form-control" id="engine_size" name="engine_size" type="number" min="0" max="20" step="0.1" inputmode="decimal" value="{{ old('engine_size') }}" placeholder="1.3">
+                    <label for="engine_size">Engine size (cc)</label>
+                    <input class="form-control" id="engine_size" name="engine_size" type="number" min="0" max="20000" step="0.1" inputmode="decimal" value="{{ old('engine_size') }}" placeholder="1800">
                     <x-form-error name="engine_size" />
                 </div>
 
                 <div class="form-field">
-                    <label for="variant_name">Variant</label>
-                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name') }}" placeholder="Hatchback">
+                    <label for="variant_name">Variant identifier</label>
+                    <input class="form-control" id="variant_name" name="variant_name" value="{{ old('variant_name') }}" placeholder="C200, C220D, NZE, TDCi" required>
                     <x-form-error name="variant_name" />
                 </div>
 

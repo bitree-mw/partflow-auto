@@ -32,12 +32,13 @@ class StoreCarModelRequest extends ApiRequest
 
             'engine_size' => [
                 'nullable',
-                'string',
-                'max:50',
+                'numeric',
+                'min:0',
+                'max:20000',
             ],
 
             'variant_name' => [
-                'nullable',
+                'required',
                 'string',
                 'max:100',
             ],
@@ -81,7 +82,7 @@ class StoreCarModelRequest extends ApiRequest
                 ->where('car_make_id', $this->input('car_make_id'))
                 ->where('vehicle_model_id', $this->input('vehicle_model_id'))
                 ->where('year', $this->input('year'))
-                ->where('engine_size', $this->input('engine_size'))
+                ->where('engine_size', $this->normalizeEngineSize($this->input('engine_size')))
                 ->where('variant_name', $this->input('variant_name'))
                 ->where('country_of_origin', $this->input('country_of_origin'))
                 ->exists();
@@ -93,5 +94,24 @@ class StoreCarModelRequest extends ApiRequest
                 );
             }
         });
+    }
+
+    private function normalizeEngineSize(mixed $engineSize): ?string
+    {
+        $value = trim((string) $engineSize);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $numeric = (float) preg_replace('/[^0-9.]/', '', $value);
+
+        if ($numeric > 0 && $numeric < 100) {
+            $numeric *= 1000;
+        }
+
+        $number = rtrim(rtrim(number_format($numeric, 1, '.', ''), '0'), '.');
+
+        return $number === '' ? null : "{$number}cc";
     }
 }

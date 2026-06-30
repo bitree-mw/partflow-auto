@@ -334,8 +334,8 @@ class CatalogController extends Controller
             'car_make_id' => ['required', 'integer', 'exists:car_makes,id'],
             'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
             'year' => ['nullable', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
-            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20'],
-            'variant_name' => ['nullable', 'string', 'max:100'],
+            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20000'],
+            'variant_name' => ['required', 'string', 'max:100'],
             'country_of_origin' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
         ])->after(function ($validator) use ($request): void {
@@ -408,8 +408,8 @@ class CatalogController extends Controller
             'car_make_id' => ['required', 'integer', 'exists:car_makes,id'],
             'vehicle_model_id' => ['required', 'integer', 'exists:vehicle_models,id'],
             'year' => ['nullable', 'integer', 'min:1950', 'max:'.((int) date('Y') + 1)],
-            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20'],
-            'variant_name' => ['nullable', 'string', 'max:100'],
+            'engine_size' => ['nullable', 'numeric', 'min:0', 'max:20000'],
+            'variant_name' => ['required', 'string', 'max:100'],
             'country_of_origin' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
@@ -857,7 +857,6 @@ class CatalogController extends Controller
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
             'part_country_of_origin' => ['nullable', 'string', 'max:100'],
-            'default_purchase_price' => ['nullable', 'numeric', 'min:0'],
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
@@ -903,7 +902,6 @@ class CatalogController extends Controller
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
             'part_country_of_origin' => ['nullable', 'string', 'max:100'],
-            'default_purchase_price' => ['nullable', 'numeric', 'min:0'],
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
@@ -1349,9 +1347,15 @@ class CatalogController extends Controller
             return null;
         }
 
-        $number = rtrim(rtrim(number_format((float) $value, 1, '.', ''), '0'), '.');
+        $numeric = (float) $value;
 
-        return $number === '' ? null : "{$number}L";
+        if ($numeric > 0 && $numeric < 100) {
+            $numeric *= 1000;
+        }
+
+        $number = rtrim(rtrim(number_format($numeric, 1, '.', ''), '0'), '.');
+
+        return $number === '' ? null : "{$number}cc";
     }
 
     private function money(float $amount): string

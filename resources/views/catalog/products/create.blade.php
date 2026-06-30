@@ -119,12 +119,6 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="default_purchase_price">Purchase price</label>
-                    <input class="form-control" id="default_purchase_price" name="default_purchase_price" type="number" min="0" step="0.01" value="{{ old('default_purchase_price') }}" placeholder="25000">
-                    <x-form-error name="default_purchase_price" />
-                </div>
-
-                <div class="form-field">
                     <label for="default_selling_price">Selling price</label>
                     <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500">
                     <x-form-error name="default_selling_price" />

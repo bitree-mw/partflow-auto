@@ -54,9 +54,12 @@ class ReportRepository
         return DB::table('site_stocks')
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->leftJoinSub($this->latestPurchaseCostSubquery(), 'latest_purchase_costs', function ($join) {
+                $join->on('latest_purchase_costs.product_id', '=', 'site_stocks.product_id');
+            })
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
-            ->selectRaw('SUM(site_stocks.quantity_on_hand * products.default_purchase_price) as stock_value')
+            ->selectRaw('SUM(site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as stock_value')
             ->selectRaw('SUM(site_stocks.quantity_on_hand) as quantity_on_hand')
             ->groupBy('sites.id', 'sites.name')
             ->orderBy('sites.name')
@@ -489,6 +492,23 @@ class ReportRepository
     private function stockRows(array $filters = []): Collection
     {
         return $this->currentStockBySite($filters);
+    }
+
+    private function latestPurchaseCostSubquery()
+    {
+        $latestPurchaseItems = DB::table('inventory_document_items')
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
+            ->where('inventory_documents.document_type', 'purchase')
+            ->whereIn('inventory_documents.status', ['completed', 'approved'])
+            ->where('inventory_document_items.unit_cost', '>', 0)
+            ->selectRaw('inventory_document_items.product_id, MAX(inventory_document_items.id) as item_id')
+            ->groupBy('inventory_document_items.product_id');
+
+        return DB::table('inventory_document_items')
+            ->joinSub($latestPurchaseItems, 'latest_purchase_items', function ($join) {
+                $join->on('latest_purchase_items.item_id', '=', 'inventory_document_items.id');
+            })
+            ->selectRaw('inventory_document_items.product_id, inventory_document_items.unit_cost');
     }
 
     private function customerBalanceRows(array $filters = []): Collection

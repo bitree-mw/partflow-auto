@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryDocument;
+use App\Models\Payment;
 use App\Services\ContactService;
 use App\Services\InventoryDocumentService;
+use App\Services\PaymentService;
 use App\Services\PaymentAccountService;
 use App\Services\ProductService;
 use App\Services\SiteService;
@@ -22,7 +24,8 @@ class PurchasesController extends Controller
         private readonly ContactService $contactService,
         private readonly SiteService $siteService,
         private readonly ProductService $productService,
-        private readonly PaymentAccountService $paymentAccountService
+        private readonly PaymentAccountService $paymentAccountService,
+        private readonly PaymentService $paymentService
     ) {}
 
     public function index(): View
@@ -129,6 +132,85 @@ class PurchasesController extends Controller
             ->with('success', 'Purchase saved and stock updated successfully.');
     }
 
+    public function edit(InventoryDocument $inventoryDocument): View
+    {
+        $purchase = $this->purchaseDocument($inventoryDocument);
+
+        return view('purchases.edit', [
+            'title' => 'Edit Purchase',
+            'description' => 'Update supplier details, operational notes, and purchase payments.',
+            'purchase' => $purchase,
+            'suppliers' => $this->contactOptions($this->contactService->list()->filter->isSupplier()->values()),
+            'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
+            'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
+            'currency' => config('services.partflow.base_currency', 'MWK'),
+        ]);
+    }
+
+    public function update(Request $request, InventoryDocument $inventoryDocument): RedirectResponse
+    {
+        $purchase = $this->purchaseDocument($inventoryDocument);
+
+        $validated = $request->validate([
+            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
+            'document_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string'],
+            'payment_account_id' => ['nullable', 'integer', 'exists:payment_accounts,id'],
+            'amount_paid' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['nullable', 'string', 'in:cash,bank,mobile_money,card'],
+            'transaction_reference' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $purchase->forceFill([
+            'contact_id' => $validated['contact_id'] ?? null,
+            'document_date' => $validated['document_date'] ?? $purchase->document_date,
+            'notes' => $validated['notes'] ?? null,
+        ])->save();
+
+        $amountPaid = (float) ($validated['amount_paid'] ?? 0);
+
+        if ($amountPaid > 0) {
+            if (empty($validated['payment_account_id'])) {
+                throw ValidationException::withMessages([
+                    'payment_account_id' => 'Choose the account that made the payment.',
+                ]);
+            }
+
+            if ($amountPaid > (float) $purchase->balance_amount + 0.01) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => 'Payment amount exceeds the remaining purchase balance.',
+                ]);
+            }
+
+            $this->paymentService->createForDocument($purchase, [
+                'payment_account_id' => $validated['payment_account_id'],
+                'amount' => $amountPaid,
+                'payment_method' => $validated['payment_method'] ?? 'cash',
+                'transaction_reference' => $validated['transaction_reference'] ?? null,
+                'payment_date' => $validated['document_date'] ?? now(),
+            ], $request->user());
+        } else {
+            $this->paymentService->refreshDocumentPaymentStatus($purchase);
+        }
+
+        return redirect()
+            ->route('web.purchases.edit', $purchase)
+            ->with('success', 'Purchase updated successfully.');
+    }
+
+    public function destroyPayment(InventoryDocument $inventoryDocument, Payment $payment): RedirectResponse
+    {
+        $purchase = $this->purchaseDocument($inventoryDocument);
+
+        abort_unless((int) $payment->inventory_document_id === (int) $purchase->id, 404);
+
+        $this->paymentService->delete($payment);
+
+        return redirect()
+            ->route('web.purchases.edit', $purchase)
+            ->with('success', 'Payment removed successfully.');
+    }
+
     private function summary(Collection $purchases): array
     {
         $payable = (float) $purchases->sum('balance_amount');
@@ -147,6 +229,7 @@ class PurchasesController extends Controller
         return $purchases
             ->loadMissing('items')
             ->map(fn (InventoryDocument $purchase): array => [
+                'id' => $purchase->id,
                 'number' => $purchase->document_number,
                 'date' => $purchase->document_date?->toDateString(),
                 'supplier' => $purchase->contact?->name ?? 'Unassigned supplier',
@@ -162,6 +245,13 @@ class PurchasesController extends Controller
                 },
             ])
             ->all();
+    }
+
+    private function purchaseDocument(InventoryDocument $inventoryDocument): InventoryDocument
+    {
+        abort_unless($inventoryDocument->document_type === 'purchase', 404);
+
+        return $this->inventoryDocumentService->show($inventoryDocument);
     }
 
     private function contactOptions(Collection $contacts): array

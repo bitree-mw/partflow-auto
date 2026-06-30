@@ -156,12 +156,12 @@ class PartFlowBaseTestingSeeder extends Seeder
     private function seedCarModels(): array
     {
         $records = [
-            ['make' => 'Toyota', 'make_code' => 'TY', 'model' => 'Corolla', 'model_code' => 'CO', 'year' => 2014, 'engine_size' => '1.6L', 'variant_name' => 'Sedan', 'country_of_origin' => 'Japan'],
-            ['make' => 'Toyota', 'make_code' => 'TY', 'model' => 'Axio', 'model_code' => 'AX', 'year' => 2013, 'engine_size' => '1.5L', 'variant_name' => 'Sedan', 'country_of_origin' => 'Japan'],
-            ['make' => 'Nissan', 'make_code' => 'NS', 'model' => 'Tiida', 'model_code' => 'NT', 'year' => 2012, 'engine_size' => '1.5L', 'variant_name' => 'Hatchback', 'country_of_origin' => 'Japan'],
-            ['make' => 'Mazda', 'make_code' => 'MZ', 'model' => 'Demio', 'model_code' => 'DM', 'year' => 2012, 'engine_size' => '1.3L', 'variant_name' => 'DE', 'country_of_origin' => 'Japan'],
-            ['make' => 'Honda', 'make_code' => 'HN', 'model' => 'Fit', 'model_code' => 'FT', 'year' => 2015, 'engine_size' => '1.3L', 'variant_name' => 'Hybrid', 'country_of_origin' => 'Japan'],
-            ['make' => 'Ford', 'make_code' => 'FD', 'model' => 'Ranger', 'model_code' => 'RG', 'year' => 2016, 'engine_size' => '2.2L', 'variant_name' => 'TDCi', 'country_of_origin' => 'South Africa'],
+            ['make' => 'Toyota', 'make_code' => 'TY', 'model' => 'Corolla', 'model_code' => 'CO', 'year' => 2014, 'engine_size' => '1600cc', 'variant_name' => 'Sedan', 'country_of_origin' => 'Japan'],
+            ['make' => 'Toyota', 'make_code' => 'TY', 'model' => 'Axio', 'model_code' => 'AX', 'year' => 2013, 'engine_size' => '1500cc', 'variant_name' => 'Sedan', 'country_of_origin' => 'Japan'],
+            ['make' => 'Nissan', 'make_code' => 'NS', 'model' => 'Tiida', 'model_code' => 'NT', 'year' => 2012, 'engine_size' => '1500cc', 'variant_name' => 'Hatchback', 'country_of_origin' => 'Japan'],
+            ['make' => 'Mazda', 'make_code' => 'MZ', 'model' => 'Demio', 'model_code' => 'DM', 'year' => 2012, 'engine_size' => '1300cc', 'variant_name' => 'DE', 'country_of_origin' => 'Japan'],
+            ['make' => 'Honda', 'make_code' => 'HN', 'model' => 'Fit', 'model_code' => 'FT', 'year' => 2015, 'engine_size' => '1300cc', 'variant_name' => 'Hybrid', 'country_of_origin' => 'Japan'],
+            ['make' => 'Ford', 'make_code' => 'FD', 'model' => 'Ranger', 'model_code' => 'RG', 'year' => 2016, 'engine_size' => '2200cc', 'variant_name' => 'TDCi', 'country_of_origin' => 'South Africa'],
         ];
 
         return collect($records)
@@ -275,7 +275,7 @@ class PartFlowBaseTestingSeeder extends Seeder
                     'part_country_of_origin' => $record['origin'],
                     'description' => "{$record['name']} seeded for testing catalogue, POS, and reporting.",
                     'pos_description' => "{$record['name']} for {$carModels[$record['car']]->make} {$carModels[$record['car']]->model}.",
-                    'default_purchase_price' => $record['purchase'],
+                    'default_purchase_price' => 0,
                     'default_selling_price' => $record['sale'],
                     'default_low_stock_level' => $record['low'],
                     'unit_name' => 'Each',

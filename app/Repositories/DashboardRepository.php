@@ -45,8 +45,11 @@ class DashboardRepository
     {
         return (float) DB::table('site_stocks')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->leftJoinSub($this->latestPurchaseCostSubquery(), 'latest_purchase_costs', function ($join) {
+                $join->on('latest_purchase_costs.product_id', '=', 'site_stocks.product_id');
+            })
             ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
-            ->sum(DB::raw('site_stocks.quantity_on_hand * products.default_purchase_price'));
+            ->sum(DB::raw('site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)'));
     }
 
     public function lowStockCount(?int $siteId = null): int
@@ -211,10 +214,13 @@ class DashboardRepository
         return (float) DB::table('inventory_document_items')
             ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
             ->join('products', 'products.id', '=', 'inventory_document_items.product_id')
+            ->leftJoinSub($this->latestPurchaseCostSubquery(), 'latest_purchase_costs', function ($join) {
+                $join->on('latest_purchase_costs.product_id', '=', 'inventory_document_items.product_id');
+            })
             ->where('inventory_documents.document_type', 'stock_take')
             ->where('inventory_document_items.variance_quantity', '!=', 0)
             ->when($siteId, fn ($query) => $query->where('inventory_documents.source_site_id', $siteId))
-            ->sum(DB::raw('ABS(inventory_document_items.variance_quantity) * products.default_purchase_price'));
+            ->sum(DB::raw('ABS(inventory_document_items.variance_quantity) * COALESCE(NULLIF(inventory_document_items.unit_cost, 0), latest_purchase_costs.unit_cost, products.default_purchase_price, 0)'));
     }
 
     public function pendingPurchaseReturnTotal(?int $siteId = null): float
@@ -224,5 +230,22 @@ class DashboardRepository
             ->whereIn('status', ['draft', 'pending'])
             ->when($siteId, fn ($query) => $query->forSite($siteId))
             ->sum('total_amount');
+    }
+
+    private function latestPurchaseCostSubquery()
+    {
+        $latestPurchaseItems = DB::table('inventory_document_items')
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
+            ->where('inventory_documents.document_type', 'purchase')
+            ->whereIn('inventory_documents.status', ['completed', 'approved'])
+            ->where('inventory_document_items.unit_cost', '>', 0)
+            ->selectRaw('inventory_document_items.product_id, MAX(inventory_document_items.id) as item_id')
+            ->groupBy('inventory_document_items.product_id');
+
+        return DB::table('inventory_document_items')
+            ->joinSub($latestPurchaseItems, 'latest_purchase_items', function ($join) {
+                $join->on('latest_purchase_items.item_id', '=', 'inventory_document_items.id');
+            })
+            ->selectRaw('inventory_document_items.product_id, inventory_document_items.unit_cost');
     }
 }

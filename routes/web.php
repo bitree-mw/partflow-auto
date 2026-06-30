@@ -39,6 +39,9 @@ Route::prefix('back-office')
         Route::get('purchases', [PurchasesController::class, 'index'])->name('purchases.index');
         Route::get('purchases/create', [PurchasesController::class, 'create'])->name('purchases.create');
         Route::post('purchases', [PurchasesController::class, 'store'])->name('purchases.store');
+        Route::get('purchases/{inventoryDocument}/edit', [PurchasesController::class, 'edit'])->name('purchases.edit');
+        Route::put('purchases/{inventoryDocument}', [PurchasesController::class, 'update'])->name('purchases.update');
+        Route::delete('purchases/{inventoryDocument}/payments/{payment}', [PurchasesController::class, 'destroyPayment'])->name('purchases.payments.destroy');
         Route::get('customers', [ContactDirectoryController::class, 'customers'])->name('customers.index');
         Route::get('customers/create', [ContactDirectoryController::class, 'createCustomer'])->name('customers.create');
         Route::post('customers', [ContactDirectoryController::class, 'storeCustomer'])->name('customers.store');

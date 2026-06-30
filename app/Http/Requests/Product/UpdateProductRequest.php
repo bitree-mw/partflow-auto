@@ -83,12 +83,6 @@ class UpdateProductRequest extends ApiRequest
                 'string',
             ],
 
-            'default_purchase_price' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
             'default_selling_price' => [
                 'nullable',
                 'numeric',
