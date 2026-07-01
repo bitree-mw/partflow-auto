@@ -27,7 +27,7 @@
 
             <div class="form-field">
                 <label for="code">Brand code</label>
-                <input class="form-control" id="code" name="code" value="{{ old('code', $brand->code) }}">
+                <input class="form-control" id="code" name="code" value="{{ old('code', $brand->code) }}" maxlength="4">
                 <x-form-error name="code" />
             </div>
 

@@ -26,8 +26,8 @@ class UpdateBrandRequest extends ApiRequest
                 'sometimes',
                 'nullable',
                 'string',
-                'max:50',
-                'regex:/^[A-Za-z0-9\-]+$/',
+                'max:4',
+                'regex:/^[A-Za-z0-9]+$/',
                 Rule::unique('brands', 'code')->ignore($brandId),
             ],
 
@@ -52,7 +52,7 @@ class UpdateBrandRequest extends ApiRequest
     public function messages(): array
     {
         return [
-            'code.regex' => 'The brand code may only contain letters, numbers, and hyphens.',
+            'code.regex' => 'The brand code may only contain letters and numbers.',
         ];
     }
 }

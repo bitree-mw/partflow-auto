@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CarModel;
+use App\Models\Brand;
 use App\Models\FuelType;
 use App\Models\PartType;
 use App\Models\Product;
@@ -61,7 +62,7 @@ class ProductService
     {
         return DB::transaction(function () use ($data) {
             $productCode = ! empty($data['product_code'])
-                ? strtoupper($data['product_code'])
+                ? $this->normalizeProductCode($data['product_code'], $data['brand_id'] ?? null)
                 : $this->generateProductCode($data);
 
             $this->ensureProductCodeIsAvailable($productCode);
@@ -101,11 +102,12 @@ class ProductService
                 (
                     array_key_exists('car_model_id', $data) ||
                     array_key_exists('part_type_id', $data) ||
-                    array_key_exists('fuel_type_id', $data)
+                    array_key_exists('fuel_type_id', $data) ||
+                    array_key_exists('brand_id', $data)
                 );
 
             if (! empty($data['product_code'])) {
-                $productCode = strtoupper($data['product_code']);
+                $productCode = $this->normalizeProductCode($data['product_code'], $data['brand_id'] ?? $product->brand_id);
                 $this->ensureProductCodeIsAvailable($productCode, $product->id);
                 $data['product_code'] = $productCode;
             }
@@ -181,7 +183,39 @@ class ProductService
             ? '-'.$this->cleanCode($fuelType->code)
             : '';
 
-        return strtoupper($baseCode.$fuelSuffix);
+        return $this->normalizeProductCode($baseCode.$fuelSuffix, $data['brand_id'] ?? null);
+    }
+
+    private function normalizeProductCode(string $productCode, ?int $brandId): string
+    {
+        $prefix = $this->brandCodePrefix($brandId);
+        $cleaned = Str::of($productCode)
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9\-]/', '')
+            ->trim('-')
+            ->toString();
+        $parts = explode('-', $cleaned, 2);
+        $body = count($parts) === 2 && strlen($parts[0]) <= 4
+            ? $parts[1]
+            : $cleaned;
+
+        if ($body === '') {
+            $body = 'PART';
+        }
+
+        return "{$prefix}-{$body}";
+    }
+
+    private function brandCodePrefix(?int $brandId): string
+    {
+        $brandCode = $brandId ? Brand::query()->whereKey($brandId)->value('code') : null;
+        $prefix = Str::of($brandCode ?: 'GEN')
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]/', '')
+            ->substr(0, 4)
+            ->toString();
+
+        return $prefix !== '' ? $prefix : 'GEN';
     }
 
     private function generateProductName(array $data): string

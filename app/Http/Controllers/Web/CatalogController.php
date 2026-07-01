@@ -636,11 +636,11 @@ class CatalogController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:brands,name'],
-            'code' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-]+$/', 'unique:brands,code'],
+            'code' => ['nullable', 'string', 'max:4', 'regex:/^[A-Za-z0-9]+$/', 'unique:brands,code'],
             'country' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
         ], [
-            'code.regex' => 'The brand code may only contain letters, numbers, and hyphens.',
+            'code.regex' => 'The brand code may only contain letters and numbers.',
         ]);
 
         $this->brandService->create($validated);
@@ -664,12 +664,12 @@ class CatalogController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->ignore($brand->id)],
-            'code' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-]+$/', Rule::unique('brands', 'code')->ignore($brand->id)],
+            'code' => ['nullable', 'string', 'max:4', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('brands', 'code')->ignore($brand->id)],
             'country' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ], [
-            'code.regex' => 'The brand code may only contain letters, numbers, and hyphens.',
+            'code.regex' => 'The brand code may only contain letters and numbers.',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');

@@ -89,7 +89,7 @@
 
                 <div class="form-field">
                     <label for="product_code">Product code</label>
-                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code', $product->product_code) }}">
+                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code', $product->product_code) }}" placeholder="BOS-TYCO14BP">
                     <x-form-error name="product_code" />
                 </div>
 
