@@ -20,6 +20,7 @@
 @section('content')
     @php
         $selectedCompatibleCarModels = old('compatible_car_model_ids', ['']);
+        $selectedCarModelLookup = collect($selectedCarModels ?? [])->keyBy('id');
     @endphp
 
     <x-country-datalist id="part-origin-countries" :countries="$countries" />
@@ -28,21 +29,8 @@
         @csrf
 
         <section class="form-section">
-            <span class="eyebrow">Fitment</span>
+            <span class="eyebrow">Product Details</span>
             <div class="form-grid">
-                <div class="form-field">
-                    <label for="car_model_id">Main car model</label>
-                    <select class="form-control" id="car_model_id" name="car_model_id" data-searchable-select required>
-                        <option value="">Select vehicle fitment</option>
-                        @foreach ($carModels as $carModel)
-                            <option value="{{ $carModel['id'] }}" @selected((string) old('car_model_id') === (string) $carModel['id'])>
-                                {{ $carModel['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="car_model_id" />
-                </div>
-
                 <div class="form-field">
                     <label for="part_type_id">Part type</label>
                     <select class="form-control" id="part_type_id" name="part_type_id" data-searchable-select required>
@@ -54,6 +42,25 @@
                         @endforeach
                     </select>
                     <x-form-error name="part_type_id" />
+                </div>
+
+                <div class="form-field">
+                    <label for="brand_id">Brand name</label>
+                    <select class="form-control" id="brand_id" name="brand_id" data-searchable-select>
+                        <option value="">Unknown brand</option>
+                        @foreach ($brands as $brand)
+                            <option value="{{ $brand['id'] }}" @selected((string) old('brand_id') === (string) $brand['id'])>
+                                {{ $brand['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-form-error name="brand_id" />
+                </div>
+
+                <div class="form-field">
+                    <label for="part_country_of_origin">Part origin</label>
+                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin') }}" list="part-origin-countries" placeholder="Search country">
+                    <x-form-error name="part_country_of_origin" />
                 </div>
 
                 <div class="form-field">
@@ -70,39 +77,15 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="part_country_of_origin">Part origin</label>
-                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin') }}" list="part-origin-countries" placeholder="Search country">
-                    <x-form-error name="part_country_of_origin" />
-                </div>
-            </div>
-        </section>
-
-        <section class="form-section">
-            <span class="eyebrow">Product details</span>
-            <div class="form-grid">
-                <div class="form-field">
                     <label for="product_name">Product name</label>
-                    <input class="form-control" id="product_name" name="product_name" value="{{ old('product_name') }}" placeholder="Toyota Corolla Brake Pads Front">
+                    <input class="form-control" id="product_name" name="product_name" value="{{ old('product_name') }}" placeholder="Auto generated if blank">
                     <x-form-error name="product_name" />
                 </div>
 
                 <div class="form-field">
                     <label for="product_code">Product code</label>
-                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code') }}" placeholder="Auto generated, e.g. BOS-TYCO14BP">
+                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code') }}" placeholder="Auto generated, e.g. BOSC-AF-ZAF-001">
                     <x-form-error name="product_code" />
-                </div>
-
-                <div class="form-field">
-                    <label for="brand_id">Brand</label>
-                    <select class="form-control" id="brand_id" name="brand_id" data-searchable-select>
-                        <option value="">No brand selected</option>
-                        @foreach ($brands as $brand)
-                            <option value="{{ $brand['id'] }}" @selected((string) old('brand_id') === (string) $brand['id'])>
-                                {{ $brand['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="brand_id" />
                 </div>
 
                 <div class="form-field">
@@ -135,34 +118,28 @@
                     <input class="form-control" id="pack_size" name="pack_size" type="number" min="0.01" step="0.01" value="{{ old('pack_size') }}" placeholder="1">
                     <x-form-error name="pack_size" />
                 </div>
-
-                <div class="form-field full">
-                    <label for="pos_description">POS description</label>
-                    <textarea class="form-control" id="pos_description" name="pos_description" rows="3" placeholder="Short cashier-friendly description">{{ old('pos_description') }}</textarea>
-                    <x-form-error name="pos_description" />
-                </div>
             </div>
         </section>
 
         <section class="form-section">
-            <span class="eyebrow">Compatibility</span>
+            <span class="eyebrow">Fitment and Compatibility</span>
             <div class="compatibility-panel">
                 <div>
-                    <strong>Other compatible car variants</strong>
-                    <p>Add any extra vehicles that can use this same part. Main car model already covers the primary fitment.</p>
+                    <strong>Compatible car variants</strong>
+                    <p>Select every vehicle variant that can use this part. The first selected variant is saved as the primary fitment.</p>
                 </div>
 
                 <div class="compatibility-variant-list" data-compatibility-list>
                     @foreach ($selectedCompatibleCarModels as $selectedCompatibleCarModel)
-                        <div class="compatibility-variant-row">
-                            <select class="form-control" name="compatible_car_model_ids[]" data-searchable-select>
-                                <option value="">Select compatible vehicle</option>
-                                @foreach ($carModels as $carModel)
-                                    <option value="{{ $carModel['id'] }}" @selected((string) $selectedCompatibleCarModel === (string) $carModel['id'])>
-                                        {{ $carModel['label'] }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        @php
+                            $selectedCarModel = $selectedCarModelLookup->get((int) $selectedCompatibleCarModel);
+                        @endphp
+                        <div class="compatibility-variant-row" data-async-car-model-row>
+                            <div class="async-picker" data-car-model-picker data-endpoint="{{ route('web.catalog.car-model-options') }}">
+                                <input type="hidden" name="compatible_car_model_ids[]" value="{{ $selectedCarModel['id'] ?? '' }}" data-car-model-value>
+                                <input class="form-control" type="search" value="{{ $selectedCarModel['label'] ?? '' }}" placeholder="Search vehicle make, model, year, engine, or origin" autocomplete="off" data-car-model-search>
+                                <div class="async-picker-list" data-car-model-results hidden></div>
+                            </div>
                             <button class="btn-secondary" type="button" data-remove-compatibility-variant>Remove</button>
                         </div>
                     @endforeach

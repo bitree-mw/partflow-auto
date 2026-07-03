@@ -25,9 +25,42 @@ class CarModel extends Model
         'engine_size',
         'variant_name',
         'country_of_origin',
+        'fitment_hash',
         'notes',
         'is_active',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (CarModel $carModel): void {
+            $carModel->fitment_hash = self::fitmentHashFor(
+                $carModel->car_make_id,
+                $carModel->vehicle_model_id,
+                $carModel->year,
+                $carModel->engine_size,
+                $carModel->variant_name,
+                $carModel->country_of_origin
+            );
+        });
+    }
+
+    public static function fitmentHashFor(
+        int|string|null $carMakeId,
+        int|string|null $vehicleModelId,
+        int|string|null $year,
+        ?string $engineSize,
+        ?string $variantName,
+        ?string $countryOfOrigin
+    ): string {
+        return sha1(implode('|', [
+            (int) ($carMakeId ?? 0),
+            (int) ($vehicleModelId ?? 0),
+            (int) ($year ?? 0),
+            (string) ($engineSize ?? ''),
+            (string) ($variantName ?? ''),
+            (string) ($countryOfOrigin ?? ''),
+        ]));
+    }
 
     protected function casts(): array
     {

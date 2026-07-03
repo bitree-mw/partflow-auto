@@ -36,6 +36,9 @@ Route::prefix('back-office')
         Route::get('/', fn () => redirect()->route('web.dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
+        Route::get('sales/{inventoryDocument}/edit', [SalesController::class, 'edit'])->name('sales.edit');
+        Route::put('sales/{inventoryDocument}', [SalesController::class, 'update'])->name('sales.update');
+        Route::delete('sales/{inventoryDocument}/payments/{payment}', [SalesController::class, 'destroyPayment'])->name('sales.payments.destroy');
         Route::get('purchases', [PurchasesController::class, 'index'])->name('purchases.index');
         Route::get('purchases/create', [PurchasesController::class, 'create'])->name('purchases.create');
         Route::post('purchases', [PurchasesController::class, 'store'])->name('purchases.store');
@@ -94,6 +97,7 @@ Route::prefix('back-office')
             Route::put('fuel-types/{fuel_type}', 'updateFuelType')->name('fuel-types.update');
             Route::delete('fuel-types/{fuel_type}', 'destroyFuelType')->name('fuel-types.destroy');
 
+            Route::get('car-model-options', 'carModelOptionsSearch')->name('car-model-options');
             Route::get('products', 'products')->name('products.index');
             Route::get('products/create', 'createProduct')->name('products.create');
             Route::post('products', 'storeProduct')->name('products.store');

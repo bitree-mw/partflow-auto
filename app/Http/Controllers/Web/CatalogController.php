@@ -22,6 +22,7 @@ use App\Services\PartTypeService;
 use App\Services\ProductService;
 use App\Services\SiteService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -673,6 +674,14 @@ class CatalogController extends Controller
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');
+
+        if (! $validated['is_active'] && $brand->products()->exists()) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'This brand is linked to products and cannot be made inactive.');
+        }
+
         $this->brandService->update($brand, $validated);
 
         return redirect()
@@ -682,6 +691,12 @@ class CatalogController extends Controller
 
     public function destroyBrand(Brand $brand): RedirectResponse
     {
+        if ($brand->products()->exists()) {
+            return redirect()
+                ->route('web.catalog.brands.index')
+                ->with('error', 'This brand is linked to products and cannot be made inactive.');
+        }
+
         $this->brandService->update($brand, ['is_active' => false]);
 
         return redirect()
@@ -823,21 +838,23 @@ class CatalogController extends Controller
             'partTypeOptions' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
             'brandOptions' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'catalogueSummary' => [
-                ['label' => 'Parts available', 'value' => (string) Product::query()->count(), 'detail' => 'Sellable catalogue items'],
-                ['label' => 'Brands', 'value' => (string) Brand::query()->count(), 'detail' => 'Part manufacturers'],
-                ['label' => 'Part types', 'value' => (string) PartType::query()->count(), 'detail' => 'Reusable product categories'],
-                ['label' => 'Fuel types', 'value' => (string) FuelType::query()->count(), 'detail' => 'Vehicle power trim'],
-                ['label' => 'Car models', 'value' => (string) CarModel::query()->count(), 'detail' => 'Fitment and variant records'],
+                ['label' => 'Parts available', 'value' => number_format(Product::query()->count()), 'detail' => 'Sellable catalogue items'],
+                ['label' => 'Brands', 'value' => number_format(Brand::query()->count()), 'detail' => 'Part manufacturers'],
+                ['label' => 'Part types', 'value' => number_format(PartType::query()->count()), 'detail' => 'Reusable product categories'],
+                ['label' => 'Fuel types', 'value' => number_format(FuelType::query()->count()), 'detail' => 'Vehicle power trim'],
+                ['label' => 'Car models', 'value' => number_format(CarModel::query()->count()), 'detail' => 'Fitment and variant records'],
             ],
         ]);
     }
 
-    public function createProduct(): View
+    public function createProduct(Request $request): View
     {
+        $selectedCarModelIds = $this->normalizeCarModelIds($request->old('compatible_car_model_ids', []));
+
         return view('catalog.products.create', [
             'title' => 'Add Part',
             'description' => 'Build a part using car model, part type, fuel, brand, tax, references, and compatibility.',
-            'carModels' => $this->carModelOptions($this->carModelService->list(['is_active' => true])),
+            'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'countries' => config('countries'),
             'partTypes' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list(['is_active' => true])),
@@ -851,7 +868,7 @@ class CatalogController extends Controller
         $validated = $request->validate([
             'product_code' => ['nullable', 'string', 'max:100', 'unique:products,product_code'],
             'product_name' => ['nullable', 'string', 'max:255'],
-            'car_model_id' => ['required', 'integer', 'exists:car_models,id'],
+            'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
             'part_type_id' => ['required', 'integer', 'exists:part_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
@@ -860,9 +877,8 @@ class CatalogController extends Controller
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
-            'pos_description' => ['nullable', 'string'],
-            'compatible_car_model_ids' => ['nullable', 'array'],
-            'compatible_car_model_ids.*' => ['nullable', 'integer', 'distinct', 'exists:car_models,id'],
+            'compatible_car_model_ids' => ['required', 'array', 'min:1'],
+            'compatible_car_model_ids.*' => ['required', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
         ]);
 
@@ -874,15 +890,92 @@ class CatalogController extends Controller
             ->with('success', 'Part saved successfully.');
     }
 
-    public function editProduct(Product $product): View
+    public function carModelOptionsSearch(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $selectedIds = $this->normalizeCarModelIds($request->query('ids', []));
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(100, max(25, (int) $request->query('per_page', 50)));
+        $query = CarModel::query();
+        $hasMore = false;
+
+        if ($selectedIds->isNotEmpty()) {
+            $query->whereIn('id', $selectedIds);
+        } else {
+            $query->active();
+
+            if ($search !== '') {
+                $tokens = str($search)->squish()->explode(' ')->filter()->values();
+
+                $query->where(function ($query) use ($tokens): void {
+                    foreach ($tokens as $token) {
+                        $query->where(function ($query) use ($token): void {
+                            $query->where('make', 'like', "%{$token}%")
+                                ->orWhere('model', 'like', "%{$token}%")
+                                ->orWhere('make_code', 'like', "%{$token}%")
+                                ->orWhere('model_code', 'like', "%{$token}%")
+                                ->orWhere('country_of_origin', 'like', "%{$token}%")
+                                ->orWhere('engine_size', 'like', "%{$token}%")
+                                ->orWhere('variant_name', 'like', "%{$token}%")
+                                ->orWhere('year', 'like', "%{$token}%");
+                        });
+                    }
+                });
+            }
+        }
+
+        $results = $query
+            ->orderBy('make')
+            ->orderBy('model')
+            ->orderByDesc('year')
+            ->orderBy('variant_name')
+            ->orderBy('country_of_origin')
+            ->orderBy('id')
+            ->when(
+                $selectedIds->isEmpty(),
+                fn ($query) => $query->offset(($page - 1) * $perPage)->limit($perPage + 1)
+            )
+            ->get();
+
+        if ($selectedIds->isEmpty()) {
+            $hasMore = $results->count() > $perPage;
+            $results = $results->take($perPage);
+        }
+
+        $options = $results
+            ->map(fn (CarModel $carModel): array => [
+                'id' => $carModel->id,
+                'label' => $this->carModelLabel($carModel),
+            ])
+            ->values();
+
+        return response()->json([
+            'data' => $options,
+            'meta' => [
+                'has_more' => $hasMore,
+                'page' => $page,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ]);
+    }
+
+    public function editProduct(Request $request, Product $product): View
     {
         $product->load(['compatibilities', 'carModel', 'partType', 'fuelType', 'brand', 'taxProfile']);
+        $existingCompatibilityIds = collect([$product->car_model_id])
+            ->merge($product->compatibilities->pluck('car_model_id'))
+            ->filter()
+            ->values()
+            ->all();
+        $selectedCarModelIds = $this->normalizeCarModelIds(
+            $request->old('compatible_car_model_ids', $existingCompatibilityIds)
+        );
 
         return view('catalog.products.edit', [
             'title' => 'Edit Part',
             'description' => 'Update catalogue part details, pricing, and compatibility.',
             'product' => $product,
-            'carModels' => $this->carModelOptions($this->carModelService->list()),
+            'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'countries' => config('countries'),
             'partTypes' => $this->partTypeOptions($this->partTypeService->list()),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list()),
@@ -896,7 +989,7 @@ class CatalogController extends Controller
         $validated = $request->validate([
             'product_code' => ['nullable', 'string', 'max:100', Rule::unique('products', 'product_code')->ignore($product->id)],
             'product_name' => ['nullable', 'string', 'max:255'],
-            'car_model_id' => ['required', 'integer', 'exists:car_models,id'],
+            'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
             'part_type_id' => ['required', 'integer', 'exists:part_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
@@ -905,9 +998,8 @@ class CatalogController extends Controller
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
-            'pos_description' => ['nullable', 'string'],
-            'compatible_car_model_ids' => ['nullable', 'array'],
-            'compatible_car_model_ids.*' => ['nullable', 'integer', 'distinct', 'exists:car_models,id'],
+            'compatible_car_model_ids' => ['required', 'array', 'min:1'],
+            'compatible_car_model_ids.*' => ['required', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -946,12 +1038,23 @@ class CatalogController extends Controller
 
     private function productPayload(array $validated): array
     {
+        $selectedCarModelIds = collect($validated['compatible_car_model_ids'] ?? [])
+            ->filter()
+            ->map(fn (int|string $id): int => (int) $id)
+            ->unique()
+            ->values();
+        $primaryCarModelId = (int) ($validated['car_model_id'] ?? $selectedCarModelIds->first());
+
+        $validated['car_model_id'] = $primaryCarModelId;
+        unset($validated['pos_description']);
+
         $compatibilities = collect($validated['compatible_car_model_ids'] ?? [])
             ->filter()
+            ->map(fn (int|string $id): int => (int) $id)
             ->unique()
-            ->reject(fn (int|string $id): bool => (int) $id === (int) $validated['car_model_id'])
-            ->map(fn (int|string $id): array => [
-                'car_model_id' => (int) $id,
+            ->reject(fn (int $id): bool => $id === $primaryCarModelId)
+            ->map(fn (int $id): array => [
+                'car_model_id' => $id,
                 'notes' => $validated['compatibility_notes'] ?? null,
             ])
             ->values()
@@ -1258,6 +1361,37 @@ class CatalogController extends Controller
             ->all();
     }
 
+    private function carModelOptionsByIds(Collection $ids): array
+    {
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $options = $this->carModelOptions(
+            CarModel::query()
+                ->whereIn('id', $ids)
+                ->get()
+        );
+        $optionsById = collect($options)->keyBy('id');
+
+        return $ids
+            ->map(fn (int $id): ?array => $optionsById->get($id))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function normalizeCarModelIds(mixed $ids): Collection
+    {
+        return collect(is_array($ids) ? $ids : [$ids])
+            ->flatMap(fn (mixed $value): array => is_array($value) ? $value : explode(',', (string) $value))
+            ->filter(fn (mixed $value): bool => $value !== null && $value !== '')
+            ->map(fn (mixed $value): int => (int) $value)
+            ->filter(fn (int $value): bool => $value > 0)
+            ->unique()
+            ->values();
+    }
+
     private function partTypeOptions(Collection $partTypes): array
     {
         return $partTypes
@@ -1328,7 +1462,7 @@ class CatalogController extends Controller
             return 'Unassigned vehicle';
         }
 
-        return collect([
+        $label = collect([
             $carModel->make,
             $carModel->model,
             $carModel->year,
@@ -1337,6 +1471,10 @@ class CatalogController extends Controller
         ])
             ->filter()
             ->join(' ');
+
+        return $carModel->country_of_origin
+            ? "{$label} ({$carModel->country_of_origin})"
+            : $label;
     }
 
     private function normalizeEngineSize(mixed $engineSize): ?string

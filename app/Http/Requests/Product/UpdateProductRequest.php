@@ -31,7 +31,7 @@ class UpdateProductRequest extends ApiRequest
 
             'car_model_id' => [
                 'sometimes',
-                'required',
+                'nullable',
                 'integer',
                 'exists:car_models,id',
             ],
@@ -74,11 +74,6 @@ class UpdateProductRequest extends ApiRequest
             ],
 
             'description' => [
-                'nullable',
-                'string',
-            ],
-
-            'pos_description' => [
                 'nullable',
                 'string',
             ],
@@ -142,6 +137,7 @@ class UpdateProductRequest extends ApiRequest
             'compatibilities' => [
                 'nullable',
                 'array',
+                'min:1',
             ],
 
             'compatibilities.*.car_model_id' => [

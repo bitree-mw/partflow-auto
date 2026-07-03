@@ -10,6 +10,8 @@ class CommonPartBrandSeeder extends Seeder
     public function run(): void
     {
         $brands = [
+            ['name' => 'Common', 'code' => 'COMM', 'country' => null, 'description' => 'Generic common replacement part brand.'],
+            ['name' => 'Unknown', 'code' => 'UNKN', 'country' => null, 'description' => 'Fallback brand for parts whose manufacturer is not known.'],
             ['name' => 'Bosch', 'code' => 'BOS', 'country' => 'Germany', 'description' => 'Filters, spark plugs, braking, electrical and sensors.'],
             ['name' => 'Denso', 'code' => 'DNS', 'country' => 'Japan', 'description' => 'OEM electrical, ignition, filters, compressors and sensors.'],
             ['name' => 'NGK', 'code' => 'NGK', 'country' => 'Japan', 'description' => 'Spark plugs, glow plugs and ignition components.'],
@@ -65,10 +67,43 @@ class CommonPartBrandSeeder extends Seeder
         ];
 
         foreach ($brands as $brand) {
-            Brand::updateOrCreate(
-                ['code' => $brand['code']],
-                $brand + ['is_active' => true]
-            );
+            $existingBrand = Brand::withTrashed()->where('name', $brand['name'])->first();
+            $brand['code'] = $existingBrand?->code ?: $this->uniqueBrandCode($this->brandCode($brand));
+
+            if ($existingBrand) {
+                $existingBrand->restore();
+                $existingBrand->update($brand + ['is_active' => true]);
+
+                continue;
+            }
+
+            Brand::create($brand + ['is_active' => true]);
         }
+    }
+
+    private function brandCode(array $brand): string
+    {
+        $source = strlen((string) $brand['code']) >= 4 ? $brand['code'] : $brand['name'];
+
+        return str($source)
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]/', '')
+            ->substr(0, 4)
+            ->padRight(4, 'X')
+            ->toString();
+    }
+
+    private function uniqueBrandCode(string $code): string
+    {
+        $candidate = $code;
+        $suffix = 2;
+
+        while (Brand::withTrashed()->where('code', $candidate)->exists()) {
+            $suffixText = (string) $suffix;
+            $candidate = substr($code, 0, max(1, 4 - strlen($suffixText))).$suffixText;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 }

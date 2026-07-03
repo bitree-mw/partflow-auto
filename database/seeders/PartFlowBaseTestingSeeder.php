@@ -198,11 +198,13 @@ class PartFlowBaseTestingSeeder extends Seeder
     private function seedBrands(): array
     {
         $records = [
-            ['name' => 'Toyota Genuine', 'code' => 'TYG', 'country' => 'Japan', 'description' => 'Toyota genuine parts.'],
-            ['name' => 'Denso', 'code' => 'DNS', 'country' => 'Japan', 'description' => 'OEM electrical and service components.'],
-            ['name' => 'Bosch', 'code' => 'BOS', 'country' => 'Germany', 'description' => 'Service and electrical parts.'],
-            ['name' => 'KYB', 'code' => 'KYB', 'country' => 'Japan', 'description' => 'Suspension parts.'],
-            ['name' => 'Aftermarket', 'code' => 'AFT', 'country' => 'China', 'description' => 'General aftermarket parts.'],
+            ['name' => 'Common', 'code' => 'COMM', 'country' => null, 'description' => 'Generic common replacement part brand.'],
+            ['name' => 'Unknown', 'code' => 'UNKN', 'country' => null, 'description' => 'Fallback brand for parts whose manufacturer is not known.'],
+            ['name' => 'Toyota Genuine', 'code' => 'TYGN', 'country' => 'Japan', 'description' => 'Toyota genuine parts.'],
+            ['name' => 'Denso', 'code' => 'DENS', 'country' => 'Japan', 'description' => 'OEM electrical and service components.'],
+            ['name' => 'Bosch', 'code' => 'BOSC', 'country' => 'Germany', 'description' => 'Service and electrical parts.'],
+            ['name' => 'KYB', 'code' => 'KYBX', 'country' => 'Japan', 'description' => 'Suspension parts.'],
+            ['name' => 'Aftermarket', 'code' => 'AFTM', 'country' => 'China', 'description' => 'General aftermarket parts.'],
         ];
 
         return collect($records)
@@ -255,11 +257,11 @@ class PartFlowBaseTestingSeeder extends Seeder
         $diesel = FuelType::where('name', 'Diesel')->first();
         $tax = TaxProfile::where('is_default', true)->first();
         $products = [
-            ['code' => 'TYG-TYCO14BP-I', 'name' => 'Toyota Corolla Brake Pads Front', 'car' => 'Toyota Corolla 2014', 'type' => 'BP', 'fuel' => $fuel, 'brand' => 'TYG', 'origin' => 'Japan', 'purchase' => 24200, 'sale' => 32500, 'low' => 6, 'refs' => ['barcode' => '60012900421', 'oem_number' => '04465-02340'], 'compatible' => ['Toyota Axio 2013']],
-            ['code' => 'BOS-NSNT12OF-I', 'name' => 'Nissan Tiida Oil Filter', 'car' => 'Nissan Tiida 2012', 'type' => 'OF', 'fuel' => $fuel, 'brand' => 'BOS', 'origin' => 'South Africa', 'purchase' => 8200, 'sale' => 12000, 'low' => 10, 'refs' => ['barcode' => '60012900438', 'oem_number' => '15208-9F60A'], 'compatible' => []],
-            ['code' => 'KYB-MZDM12SA-I', 'name' => 'Mazda Demio Rear Shock Absorber', 'car' => 'Mazda Demio 2012', 'type' => 'SA', 'fuel' => $fuel, 'brand' => 'KYB', 'origin' => 'Japan', 'purchase' => 62400, 'sale' => 83000, 'low' => 4, 'refs' => ['barcode' => '60012900445', 'oem_number' => 'D651-28-700'], 'compatible' => []],
-            ['code' => 'DNS-HNFT15FP-H', 'name' => 'Honda Fit Fuel Pump', 'car' => 'Honda Fit 2015', 'type' => 'FP', 'fuel' => $hybrid, 'brand' => 'DNS', 'origin' => 'Japan', 'purchase' => 112000, 'sale' => 145000, 'low' => 2, 'refs' => ['barcode' => '60012900452', 'oem_number' => '17045-T5A-J00'], 'compatible' => []],
-            ['code' => 'AFT-FDRG16AF-D', 'name' => 'Ford Ranger Air Filter', 'car' => 'Ford Ranger 2016', 'type' => 'AF', 'fuel' => $diesel, 'brand' => 'AFT', 'origin' => 'South Africa', 'purchase' => 18000, 'sale' => 26500, 'low' => 8, 'refs' => ['barcode' => '60012900469', 'oem_number' => 'AB39-9601-AC'], 'compatible' => []],
+            ['code' => 'TYGN-BP-JPN-001', 'name' => 'Toyota Genuine Brake Pads (JPN) - Petrol', 'car' => 'Toyota Corolla 2014', 'type' => 'BP', 'fuel' => $fuel, 'brand' => 'TYGN', 'origin' => 'Japan', 'purchase' => 24200, 'sale' => 32500, 'low' => 6, 'refs' => ['barcode' => '60012900421', 'oem_number' => '04465-02340'], 'compatible' => ['Toyota Axio 2013']],
+            ['code' => 'BOSC-OF-ZAF-001', 'name' => 'Bosch Oil Filter (ZAF) - Petrol', 'car' => 'Nissan Tiida 2012', 'type' => 'OF', 'fuel' => $fuel, 'brand' => 'BOSC', 'origin' => 'South Africa', 'purchase' => 8200, 'sale' => 12000, 'low' => 10, 'refs' => ['barcode' => '60012900438', 'oem_number' => '15208-9F60A'], 'compatible' => []],
+            ['code' => 'KYBX-SA-JPN-001', 'name' => 'KYB Shock Absorber (JPN) - Petrol', 'car' => 'Mazda Demio 2012', 'type' => 'SA', 'fuel' => $fuel, 'brand' => 'KYBX', 'origin' => 'Japan', 'purchase' => 62400, 'sale' => 83000, 'low' => 4, 'refs' => ['barcode' => '60012900445', 'oem_number' => 'D651-28-700'], 'compatible' => []],
+            ['code' => 'DENS-FP-JPN-001', 'name' => 'Denso Fuel Pump (JPN) - Hybrid', 'car' => 'Honda Fit 2015', 'type' => 'FP', 'fuel' => $hybrid, 'brand' => 'DENS', 'origin' => 'Japan', 'purchase' => 112000, 'sale' => 145000, 'low' => 2, 'refs' => ['barcode' => '60012900452', 'oem_number' => '17045-T5A-J00'], 'compatible' => []],
+            ['code' => 'AFTM-AF-ZAF-001', 'name' => 'Aftermarket Air Filter (ZAF) - Diesel', 'car' => 'Ford Ranger 2016', 'type' => 'AF', 'fuel' => $diesel, 'brand' => 'AFTM', 'origin' => 'South Africa', 'purchase' => 18000, 'sale' => 26500, 'low' => 8, 'refs' => ['barcode' => '60012900469', 'oem_number' => 'AB39-9601-AC'], 'compatible' => []],
         ];
 
         foreach ($products as $record) {
@@ -274,7 +276,7 @@ class PartFlowBaseTestingSeeder extends Seeder
                     'tax_profile_id' => $tax->id,
                     'part_country_of_origin' => $record['origin'],
                     'description' => "{$record['name']} seeded for testing catalogue, POS, and reporting.",
-                    'pos_description' => "{$record['name']} for {$carModels[$record['car']]->make} {$carModels[$record['car']]->model}.",
+                    'pos_description' => null,
                     'default_purchase_price' => 0,
                     'default_selling_price' => $record['sale'],
                     'default_low_stock_level' => $record['low'],

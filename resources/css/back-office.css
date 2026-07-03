@@ -489,6 +489,7 @@
         background: #1f3a5f;
     }
 
+    .icon-action svg,
     .icon-danger svg,
     .icon-edit svg,
     .notification-action svg {

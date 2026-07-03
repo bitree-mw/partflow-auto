@@ -348,6 +348,68 @@
         align-items: center;
     }
 
+    .async-picker {
+        position: relative;
+        min-width: 0;
+    }
+
+    .async-picker-list {
+        position: absolute;
+        z-index: 30;
+        top: calc(100% + 6px);
+        right: 0;
+        left: 0;
+        max-height: 260px;
+        overflow-y: auto;
+        border: 1px solid #d1d5db;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 18px 36px rgb(17 24 39 / 14%);
+    }
+
+    .async-picker-list[hidden] {
+        display: none;
+    }
+
+    .async-picker-option,
+    .async-picker-empty,
+    .async-picker-more {
+        width: 100%;
+        padding: 11px 12px;
+        border: 0;
+        background: #fff;
+        color: #111827;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+        text-align: left;
+    }
+
+    .async-picker-option,
+    .async-picker-more {
+        cursor: pointer;
+    }
+
+    .async-picker-option:hover,
+    .async-picker-option:focus,
+    .async-picker-more:hover,
+    .async-picker-more:focus {
+        outline: 0;
+        background: #eef4ff;
+        color: #1f3a5f;
+    }
+
+    .async-picker-empty {
+        color: #6b7280;
+    }
+
+    .async-picker-more {
+        border-top: 1px solid #e5e7eb;
+        color: #1f3a5f;
+        font-weight: 900;
+        text-align: center;
+    }
+
     .compatibility-add-button {
         justify-self: start;
     }

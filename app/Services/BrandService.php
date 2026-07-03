@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Brand;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class BrandService
 {
@@ -35,6 +36,12 @@ class BrandService
 
     public function update(Brand $brand, array $data): Brand
     {
+        if (array_key_exists('is_active', $data) && ! $data['is_active'] && $brand->products()->exists()) {
+            throw ValidationException::withMessages([
+                'brand' => ['This brand is linked to products and cannot be made inactive.'],
+            ]);
+        }
+
         if (array_key_exists('code', $data)) {
             $data['code'] = $this->uniqueCode($this->normalizeCode($data['code']), $brand->id);
         }
@@ -59,6 +66,7 @@ class BrandService
             ->upper()
             ->replaceMatches('/[^A-Z0-9]/', '')
             ->substr(0, 4)
+            ->padRight(4, 'X')
             ->toString();
     }
 

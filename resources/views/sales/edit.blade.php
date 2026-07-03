@@ -8,48 +8,48 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.purchases.index') }}">Back to purchases</a>
+    <a class="btn-secondary" href="{{ route('web.sales.index') }}">Back to sales</a>
 @endsection
 
 @section('content')
-    <form class="form-panel purchase-entry-form" method="POST" action="{{ route('web.purchases.update', $purchase) }}">
+    <form class="form-panel purchase-entry-form" method="POST" action="{{ route('web.sales.update', $sale) }}">
         @csrf
         @method('PUT')
 
         <section class="purchase-edit-summary">
             <article>
-                <span>Purchase</span>
-                <strong>{{ $purchase->document_number }}</strong>
+                <span>Sale</span>
+                <strong>{{ $sale->document_number }}</strong>
             </article>
             <article>
                 <span>Total</span>
-                <strong>{{ $currency }} {{ number_format((float) $purchase->total_amount) }}</strong>
+                <strong>{{ $currency }} {{ number_format((float) $sale->total_amount) }}</strong>
             </article>
             <article>
                 <span>Paid</span>
-                <strong>{{ $currency }} {{ number_format((float) $purchase->paid_amount) }}</strong>
+                <strong>{{ $currency }} {{ number_format((float) $sale->paid_amount) }}</strong>
             </article>
             <article>
                 <span>Balance</span>
-                <strong>{{ $currency }} {{ number_format((float) $purchase->balance_amount) }}</strong>
+                <strong>{{ $currency }} {{ number_format((float) $sale->balance_amount) }}</strong>
             </article>
         </section>
 
         <section class="purchase-entry-section">
             <div>
-                <span class="eyebrow">Purchase details</span>
-                <h2>Supplier and notes</h2>
-                <p>These changes do not duplicate stock movement. Line items remain locked after receiving.</p>
+                <span class="eyebrow">Sale details</span>
+                <h2>Customer and notes</h2>
+                <p>Line items remain locked so stock and profit history stay consistent.</p>
             </div>
 
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="contact_id">Supplier</label>
+                    <label for="contact_id">Customer</label>
                     <select class="form-control" id="contact_id" name="contact_id">
-                        <option value="">No supplier selected</option>
-                        @foreach ($suppliers as $supplier)
-                            <option value="{{ $supplier['id'] }}" @selected((string) old('contact_id', $purchase->contact_id) === (string) $supplier['id'])>
-                                {{ $supplier['label'] }}
+                        <option value="">Walk-in customer</option>
+                        @foreach ($customers as $customer)
+                            <option value="{{ $customer['id'] }}" @selected((string) old('contact_id', $sale->contact_id) === (string) $customer['id'])>
+                                {{ $customer['label'] }}
                             </option>
                         @endforeach
                     </select>
@@ -57,14 +57,14 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="document_date">Purchase date</label>
-                    <input class="form-control" id="document_date" name="document_date" type="date" value="{{ old('document_date', $purchase->document_date?->toDateString()) }}">
+                    <label for="document_date">Sale date</label>
+                    <input class="form-control" id="document_date" name="document_date" type="date" value="{{ old('document_date', $sale->document_date?->toDateString()) }}">
                     <x-form-error name="document_date" />
                 </div>
 
                 <div class="form-field full">
                     <label for="notes">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ old('notes', $purchase->notes) }}</textarea>
+                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ old('notes', $sale->notes) }}</textarea>
                     <x-form-error name="notes" />
                 </div>
             </div>
@@ -74,12 +74,12 @@
             <div>
                 <span class="eyebrow">Payment update</span>
                 <h2>Record additional payment</h2>
-                <p>Enter only the new amount paid now. Existing payments are listed below.</p>
+                <p>Enter only the new amount received now. Existing payments are listed below.</p>
             </div>
 
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="amount_paid">Amount paid now</label>
+                    <label for="amount_paid">Amount received now</label>
                     <input class="form-control" id="amount_paid" name="amount_paid" inputmode="decimal" value="{{ old('amount_paid') }}" placeholder="0">
                     <x-form-error name="amount_paid" />
                 </div>
@@ -117,8 +117,8 @@
 
         <section class="purchase-entry-section">
             <div>
-                <span class="eyebrow">Received parts</span>
-                <h2>Purchase lines</h2>
+                <span class="eyebrow">Sold parts</span>
+                <h2>Sale lines</h2>
             </div>
 
             <div class="table-wrap">
@@ -127,16 +127,16 @@
                         <tr>
                             <th>Part</th>
                             <th>Quantity</th>
-                            <th>Unit cost</th>
+                            <th>Unit price</th>
                             <th>Line total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($purchase->items as $item)
+                        @foreach ($sale->items as $item)
                             <tr>
                                 <td><strong>{{ $item->product?->product_name }}</strong><br>{{ $item->product?->product_code }}</td>
                                 <td>{{ $item->quantity }}</td>
-                                <td>{{ $currency }} {{ number_format((float) $item->unit_cost) }}</td>
+                                <td>{{ $currency }} {{ number_format((float) $item->unit_price) }}</td>
                                 <td>{{ $currency }} {{ number_format((float) $item->line_total) }}</td>
                             </tr>
                         @endforeach
@@ -146,8 +146,8 @@
         </section>
 
         <div class="form-actions">
-            <a class="btn-secondary" href="{{ route('web.purchases.index') }}">Cancel</a>
-            <button class="btn" type="submit">Update purchase</button>
+            <a class="btn-secondary" href="{{ route('web.sales.index') }}">Cancel</a>
+            <button class="btn" type="submit">Update sale</button>
         </div>
     </form>
 
@@ -172,7 +172,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($purchase->payments as $payment)
+                    @forelse ($sale->payments as $payment)
                         <tr>
                             <td>{{ $payment->payment_date?->toDateString() }}</td>
                             <td>{{ $payment->paymentAccount?->account_name ?? 'Unknown account' }}</td>
@@ -180,7 +180,7 @@
                             <td>{{ $payment->transaction_reference ?: 'N/A' }}</td>
                             <td>{{ $currency }} {{ number_format((float) $payment->amount) }}</td>
                             <td>
-                                <form method="POST" action="{{ route('web.purchases.payments.destroy', [$purchase, $payment]) }}">
+                                <form method="POST" action="{{ route('web.sales.payments.destroy', [$sale, $payment]) }}">
                                     @csrf
                                     @method('DELETE')
                                     <button class="icon-action icon-danger" type="submit" aria-label="Remove payment" title="Remove payment" data-confirm="Remove this payment?">

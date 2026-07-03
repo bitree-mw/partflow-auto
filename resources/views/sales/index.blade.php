@@ -45,6 +45,7 @@
                         <th>Total</th>
                         <th>Profit</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,6 +58,11 @@
                             <td>{{ $sale['total'] }}</td>
                             <td>{{ $sale['profit'] }}</td>
                             <td><span @class(['status-pill', $sale['payment_tone'] ?? 'neutral'])>{{ $sale['status'] }}</span></td>
+                            <td>
+                                <a class="icon-action icon-edit" href="{{ route('web.sales.edit', $sale['id']) }}" aria-label="Edit sale" title="Edit sale">
+                                    <x-icons.pencil />
+                                </a>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
