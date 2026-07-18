@@ -20,7 +20,7 @@ class StorePartTypeRequest extends ApiRequest
                 'string',
                 'max:20',
                 'regex:/^[A-Za-z0-9]+$/',
-                'unique:part_types,code',
+                'unique:product_types,code',
             ],
 
             'description' => [
@@ -38,7 +38,7 @@ class StorePartTypeRequest extends ApiRequest
     public function messages(): array
     {
         return [
-            'code.regex' => 'The part type code may only contain letters and numbers.',
+            'code.regex' => 'The product type code may only contain letters and numbers.',
         ];
     }
 }

@@ -128,6 +128,7 @@ class AdminSettingsController extends Controller
         $action = $request->input('settings_action', 'save_settings');
 
         return match ($action) {
+            'create_site' => $this->createSite($request),
             'create_document_series' => $this->createDocumentSeries($request),
             'create_user' => $this->createUser($request),
             'create_car_make' => $this->createCarMake($request),
@@ -138,6 +139,34 @@ class AdminSettingsController extends Controller
             'deactivate_vehicle_model' => $this->deactivateVehicleModel($request),
             default => $this->saveSettings($request),
         };
+    }
+
+    private function createSite(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'site_name' => ['required', 'string', 'max:255', 'unique:sites,name'],
+            'site_code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9\-]+$/', 'unique:sites,code'],
+            'site_type' => ['required', 'string', 'in:shop,branch,warehouse'],
+            'site_city' => ['nullable', 'string', 'max:255'],
+            'site_country' => ['nullable', 'string', 'max:100'],
+            'settings_panel' => ['nullable', 'string', 'max:80'],
+        ], [
+            'site_code.regex' => 'The site code may only contain letters, numbers, and hyphens.',
+        ]);
+
+        Site::query()->create([
+            'name' => $validated['site_name'],
+            'code' => filled($validated['site_code'] ?? null)
+                ? strtoupper($validated['site_code'])
+                : $this->uniqueSiteCode($validated['site_name']),
+            'type' => $validated['site_type'],
+            'location' => collect([$validated['site_city'] ?? null, $validated['site_country'] ?? null])
+                ->filter()
+                ->join(', '),
+            'is_active' => true,
+        ]);
+
+        return $this->settingsRedirect($validated['settings_panel'] ?? 'company-sites', 'Site added successfully.');
     }
 
     private function saveSettings(Request $request): RedirectResponse
@@ -207,6 +236,7 @@ class AdminSettingsController extends Controller
         $user = User::query()->create([
             'role_id' => $role?->id,
             'name' => $validated['user_name'],
+            'username' => $this->generateUsername($validated['user_email']),
             'email' => strtolower($validated['user_email']),
             'password' => Hash::make($validated['user_password'] ?? Str::random(12)),
             'is_active' => true,
@@ -228,6 +258,21 @@ class AdminSettingsController extends Controller
         }
 
         return $this->settingsRedirect('user-management', 'User added successfully.');
+    }
+
+    private function generateUsername(string $email): string
+    {
+        $localPart = Str::before($email, '@');
+        $baseUsername = Str::slug($localPart) ?: 'user';
+        $username = $baseUsername;
+        $suffix = 2;
+
+        while (User::query()->where('username', $username)->exists()) {
+            $username = "{$baseUsername}{$suffix}";
+            $suffix++;
+        }
+
+        return $username;
     }
 
     private function createCarMake(Request $request): RedirectResponse
@@ -598,6 +643,24 @@ class AdminSettingsController extends Controller
             ->where('code', $candidate)
             ->exists()) {
             $candidate = substr($base, 0, 17).str_pad((string) $suffix, 3, '0', STR_PAD_LEFT);
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function uniqueSiteCode(string $name): string
+    {
+        $base = Str::of($name)
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]+/', '')
+            ->substr(0, 6)
+            ->toString() ?: 'SITE';
+        $candidate = $base;
+        $suffix = 1;
+
+        while (Site::query()->where('code', $candidate)->exists()) {
+            $candidate = substr($base, 0, 6).str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
             $suffix++;
         }
 

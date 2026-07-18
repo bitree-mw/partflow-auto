@@ -100,10 +100,12 @@ class PurchasesController extends Controller
             ]);
         }
 
+        $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();
+
         $payload = [
             'contact_id' => $validated['contact_id'] ?? null,
             'destination_site_id' => $validated['destination_site_id'],
-            'document_date' => $validated['document_date'] ?? now(),
+            'document_date' => $documentDate,
             'status' => $validated['status'] ?? 'completed',
             'notes' => $validated['notes'] ?? null,
             'items' => $items,
@@ -121,7 +123,7 @@ class PurchasesController extends Controller
                 'amount' => (float) $validated['amount_paid'],
                 'payment_method' => $validated['payment_method'] ?? 'cash',
                 'transaction_reference' => $validated['transaction_reference'] ?? null,
-                'payment_date' => $validated['document_date'] ?? now(),
+                'payment_date' => $documentDate,
             ];
         }
 
@@ -161,9 +163,11 @@ class PurchasesController extends Controller
             'transaction_reference' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();
+
         $purchase->forceFill([
             'contact_id' => $validated['contact_id'] ?? null,
-            'document_date' => $validated['document_date'] ?? $purchase->document_date,
+            'document_date' => $documentDate,
             'notes' => $validated['notes'] ?? null,
         ])->save();
 
@@ -187,7 +191,7 @@ class PurchasesController extends Controller
                 'amount' => $amountPaid,
                 'payment_method' => $validated['payment_method'] ?? 'cash',
                 'transaction_reference' => $validated['transaction_reference'] ?? null,
-                'payment_date' => $validated['document_date'] ?? now(),
+                'payment_date' => $documentDate,
             ], $request->user());
         } else {
             $this->paymentService->refreshDocumentPaymentStatus($purchase);
@@ -231,7 +235,8 @@ class PurchasesController extends Controller
             ->map(fn (InventoryDocument $purchase): array => [
                 'id' => $purchase->id,
                 'number' => $purchase->document_number,
-                'date' => $purchase->document_date?->toDateString(),
+                'date' => $purchase->document_date?->format('M j, Y') ?? 'Not dated',
+                'time' => $purchase->document_date?->format('g:i A') ?? '',
                 'supplier' => $purchase->contact?->name ?? 'Unassigned supplier',
                 'site' => $purchase->destinationSite?->name ?? 'Unassigned site',
                 'items' => $purchase->items->count(),

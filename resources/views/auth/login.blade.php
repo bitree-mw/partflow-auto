@@ -28,40 +28,34 @@
 
             <svg class="gear-machine" viewBox="0 0 420 460" aria-hidden="true" focusable="false">
                 <defs>
+                    <path
+                        id="cog-outer"
+                        d="M 43.4 -7.4 L 51.8 -4.9 L 51.8 4.9 L 43.4 7.4 L 42.9 9.8 L 49.7 15.3 L 46.0 24.3 L 37.2 23.4 L 35.9 25.4 L 40.1 33.1 L 33.1 40.1 L 25.4 35.9 L 23.4 37.2 L 24.3 46.0 L 15.3 49.7 L 9.8 42.9 L 7.4 43.4 L 4.9 51.8 L -4.9 51.8 L -7.4 43.4 L -9.8 42.9 L -15.3 49.7 L -24.3 46.0 L -23.4 37.2 L -25.4 35.9 L -33.1 40.1 L -40.1 33.1 L -35.9 25.4 L -37.2 23.4 L -46.0 24.3 L -49.7 15.3 L -42.9 9.8 L -43.4 7.4 L -51.8 4.9 L -51.8 -4.9 L -43.4 -7.4 L -42.9 -9.8 L -49.7 -15.3 L -46.0 -24.3 L -37.2 -23.4 L -35.9 -25.4 L -40.1 -33.1 L -33.1 -40.1 L -25.4 -35.9 L -23.4 -37.2 L -24.3 -46.0 L -15.3 -49.7 L -9.8 -42.9 L -7.4 -43.4 L -4.9 -51.8 L 4.9 -51.8 L 7.4 -43.4 L 9.8 -42.9 L 15.3 -49.7 L 24.3 -46.0 L 23.4 -37.2 L 25.4 -35.9 L 33.1 -40.1 L 40.1 -33.1 L 35.9 -25.4 L 37.2 -23.4 L 46.0 -24.3 L 49.7 -15.3 L 42.9 -9.8 Z"
+                    />
                     <g id="outline-cog">
-                        <path
-                            class="cog-outline"
-                            d="M 43.4 -7.4 L 51.8 -4.9 L 51.8 4.9 L 43.4 7.4 L 42.9 9.8 L 49.7 15.3 L 46.0 24.3 L 37.2 23.4 L 35.9 25.4 L 40.1 33.1 L 33.1 40.1 L 25.4 35.9 L 23.4 37.2 L 24.3 46.0 L 15.3 49.7 L 9.8 42.9 L 7.4 43.4 L 4.9 51.8 L -4.9 51.8 L -7.4 43.4 L -9.8 42.9 L -15.3 49.7 L -24.3 46.0 L -23.4 37.2 L -25.4 35.9 L -33.1 40.1 L -40.1 33.1 L -35.9 25.4 L -37.2 23.4 L -46.0 24.3 L -49.7 15.3 L -42.9 9.8 L -43.4 7.4 L -51.8 4.9 L -51.8 -4.9 L -43.4 -7.4 L -42.9 -9.8 L -49.7 -15.3 L -46.0 -24.3 L -37.2 -23.4 L -35.9 -25.4 L -40.1 -33.1 L -33.1 -40.1 L -25.4 -35.9 L -23.4 -37.2 L -24.3 -46.0 L -15.3 -49.7 L -9.8 -42.9 L -7.4 -43.4 L -4.9 -51.8 L 4.9 -51.8 L 7.4 -43.4 L 9.8 -42.9 L 15.3 -49.7 L 24.3 -46.0 L 23.4 -37.2 L 25.4 -35.9 L 33.1 -40.1 L 40.1 -33.1 L 35.9 -25.4 L 37.2 -23.4 L 46.0 -24.3 L 49.7 -15.3 L 42.9 -9.8 Z"
-                        />
+                        <use class="cog-outline" href="#cog-outer" />
                         <circle class="cog-inner" cx="0" cy="0" r="29" />
-                        <circle class="cog-hub" cx="0" cy="0" r="8" />
-                        <g class="cog-spokes">
-                            <line x1="0" y1="-12" x2="0" y2="-31" />
-                            <line x1="0" y1="12" x2="0" y2="31" />
-                            <line x1="-12" y1="0" x2="-31" y2="0" />
-                            <line x1="12" y1="0" x2="31" y2="0" />
-                            <line x1="8.5" y1="-8.5" x2="22" y2="-22" />
-                            <line x1="-8.5" y1="8.5" x2="-22" y2="22" />
-                            <line x1="-8.5" y1="-8.5" x2="-22" y2="-22" />
-                            <line x1="8.5" y1="8.5" x2="22" y2="22" />
-                        </g>
+                    </g>
+                    <g id="solid-cog">
+                        <path
+                            class="cog-solid-shape"
+                            fill-rule="evenodd"
+                            d="M 43.4 -7.4 L 51.8 -4.9 L 51.8 4.9 L 43.4 7.4 L 42.9 9.8 L 49.7 15.3 L 46.0 24.3 L 37.2 23.4 L 35.9 25.4 L 40.1 33.1 L 33.1 40.1 L 25.4 35.9 L 23.4 37.2 L 24.3 46.0 L 15.3 49.7 L 9.8 42.9 L 7.4 43.4 L 4.9 51.8 L -4.9 51.8 L -7.4 43.4 L -9.8 42.9 L -15.3 49.7 L -24.3 46.0 L -23.4 37.2 L -25.4 35.9 L -33.1 40.1 L -40.1 33.1 L -35.9 25.4 L -37.2 23.4 L -46.0 24.3 L -49.7 15.3 L -42.9 9.8 L -43.4 7.4 L -51.8 4.9 L -51.8 -4.9 L -43.4 -7.4 L -42.9 -9.8 L -49.7 -15.3 L -46.0 -24.3 L -37.2 -23.4 L -35.9 -25.4 L -40.1 -33.1 L -33.1 -40.1 L -25.4 -35.9 L -23.4 -37.2 L -24.3 -46.0 L -15.3 -49.7 L -9.8 -42.9 L -7.4 -43.4 L -4.9 -51.8 L 4.9 -51.8 L 7.4 -43.4 L 9.8 -42.9 L 15.3 -49.7 L 24.3 -46.0 L 23.4 -37.2 L 25.4 -35.9 L 33.1 -40.1 L 40.1 -33.1 L 35.9 -25.4 L 37.2 -23.4 L 46.0 -24.3 L 49.7 -15.3 L 42.9 -9.8 Z M 29 0 A 29 29 0 1 1 -29 0 A 29 29 0 1 1 29 0 Z"
+                        />
                     </g>
                 </defs>
 
-                <g transform="translate(226 94) scale(1.28)">
-                    <g class="cog cog-large"><use href="#outline-cog" /></g>
-                </g>
-                <g transform="translate(126 151) scale(0.72)">
+                <g transform="translate(110 140) scale(0.9)">
                     <g class="cog cog-small"><use href="#outline-cog" /></g>
                 </g>
-                <g transform="translate(218 220) scale(0.86)">
-                    <g class="cog cog-medium"><use href="#outline-cog" /></g>
+                <g transform="translate(215 225) scale(1.78)">
+                    <g class="cog cog-large"><use href="#solid-cog" /></g>
                 </g>
-                <g transform="translate(86 286) scale(0.76)">
+                <g transform="translate(318 336) scale(1.54)">
+                    <g class="cog cog-large-alt"><use href="#solid-cog" /></g>
+                </g>
+                <g transform="translate(376 192) scale(0.92)">
                     <g class="cog cog-small-alt"><use href="#outline-cog" /></g>
-                </g>
-                <g transform="translate(246 352) scale(1.2)">
-                    <g class="cog cog-large-alt"><use href="#outline-cog" /></g>
                 </g>
             </svg>
         </section>
@@ -79,14 +73,14 @@
                 @csrf
 
                 <label>
-                    Email address
+                    Email or username
                     <input
                         class="auth-control"
-                        name="email"
-                        type="email"
-                        value="{{ old('email') }}"
-                        autocomplete="email"
-                        placeholder="admin@partflow.test"
+                        name="login"
+                        type="text"
+                        value="{{ old('login', old('email')) }}"
+                        autocomplete="username"
+                        placeholder="Enter email or username"
                         required
                         autofocus
                     >

@@ -16,7 +16,7 @@
 
     .report-filter-panel form {
         display: grid;
-        grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(150px, 190px)) auto;
+        grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 190px)) auto;
         gap: 14px;
         align-items: end;
         padding: 18px;

@@ -101,6 +101,7 @@ class ReportRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('SUM(inventory_document_items.quantity) as quantity_sold')
             ->selectRaw('SUM(inventory_document_items.profit_amount) as profit_amount')
@@ -118,6 +119,7 @@ class ReportRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
             ->selectRaw('SUM(inventory_document_items.profit_amount) as profit_amount')
             ->groupBy('sites.id', 'sites.name')
@@ -132,6 +134,7 @@ class ReportRepository
             ->where('inventory_documents.document_type', 'sale')
             ->where('inventory_documents.balance_amount', '>', 0)
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('contacts.id as contact_id, contacts.name as customer_name, contacts.phone')
             ->selectRaw('SUM(inventory_documents.total_amount) as total_sales')
             ->selectRaw('SUM(inventory_documents.paid_amount) as paid_amount')
@@ -145,9 +148,16 @@ class ReportRepository
     {
         return DB::table('payments')
             ->join('payment_accounts', 'payment_accounts.id', '=', 'payments.payment_account_id')
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'payments.inventory_document_id')
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('payments.payment_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('payments.payment_date', '<=', $filters['date_to']))
             ->when(isset($filters['payment_account_id']), fn ($query) => $query->where('payment_accounts.id', $filters['payment_account_id']))
+            ->when(isset($filters['site_id']), function ($query) use ($filters) {
+                $query->where(function ($query) use ($filters) {
+                    $query->where('inventory_documents.source_site_id', $filters['site_id'])
+                        ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
+                });
+            })
             ->selectRaw('payment_accounts.id as payment_account_id, payment_accounts.account_name, payment_accounts.account_type')
             ->selectRaw('COUNT(payments.id) as payment_count')
             ->selectRaw('SUM(payments.amount) as total_amount')
@@ -285,6 +295,7 @@ class ReportRepository
             ->whereIn('inventory_documents.status', ['completed', 'approved'])
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('SUM(inventory_document_items.quantity) as quantity_sold')
             ->selectRaw('SUM(inventory_document_items.line_total) as sales_amount')
@@ -374,6 +385,12 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('payments.payment_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('payments.payment_date', '<=', $filters['date_to']))
             ->when(isset($filters['payment_account_id']), fn ($query) => $query->where('payments.payment_account_id', $filters['payment_account_id']))
+            ->when(isset($filters['site_id']), function ($query) use ($filters) {
+                $query->where(function ($query) use ($filters) {
+                    $query->where('inventory_documents.source_site_id', $filters['site_id'])
+                        ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
+                });
+            })
             ->orderBy('payments.payment_date')
             ->get([
                 'payments.id as payment_id',
@@ -521,6 +538,7 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->orderBy('inventory_documents.document_date')
             ->get([
                 'inventory_documents.document_number',

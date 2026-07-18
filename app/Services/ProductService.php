@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Brand;
+use App\Models\CarModel;
 use App\Models\FuelType;
 use App\Models\PartType;
 use App\Models\Product;
@@ -175,13 +176,27 @@ class ProductService
 
     private function generateProductCode(array $data, ?int $ignoreProductId = null): string
     {
-        $brand = Brand::find($data['brand_id'] ?? null) ?? Brand::find($this->unknownBrandId());
+        $carModel = CarModel::find($data['car_model_id'] ?? null);
         $partType = PartType::findOrFail($data['part_type_id']);
+
+        if ($carModel) {
+            $baseCode = implode('', [
+                $this->cleanCode($partType->code),
+                $this->cleanCode($carModel->make_code ?: $carModel->make),
+                $this->cleanCode($carModel->model_code ?: $carModel->model),
+                $this->yearCode($carModel->year),
+                $this->engineCode($carModel->engine_size),
+            ]);
+
+            return $this->uniqueCompactProductCode($baseCode, $ignoreProductId);
+        }
+
+        $brand = Brand::find($data['brand_id'] ?? null) ?? Brand::find($this->unknownBrandId());
         $brandCode = $this->brandCodePrefix($brand?->id);
         $partCode = $this->cleanCode($partType->code);
         $countryCode = $this->countryCode($data['part_country_of_origin'] ?? null);
 
-        return $this->nextProductCode("{$brandCode}-{$partCode}-{$countryCode}", $ignoreProductId);
+        return $this->nextProductCode("{$partCode}-{$brandCode}-{$countryCode}", $ignoreProductId);
     }
 
     private function normalizeManualProductCode(string $productCode): string
@@ -267,8 +282,21 @@ class ProductService
 
     private function generateProductName(array $data): string
     {
-        $brand = Brand::find($data['brand_id'] ?? null) ?? Brand::find($this->unknownBrandId());
+        $carModel = CarModel::find($data['car_model_id'] ?? null);
         $partType = PartType::findOrFail($data['part_type_id']);
+
+        if ($carModel) {
+            return Str::of(collect([
+                $carModel->make,
+                $carModel->model,
+                $carModel->year,
+                $carModel->engine_size,
+                $carModel->variant_name,
+                $partType->name,
+            ])->filter()->join(' '))->squish()->toString();
+        }
+
+        $brand = Brand::find($data['brand_id'] ?? null) ?? Brand::find($this->unknownBrandId());
 
         $fuelName = null;
 
@@ -360,6 +388,52 @@ class ProductService
         return $code !== '' ? $code : 'PT';
     }
 
+    private function yearCode(?int $year): string
+    {
+        if (! $year) {
+            return '';
+        }
+
+        return substr((string) $year, -2);
+    }
+
+    private function engineCode(?string $engineSize): string
+    {
+        $value = Str::of($engineSize ?? '')
+            ->lower()
+            ->replace('cc', '')
+            ->replace('l', '')
+            ->replaceMatches('/[^0-9.]/', '')
+            ->toString();
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_contains($value, '.')) {
+            return str_replace('.', '', $value);
+        }
+
+        return $value;
+    }
+
+    private function uniqueCompactProductCode(string $baseCode, ?int $ignoreProductId = null): string
+    {
+        $baseCode = $baseCode !== '' ? $baseCode : 'PART';
+        $candidate = $baseCode;
+        $suffix = 2;
+
+        while (Product::query()
+            ->where('product_code', $candidate)
+            ->when($ignoreProductId, fn ($query) => $query->where('id', '!=', $ignoreProductId))
+            ->exists()) {
+            $candidate = $baseCode.str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     private function unknownBrandId(): int
     {
         return Brand::query()->firstOrCreate(
@@ -367,7 +441,7 @@ class ProductService
             [
                 'name' => 'Unknown',
                 'country' => null,
-                'description' => 'Fallback brand for parts whose manufacturer is not known.',
+                'description' => 'Fallback brand for products whose manufacturer is not known.',
                 'is_active' => true,
             ]
         )->id;

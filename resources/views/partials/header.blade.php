@@ -7,12 +7,43 @@
         @endif
         <p class="header-system-context">
             {{ $appSystem['business_name'] ?? 'PartFlow Auto' }}
-            <span>{{ $appSystem['site_name'] ?? 'All sites' }}</span>
+            <span data-header-site-name>{{ $appSystem['site_name'] ?? 'All sites' }}</span>
             <span>{{ $appSystem['currency'] ?? 'MWK' }}</span>
         </p>
     </div>
 
     <div class="header-actions">
+        @php
+            $hideGlobalSiteSwitcher = request()->routeIs([
+                'web.dashboard',
+                'web.catalog.*',
+                'web.alerts.*',
+                'web.settings.*',
+                'web.reports.*',
+            ]);
+        @endphp
+
+        @if (! $hideGlobalSiteSwitcher && ! empty($globalSiteOptions ?? []))
+            <form
+                class="header-branch-switcher"
+                method="POST"
+                action="{{ route('web.pos.site') }}"
+                data-global-site-form
+                data-can-change-directly="{{ ($globalCanChangeSiteDirectly ?? false) ? '1' : '0' }}"
+            >
+                @csrf
+                <label for="global_site_id">Branch</label>
+                <select id="global_site_id" name="site_id" data-global-site-selector data-pos-site-selector aria-label="Active selling branch">
+                    @foreach ($globalSiteOptions as $site)
+                        <option value="{{ $site['id'] }}" @selected((int) $site['id'] === (int) ($globalCurrentSiteId ?? 0))>{{ $site['label'] }}</option>
+                    @endforeach
+                </select>
+                <input type="password" name="admin_password" placeholder="Admin password" autocomplete="current-password" data-global-site-password hidden>
+                <button type="submit" class="btn-secondary" data-global-site-submit hidden>Change</button>
+                <span data-global-site-error hidden></span>
+            </form>
+        @endif
+
         <details class="notification-menu">
             <summary
                 @class(['icon-action', 'notification-action', 'has-notifications' => ($notificationSummary['count'] ?? 0) > 0])

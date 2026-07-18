@@ -78,7 +78,12 @@
                     @foreach ($purchases as $purchase)
                         <tr>
                             <td><strong>{{ $purchase['number'] }}</strong></td>
-                            <td>{{ $purchase['date'] }}</td>
+                            <td>
+                                <span class="date-stack">
+                                    <strong>{{ $purchase['date'] }}</strong>
+                                    <em>{{ $purchase['time'] }}</em>
+                                </span>
+                            </td>
                             <td>{{ $purchase['supplier'] }}</td>
                             <td>{{ $purchase['site'] }}</td>
                             <td>{{ $purchase['items'] }}</td>

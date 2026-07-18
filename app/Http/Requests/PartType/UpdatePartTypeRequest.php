@@ -27,7 +27,7 @@ class UpdatePartTypeRequest extends ApiRequest
                 'string',
                 'max:20',
                 'regex:/^[A-Za-z0-9]+$/',
-                Rule::unique('part_types', 'code')->ignore($partTypeId),
+                Rule::unique('product_types', 'code')->ignore($partTypeId),
             ],
 
             'description' => [
@@ -45,7 +45,7 @@ class UpdatePartTypeRequest extends ApiRequest
     public function messages(): array
     {
         return [
-            'code.regex' => 'The part type code may only contain letters and numbers.',
+            'code.regex' => 'The product type code may only contain letters and numbers.',
         ];
     }
 }

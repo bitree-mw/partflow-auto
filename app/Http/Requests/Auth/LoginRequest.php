@@ -9,9 +9,16 @@ class LoginRequest extends ApiRequest
     public function rules(): array
     {
         return [
+            'login' => [
+                'required_without:email',
+                'string',
+                'max:255',
+            ],
+
             'email' => [
-                'required',
+                'required_without:login',
                 'email',
+                'max:255',
             ],
 
             'password' => [

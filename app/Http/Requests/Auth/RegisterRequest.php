@@ -11,6 +11,14 @@ class RegisterRequest extends ApiRequest
         return [
             'name' => ['required', 'string', 'max:255'],
 
+            'username' => [
+                'nullable',
+                'string',
+                'max:255',
+                'alpha_dash:ascii',
+                'unique:users,username',
+            ],
+
             'email' => [
                 'required',
                 'email',

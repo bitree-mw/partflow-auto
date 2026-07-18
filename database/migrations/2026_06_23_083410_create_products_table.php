@@ -15,8 +15,9 @@ return new class extends Migration
             $table->string('product_name');
 
             $table->foreignId('car_model_id')
+                ->nullable()
                 ->constrained('car_models')
-                ->restrictOnDelete();
+                ->nullOnDelete();
 
             $table->foreignId('part_type_id')
                 ->constrained('part_types')

@@ -39,6 +39,7 @@
                 <thead>
                     <tr>
                         <th>Invoice</th>
+                        <th>Date</th>
                         <th>Branch</th>
                         <th>Customer</th>
                         <th>Items</th>
@@ -52,6 +53,12 @@
                     @foreach ($sales as $sale)
                         <tr>
                             <td><strong>{{ $sale['invoice'] }}</strong></td>
+                            <td>
+                                <span class="date-stack">
+                                    <strong>{{ $sale['date'] }}</strong>
+                                    <em>{{ $sale['time'] }}</em>
+                                </span>
+                            </td>
                             <td>{{ $sale['branch'] }}</td>
                             <td>{{ $sale['customer'] }}</td>
                             <td>{{ $sale['items'] }}</td>

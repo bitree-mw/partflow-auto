@@ -3,17 +3,27 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Site;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $selectedSiteId = $request->query('site_id');
+        $selectedBranchName = filled($selectedSiteId)
+            ? Site::query()->whereKey((int) $selectedSiteId)->value('name')
+            : null;
+
         return view('reports.index', [
             'title' => 'Reports',
             'description' => 'Filter dates first, then download full transaction reports for sales, stock, payments, and profit and loss.',
             'dateFrom' => '2026-06-01',
             'dateTo' => '2026-06-24',
+            'branchOptions' => $this->branchOptions(),
+            'selectedSiteId' => $selectedSiteId,
+            'selectedBranchName' => $selectedBranchName ?? 'All branches',
             'profitLossAccounts' => [
                 ['name' => 'Sales Revenue', 'type' => 'Income', 'movement' => 'MWK 2.84M'],
                 ['name' => 'Cost of Goods Sold', 'type' => 'Cost', 'movement' => 'MWK 1.91M'],
@@ -33,5 +43,18 @@ class ReportsController extends Controller
                 ['name' => 'Transfer history', 'type' => 'stock-transfers', 'detail' => 'Branch-to-branch transfer documents and item lines.', 'status' => 'Ready'],
             ],
         ]);
+    }
+
+    private function branchOptions(): array
+    {
+        return Site::query()
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Site $site): array => [
+                'id' => $site->id,
+                'name' => $site->name,
+            ])
+            ->all();
     }
 }

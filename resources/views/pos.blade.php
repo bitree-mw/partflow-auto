@@ -33,7 +33,7 @@
         <div>
             <span class="eyebrow">Fast parts entry</span>
             <h2>Find, fit, sell.</h2>
-            <p>Search by part, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
+            <p>Search by product, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
         </div>
 
         <article class="activity-session">
@@ -42,7 +42,7 @@
                 <strong>{{ $currentBranch }} activity</strong>
                 <small>{{ $cashier }} - active session</small>
             </div>
-            <button type="button">Start activity</button>
+            <small class="activity-session-site">Selected in header</small>
         </article>
     </section>
 
@@ -51,43 +51,39 @@
             <div class="pos-toolbar">
                 <label class="pos-search-field" for="part-search">
                     <span aria-hidden="true"></span>
-                    <input id="part-search" type="search" value="" placeholder="Search part, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by part, code, barcode, vehicle, or OEM">
+                    <input id="part-search" type="search" value="" placeholder="Search product, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by product, code, barcode, vehicle, or OEM">
                 </label>
 
-                <input class="searchable-input" data-pos-filter list="pos-vehicle-options" value="" placeholder="All vehicles" aria-label="Filter products by vehicle">
-                <input class="searchable-input" data-pos-filter list="pos-part-type-options" value="" placeholder="All part types" aria-label="Filter products by part type">
+                <input class="searchable-input" data-pos-filter data-pos-vehicle-filter list="pos-vehicle-options" value="" placeholder="All vehicles" aria-label="Filter products by vehicle">
+                <input class="searchable-input" data-pos-filter data-pos-part-type-filter list="pos-part-type-options" value="" placeholder="All product types" aria-label="Filter products by product type">
             </div>
 
-            <div class="quick-row" aria-label="Quick search chips">
+            <div class="quick-row" aria-label="Quick search chips" data-suggestions-row hidden>
                 <span>Suggested</span>
-                @foreach ($quickSearches as $search)
-                    <button type="button">{{ $search }}</button>
-                @endforeach
+                <span data-suggestions-list></span>
                 <a href="#" data-pos-clear>Clear</a>
             </div>
 
             <div class="product-card-grid" aria-label="Matching parts">
                 @forelse ($products as $index => $product)
-                    <button class="part-card {{ $index === 0 ? 'selected' : '' }}" type="button" data-product-index="{{ $index }}">
-                        <span class="part-type">{{ $product['part_type'] }}</span>
-                        <span @class(['part-stock-pill', 'low' => $product['branch_stock'][0]['status'] === 'low', 'empty' => $product['branch_stock'][0]['available'] === 0])>
-                            {{ $product['branch_stock'][0]['available'] > 0 ? 'Direct stock available' : 'Needs transfer' }}
-                        </span>
-
-                        <strong>{{ $product['product_name'] }}</strong>
-                        <em>{{ $product['vehicle'] }}</em>
-                        <span class="branch-stock-pills part-branch-summary">
-                            @foreach ($product['branch_stock'] as $branch)
-                                <span @class(['branch-stock-pill', 'empty' => $branch['available'] === 0])>
-                                    <span>{{ $branch['branch'] }}</span>
-                                    <strong>{{ $branch['available'] }}</strong>
-                                </span>
-                            @endforeach
-                        </span>
-
+                    <article class="part-card" data-product-index="{{ $index }}">
+                        <div class="part-card-top">
+                            <div class="part-card-heading">
+                                <span class="part-type">{{ $product['part_type'] }}</span>
+                                <span class="part-brand">{{ $product['brand'] }}</span>
+                                <span class="part-code">({{ $product['product_code'] }})</span>
+                            </div>
+                            <button class="part-add-button" type="button" data-card-add="{{ $index }}" aria-label="Add {{ $product['product_name'] }} to cart">+</button>
+                        </div>
+                        <div class="part-card-meta">
+                            <span class="branch-total-pill current">{{ $product['current_branch_name'] }} {{ $product['current_branch_stock']['available'] }}</span>
+                            <span class="branch-total-pill" title="{{ $product['branch_stock_tooltip'] }}">Other {{ $product['other_available'] }}</span>
+                            <span class="compatibility-pill" title="{{ $product['compatible_cars_tooltip'] }}">
+                                {{ $product['compatible_cars_count'] > 0 ? 'Fits '.$product['compatible_cars_count'] : 'No fitment' }}
+                            </span>
+                        </div>
                         <span class="part-price">{{ $product['selling_price_display'] }}</span>
-                        <span class="part-available">{{ $product['branch_stock'][0]['available'] }} available</span>
-                    </button>
+                    </article>
                 @empty
                     <div class="empty-state">No stocked parts are available for POS yet.</div>
                 @endforelse
@@ -108,69 +104,21 @@
                 <a href="#" data-pos-clear-cart>Clear</a>
             </header>
 
-            <section class="selected-part-card" aria-label="Selected part details">
-                <span class="eyebrow">Selected part</span>
-                <h3 data-selected-name>{{ $selectedProduct['product_name'] }}</h3>
-                <p data-selected-description>{{ $selectedProduct['pos_description'] }}</p>
-
-                <dl>
-                    <div>
-                        <dt>Code</dt>
-                        <dd data-selected-code>{{ $selectedProduct['product_code'] }}</dd>
-                    </div>
-                    <div>
-                        <dt>Vehicle</dt>
-                        <dd data-selected-vehicle>{{ $selectedProduct['vehicle'] }}</dd>
-                    </div>
-                    <div>
-                        <dt>OEM</dt>
-                        <dd data-selected-oem>{{ $selectedProduct['oem_number'] }}</dd>
-                    </div>
-                    <div>
-                        <dt>Network stock</dt>
-                        <dd><span data-total-available>{{ $selectedProduct['total_available'] }}</span></dd>
-                    </div>
-                </dl>
-
-                <div class="branch-mini-list" data-branch-stock>
-                    @foreach ($selectedProduct['branch_stock'] as $branch)
-                        <div @class([
-                            'current' => $branch['branch'] === $currentBranch,
-                            'low' => $branch['status'] === 'low',
-                            'empty' => $branch['available'] === 0,
-                        ])>
-                            <span>{{ $branch['branch'] }}</span>
-                            <strong>{{ $branch['available'] }}</strong>
-                        </div>
-                    @endforeach
-                </div>
-
-                <p data-selected-reference>
-                    Barcode {{ $selectedProduct['barcode'] }}. {{ $selectedProduct['tax_profile'] }}. Origin {{ $selectedProduct['part_country_of_origin'] }}.
-                </p>
-
-                <div class="add-row">
-                    <input type="number" min="1" value="1" data-pos-quantity aria-label="Quantity">
-                    <input type="text" value="{{ $selectedProduct['selling_price_display'] }}" data-pos-unit-price readonly aria-label="Unit price">
-                    <button type="button" data-add-to-cart>Add</button>
-                </div>
-            </section>
-
             <div class="cart-list" aria-label="Sale items" data-cart-list>
                 @foreach ($cartLines as $line)
                     <article class="cart-line">
                         <div>
-                            <strong>{{ $line['name'] }}</strong>
-                            <span>{{ $line['code'] }} x {{ $line['quantity'] }} at {{ $line['unit_price_display'] }}</span>
+                            <strong>{{ $line['code'] }}</strong>
+                            <span>{{ $line['name'] }}</span>
                         </div>
-                        <em>{{ $line['line_total_display'] }}</em>
+                        <em>{{ $line['unit_price_display'] }}</em>
                     </article>
                 @endforeach
             </div>
 
             <form class="checkout-form" method="POST" action="{{ route('web.pos.sales') }}" aria-label="Checkout details" data-pos-checkout-form>
                 @csrf
-                <input type="hidden" name="source_site_id" value="{{ $currentSiteId }}">
+                <input type="hidden" name="source_site_id" value="{{ $currentSiteId }}" data-pos-source-site-id>
                 <input type="hidden" name="cart_payload" value="[]" data-cart-payload>
                 <label>
                     Customer
@@ -183,6 +131,10 @@
                 </label>
 
                 <div class="checkout-form-grid">
+                    <label>
+                        Sale date and time
+                        <input type="datetime-local" name="document_date" value="{{ old('document_date') }}" data-pos-document-date>
+                    </label>
                     <label>
                         Payment account
                         <select name="payment_account_id">
@@ -200,22 +152,11 @@
             </form>
 
             <section class="totals-card" aria-label="Sale totals">
-                <div>
-                    <span>Subtotal</span>
-                    <strong data-subtotal>{{ $saleTotals['subtotal'] }}</strong>
-                </div>
-                <div>
-                    <span>Discount</span>
-                    <strong>{{ $saleTotals['discount'] }}</strong>
-                </div>
-                <div>
-                    <span>VAT</span>
-                    <strong>{{ $saleTotals['tax'] }}</strong>
-                </div>
                 <div class="total-due">
                     <span>Total due</span>
                     <strong data-total-due>{{ $saleTotals['total'] }}</strong>
                 </div>
+                <span data-subtotal hidden>{{ $saleTotals['subtotal'] }}</span>
             </section>
 
             <div class="checkout-actions">
@@ -228,4 +169,5 @@
 
     <script id="pos-products-data" type="application/json">@json($products)</script>
     <script id="pos-current-branch" type="application/json">@json($currentBranch)</script>
+    <script id="pos-endpoints-data" type="application/json">@json($posEndpoints)</script>
 @endsection

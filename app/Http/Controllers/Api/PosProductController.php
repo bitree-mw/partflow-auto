@@ -24,4 +24,12 @@ class PosProductController extends Controller
             'POS products retrieved successfully'
         );
     }
+
+    public function suggestions(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->posProductSearchService->suggestions($request->query()),
+            'POS suggestions retrieved successfully'
+        );
+    }
 }

@@ -57,8 +57,8 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="document_date">Purchase date</label>
-                    <input class="form-control" id="document_date" name="document_date" type="date" value="{{ old('document_date', $purchase->document_date?->toDateString()) }}">
+                    <label for="document_date">Purchase date and time</label>
+                    <input class="form-control" id="document_date" name="document_date" type="datetime-local" value="{{ old('document_date', $purchase->document_date?->format('Y-m-d\TH:i')) }}">
                     <x-form-error name="document_date" />
                 </div>
 
@@ -174,7 +174,12 @@
                 <tbody>
                     @forelse ($purchase->payments as $payment)
                         <tr>
-                            <td>{{ $payment->payment_date?->toDateString() }}</td>
+                            <td>
+                                <span class="date-stack">
+                                    <strong>{{ $payment->payment_date?->format('M j, Y') ?? 'Not dated' }}</strong>
+                                    <em>{{ $payment->payment_date?->format('g:i A') }}</em>
+                                </span>
+                            </td>
                             <td>{{ $payment->paymentAccount?->account_name ?? 'Unknown account' }}</td>
                             <td>{{ str($payment->payment_method)->headline() }}</td>
                             <td>{{ $payment->transaction_reference ?: 'N/A' }}</td>

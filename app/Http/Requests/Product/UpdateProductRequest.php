@@ -40,7 +40,7 @@ class UpdateProductRequest extends ApiRequest
                 'sometimes',
                 'required',
                 'integer',
-                'exists:part_types,id',
+                'exists:product_types,id',
             ],
 
             'fuel_type_id' => [
@@ -137,7 +137,6 @@ class UpdateProductRequest extends ApiRequest
             'compatibilities' => [
                 'nullable',
                 'array',
-                'min:1',
             ],
 
             'compatibilities.*.car_model_id' => [

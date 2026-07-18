@@ -12,6 +12,8 @@ class PartType extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'product_types';
+
     protected $fillable = [
         'name',
         'code',

@@ -1,15 +1,18 @@
-// POS UI interactions. Product data and sale creation are supplied by the API-backed web controller.
-const products = JSON.parse(document.querySelector('#pos-products-data')?.textContent || '[]');
-const currentBranch = JSON.parse(document.querySelector('#pos-current-branch')?.textContent || '""');
+// POS UI interactions. Product search, site switching, cart editing, and checkout are API-backed.
+let products = JSON.parse(document.querySelector('#pos-products-data')?.textContent || '[]');
+let currentBranch = JSON.parse(document.querySelector('#pos-current-branch')?.textContent || '""');
 
+const endpoints = JSON.parse(document.querySelector('#pos-endpoints-data')?.textContent || '{}');
 const searchInput = document.querySelector('#part-search');
-const quickSearches = document.querySelectorAll('.quick-row button');
+const vehicleFilter = document.querySelector('[data-pos-vehicle-filter]');
+const partTypeFilter = document.querySelector('[data-pos-part-type-filter]');
+const filters = Array.from(document.querySelectorAll('[data-pos-filter]'));
 const clearSearch = document.querySelector('[data-pos-clear]');
 const resetSearch = document.querySelector('[data-pos-reset]');
-const resultCards = Array.from(document.querySelectorAll('.part-card'));
+const productGrid = document.querySelector('.product-card-grid');
 const resultCount = document.querySelector('[data-result-count]');
-const filters = Array.from(document.querySelectorAll('[data-pos-filter]'));
-const quantityInput = document.querySelector('[data-pos-quantity]');
+const suggestionsRow = document.querySelector('[data-suggestions-row]');
+const suggestionsList = document.querySelector('[data-suggestions-list]');
 const cartList = document.querySelector('[data-cart-list]');
 const subtotalLabel = document.querySelector('[data-subtotal]');
 const totalDueLabel = document.querySelector('[data-total-due]');
@@ -17,11 +20,16 @@ const cartPayload = document.querySelector('[data-cart-payload]');
 const amountPaidInput = document.querySelector('[data-pos-amount-paid]');
 const checkoutForm = document.querySelector('[data-pos-checkout-form]');
 const completeSaleButton = document.querySelector('[data-complete-sale]');
+const siteSelector = document.querySelector('[data-pos-site-selector]');
+const sourceSiteInput = document.querySelector('[data-pos-source-site-id]');
 
-let selectedProduct = products[0] || null;
-let subtotal = parseCurrency(subtotalLabel?.textContent || '0');
-let totalDue = parseCurrency(totalDueLabel?.textContent || '0');
 let cartItems = [];
+let searchController = null;
+let suggestionController = null;
+let vehicleController = null;
+let partTypeController = null;
+let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
+let vehicleOptions = new Map();
 
 function formatCurrency(value) {
     return `MWK ${Math.round(value).toLocaleString('en-US')}`;
@@ -31,153 +39,510 @@ function parseCurrency(value) {
     return Number(String(value).replace(/[^\d.-]/g, '')) || 0;
 }
 
-function productSearchText(product) {
-    return [
-        product.product_code,
-        product.product_name,
-        product.pos_description,
-        product.vehicle,
-        product.part_type,
-        product.brand,
-        product.barcode,
-        product.oem_number,
-        product.part_country_of_origin,
-        product.branch_stock_summary,
-        ...(product.compatible_cars || []),
-    ].join(' ').toLowerCase();
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
-function activeFilterValues() {
-    return filters
-        .map((filter) => filter.value)
-        .filter((value) => value)
-        .map((value) => value.toLowerCase());
+function debounce(callback, wait = 250) {
+    let timeoutId;
+
+    return (...args) => {
+        window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => callback(...args), wait);
+    };
 }
 
-function filterResults() {
-    const query = (searchInput?.value || '').trim().toLowerCase();
-    const selectedFilters = activeFilterValues();
-    let visibleCount = 0;
+function ensureDialogLayer() {
+    let layer = document.querySelector('[data-pos-dialog-layer]');
 
-    resultCards.forEach((card) => {
-        const product = products[Number(card.dataset.productIndex)];
-        const text = productSearchText(product);
-        const matchesSearch = query === '' || text.includes(query);
-        const matchesFilters = selectedFilters.every((filter) => text.includes(filter));
-        const isVisible = matchesSearch && matchesFilters;
-
-        card.hidden = !isVisible;
-        visibleCount += isVisible ? 1 : 0;
-    });
-
-    if (resultCount) {
-        resultCount.textContent = `${visibleCount} ${visibleCount === 1 ? 'match' : 'matches'}`;
-    }
-}
-
-function setText(selector, value) {
-    const element = document.querySelector(selector);
-
-    if (element) {
-        element.textContent = value;
-    }
-}
-
-function renderBranchRows(product) {
-    const container = document.querySelector('[data-branch-stock]');
-
-    if (!container) {
-        return;
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'pos-dialog-layer';
+        layer.setAttribute('data-pos-dialog-layer', '');
+        layer.hidden = true;
+        document.body.appendChild(layer);
     }
 
-    container.innerHTML = product.branch_stock.map((branch) => {
-        const classes = [
-            branch.branch === currentBranch ? 'current' : '',
-            branch.available === 0 ? 'empty' : '',
-            branch.status === 'low' ? 'low' : '',
-        ].filter(Boolean).join(' ');
+    return layer;
+}
 
-        return `
-            <div class="${classes}">
-                <span>${branch.branch}</span>
-                <strong>${branch.available}</strong>
+function showAppAlert(message, options = {}) {
+    const layer = ensureDialogLayer();
+    const title = options.title || 'Notice';
+    const tone = options.tone || 'info';
+    const titleId = `pos-dialog-title-${Date.now()}`;
+    const previouslyFocused = document.activeElement;
+
+    layer.innerHTML = `
+        <section class="pos-dialog-card ${escapeHtml(tone)}" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
+            <div class="pos-dialog-mark" aria-hidden="true"></div>
+            <h2 id="${titleId}">${escapeHtml(title)}</h2>
+            <p>${escapeHtml(message)}</p>
+            <div class="pos-dialog-actions">
+                <button class="pos-dialog-primary" type="button" data-pos-dialog-ok>OK</button>
             </div>
-        `;
-    }).join('');
-}
-
-function selectProduct(index) {
-    selectedProduct = products[index];
-
-    if (!selectedProduct) {
-        return;
-    }
-
-    resultCards.forEach((card) => {
-        card.classList.toggle('selected', Number(card.dataset.productIndex) === index);
-    });
-
-    const currentStock = selectedProduct.branch_stock.find((branch) => branch.branch === currentBranch);
-    const available = currentStock?.available || 0;
-
-    setText('[data-selected-name]', selectedProduct.product_name);
-    setText('[data-selected-description]', selectedProduct.pos_description);
-    setText('[data-selected-code]', selectedProduct.product_code);
-    setText('[data-selected-vehicle]', selectedProduct.vehicle);
-    setText('[data-selected-brand]', selectedProduct.brand);
-    setText('[data-selected-oem]', selectedProduct.oem_number);
-    setText('[data-current-available]', available);
-    setText('[data-best-available]', selectedProduct.best_branch_available);
-    setText('[data-best-branch]', selectedProduct.best_branch);
-    setText('[data-total-available]', selectedProduct.total_available);
-    setText('[data-selected-margin]', selectedProduct.margin_display);
-    setText('[data-selected-price]', selectedProduct.selling_price_display);
-    setText('[data-selected-compatible]', selectedProduct.compatible_cars.join(', '));
-    setText(
-        '[data-selected-reference]',
-        `Barcode ${selectedProduct.barcode}. ${selectedProduct.tax_profile}. Origin ${selectedProduct.part_country_of_origin}.`
-    );
-    setText('[data-selected-status]', available > 0 ? 'Available' : 'Out of stock');
-    setText('[data-selected-branch-summary]', selectedProduct.branch_stock_summary);
-
-    const unitPriceInput = document.querySelector('[data-pos-unit-price]');
-
-    if (unitPriceInput) {
-        unitPriceInput.value = selectedProduct.selling_price_display;
-    }
-
-    renderBranchRows(selectedProduct);
-}
-
-function addSelectedProductToCart() {
-    if (!selectedProduct?.product_id || !cartList) {
-        return;
-    }
-
-    const quantity = Math.max(1, Number(quantityInput?.value || 1));
-    const unitPrice = parseCurrency(document.querySelector('[data-pos-unit-price]')?.value || selectedProduct.selling_price);
-    const lineTotal = unitPrice * quantity;
-    const line = document.createElement('article');
-
-    line.className = 'cart-line';
-    line.innerHTML = `
-        <div>
-            <strong>${selectedProduct.product_name}</strong>
-            <span>${selectedProduct.product_code} x ${quantity} at ${formatCurrency(unitPrice)}</span>
-        </div>
-        <em>${formatCurrency(lineTotal)}</em>
+        </section>
     `;
+    layer.hidden = false;
+    document.body.classList.add('pos-dialog-open');
 
-    cartList.appendChild(line);
-    cartItems.push({
-        product_id: selectedProduct.product_id,
-        quantity,
-        unit_price: unitPrice,
+    return new Promise((resolve) => {
+        const okButton = layer.querySelector('[data-pos-dialog-ok]');
+
+        const close = () => {
+            document.removeEventListener('keydown', onKeydown);
+            layer.hidden = true;
+            layer.innerHTML = '';
+            document.body.classList.remove('pos-dialog-open');
+            previouslyFocused?.focus?.();
+            resolve();
+        };
+
+        const onKeydown = (event) => {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                event.preventDefault();
+                close();
+            }
+        };
+
+        okButton?.addEventListener('click', close, { once: true });
+        document.addEventListener('keydown', onKeydown);
+        okButton?.focus();
     });
+}
+
+function requestAdminPassword() {
+    const layer = ensureDialogLayer();
+    const titleId = `pos-dialog-title-${Date.now()}`;
+    const previouslyFocused = document.activeElement;
+
+    layer.innerHTML = `
+        <section class="pos-dialog-card" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
+            <div class="pos-dialog-mark" aria-hidden="true"></div>
+            <h2 id="${titleId}">Admin approval</h2>
+            <p>Enter an admin password to change the selling site.</p>
+            <form class="pos-dialog-form" data-pos-password-form>
+                <input type="password" name="admin_password" autocomplete="current-password" aria-label="Admin password">
+                <div class="pos-dialog-actions">
+                    <button class="pos-dialog-secondary" type="button" data-pos-dialog-cancel>Cancel</button>
+                    <button class="pos-dialog-primary" type="submit">Change site</button>
+                </div>
+            </form>
+        </section>
+    `;
+    layer.hidden = false;
+    document.body.classList.add('pos-dialog-open');
+
+    return new Promise((resolve) => {
+        const form = layer.querySelector('[data-pos-password-form]');
+        const input = form?.querySelector('input[name="admin_password"]');
+        const cancelButton = layer.querySelector('[data-pos-dialog-cancel]');
+
+        const close = (value) => {
+            document.removeEventListener('keydown', onKeydown);
+            layer.hidden = true;
+            layer.innerHTML = '';
+            document.body.classList.remove('pos-dialog-open');
+            previouslyFocused?.focus?.();
+            resolve(value);
+        };
+
+        const onKeydown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                close(null);
+            }
+        };
+
+        form?.addEventListener('submit', (event) => {
+            event.preventDefault();
+            close(input?.value || '');
+        });
+        cancelButton?.addEventListener('click', () => close(null), { once: true });
+        document.addEventListener('keydown', onKeydown);
+        input?.focus();
+    });
+}
+
+function selectedVehicleId() {
+    const value = (vehicleFilter?.value || '').trim().toLowerCase();
+
+    if (!value || value === 'all vehicles') {
+        return null;
+    }
+
+    return vehicleOptions.get(value)?.id || null;
+}
+
+function branchStockTooltip(product) {
+    return product.branch_stock_tooltip || (product.branch_stock || [])
+        .map((branch) => `${branch.branch}: ${branch.available}`)
+        .join('\n');
+}
+
+function compatibleCarsTooltip(product) {
+    return product.compatible_cars_tooltip || (product.compatible_cars || []).join('\n') || 'No vehicle fitment linked';
+}
+
+function compatibleCarsLabel(product) {
+    const count = Number(product.compatible_cars_count ?? product.compatible_cars?.length ?? 0);
+
+    return count > 0 ? `Fits ${count}` : 'No fitment';
+}
+
+function renderProductCards() {
+    if (!productGrid) {
+        return;
+    }
+
+    if (products.length === 0) {
+        productGrid.innerHTML = '<div class="empty-state">No matching stocked parts are available at this branch.</div>';
+        updateResultCount();
+        return;
+    }
+
+    productGrid.innerHTML = products.map((product, index) => `
+        <article class="part-card" data-product-index="${index}">
+            <div class="part-card-top">
+                <div class="part-card-heading">
+                    <span class="part-type">${escapeHtml(product.part_type)}</span>
+                    <span class="part-brand">${escapeHtml(product.brand)}</span>
+                    <span class="part-code">(${escapeHtml(product.product_code)})</span>
+                </div>
+                <button class="part-add-button" type="button" data-card-add="${index}" aria-label="Add ${escapeHtml(product.product_name)} to cart">+</button>
+            </div>
+            <div class="part-card-meta">
+                <span class="branch-total-pill current">${escapeHtml(product.current_branch_name || currentBranch)} ${escapeHtml(product.current_branch_stock?.available ?? 0)}</span>
+                <span class="branch-total-pill" title="${escapeHtml(branchStockTooltip(product))}">Other ${escapeHtml(product.other_available ?? 0)}</span>
+                <span class="compatibility-pill" title="${escapeHtml(compatibleCarsTooltip(product))}">${escapeHtml(compatibleCarsLabel(product))}</span>
+            </div>
+            <span class="part-price">${escapeHtml(product.selling_price_display)}</span>
+        </article>
+    `).join('');
+
+    productGrid.querySelectorAll('[data-card-add]').forEach((button) => {
+        button.addEventListener('click', () => addProductToCart(products[Number(button.dataset.cardAdd)]));
+    });
+
+    updateResultCount();
+}
+
+function updateResultCount() {
+    if (resultCount) {
+        resultCount.textContent = `${products.length} ${products.length === 1 ? 'match' : 'matches'}`;
+    }
+}
+
+async function loadProducts() {
+    if (!endpoints.products) {
+        return;
+    }
+
+    searchController?.abort();
+    searchController = new AbortController();
+
+    const params = new URLSearchParams();
+    const search = (searchInput?.value || '').trim();
+    const vehicleId = selectedVehicleId();
+    const partType = (partTypeFilter?.value || '').trim();
+
+    if (search) {
+        params.set('search', search);
+    }
+
+    if (vehicleId) {
+        params.set('compatible_car_model_id', vehicleId);
+    } else {
+        const vehicleText = (vehicleFilter?.value || '').trim();
+
+        if (vehicleText && vehicleText.toLowerCase() !== 'all vehicles') {
+            params.set('vehicle_search', vehicleText);
+        }
+    }
+
+    if (partType && partType.toLowerCase() !== 'all product types') {
+        params.set('part_type', partType);
+    }
+
+    productGrid?.setAttribute('aria-busy', 'true');
+
+    try {
+        const response = await fetch(`${endpoints.products}?${params}`, {
+            headers: { Accept: 'application/json' },
+            signal: searchController.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Could not load POS products.');
+        }
+
+        products = payload.products || [];
+        renderProductCards();
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            await showAppAlert(error.message, { title: 'Could not load parts' });
+        }
+    } finally {
+        productGrid?.removeAttribute('aria-busy');
+    }
+}
+
+async function loadSuggestions() {
+    const query = (searchInput?.value || '').trim();
+
+    suggestionController?.abort();
+
+    if (!endpoints.suggestions || query === '') {
+        renderSuggestions([]);
+        return;
+    }
+
+    suggestionController = new AbortController();
+
+    try {
+        const response = await fetch(`${endpoints.suggestions}?${new URLSearchParams({ search: query })}`, {
+            headers: { Accept: 'application/json' },
+            signal: suggestionController.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Could not load suggestions.');
+        }
+
+        renderSuggestions(payload.suggestions || []);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            renderSuggestions([]);
+        }
+    }
+}
+
+function renderSuggestions(suggestions) {
+    if (!suggestionsRow || !suggestionsList) {
+        return;
+    }
+
+    if (suggestions.length === 0) {
+        suggestionsRow.hidden = true;
+        suggestionsList.innerHTML = '';
+        return;
+    }
+
+    suggestionsRow.hidden = false;
+    suggestionsList.innerHTML = suggestions.map((suggestion) => `
+        <button type="button" data-suggestion-code="${escapeHtml(suggestion.product_code)}">
+            ${escapeHtml(suggestion.label)}
+        </button>
+    `).join('');
+
+    suggestionsList.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (searchInput) {
+                searchInput.value = button.dataset.suggestionCode || button.textContent.trim();
+            }
+
+            loadProducts();
+            loadSuggestions();
+            searchInput?.focus();
+        });
+    });
+}
+
+async function loadVehicleModels() {
+    if (!endpoints.vehicleModels || !vehicleFilter) {
+        return;
+    }
+
+    vehicleController?.abort();
+    vehicleController = new AbortController();
+
+    const params = new URLSearchParams({
+        search: vehicleFilter.value.trim(),
+    });
+
+    try {
+        const response = await fetch(`${endpoints.vehicleModels}?${params}`, {
+            headers: { Accept: 'application/json' },
+            signal: vehicleController.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Could not load vehicle models.');
+        }
+
+        vehicleOptions = new Map();
+        const datalist = document.querySelector('#pos-vehicle-options');
+
+        if (datalist) {
+            datalist.innerHTML = '<option value="All vehicles"></option>';
+            (payload.vehicles || []).forEach((vehicle) => {
+                const label = vehicle.display_name;
+                vehicleOptions.set(label.toLowerCase(), vehicle);
+                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(label)}"></option>`);
+            });
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            vehicleOptions = new Map();
+        }
+    }
+}
+
+async function loadPartTypes() {
+    if (!endpoints.partTypes || !partTypeFilter) {
+        return;
+    }
+
+    partTypeController?.abort();
+    partTypeController = new AbortController();
+
+    const params = new URLSearchParams({
+        search: partTypeFilter.value.trim(),
+    });
+
+    try {
+        const response = await fetch(`${endpoints.partTypes}?${params}`, {
+            headers: { Accept: 'application/json' },
+            signal: partTypeController.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Could not load product types.');
+        }
+
+        const datalist = document.querySelector('#pos-part-type-options');
+
+        if (datalist) {
+            datalist.innerHTML = '<option value="All product types"></option>';
+            (payload.partTypes || []).forEach((partType) => {
+                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(partType.name)}"></option>`);
+            });
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            const datalist = document.querySelector('#pos-part-type-options');
+            if (datalist) {
+                datalist.innerHTML = '<option value="All product types"></option>';
+            }
+        }
+    }
+}
+
+function addProductToCart(product) {
+    if (!product?.product_id) {
+        return;
+    }
+
+    const existing = cartItems.find((item) => item.product_id === product.product_id);
+
+    if (existing) {
+        existing.quantity += 1;
+    } else {
+        cartItems.push({
+            product_id: product.product_id,
+            product_code: product.product_code,
+            product_name: product.product_name,
+            quantity: 1,
+            unit_price: Number(product.selling_price) || 0,
+        });
+    }
+
+    renderCart();
+}
+
+function changeCartQuantity(productId, delta) {
+    const item = cartItems.find((cartItem) => cartItem.product_id === productId);
+
+    if (!item) {
+        return;
+    }
+
+    item.quantity += delta;
+
+    if (item.quantity <= 0) {
+        cartItems = cartItems.filter((cartItem) => cartItem.product_id !== productId);
+    }
+
+    renderCart();
+}
+
+function removeCartItem(productId) {
+    cartItems = cartItems.filter((cartItem) => cartItem.product_id !== productId);
+    renderCart();
+}
+
+function renderCart() {
+    if (!cartList) {
+        return;
+    }
+
+    if (cartItems.length === 0) {
+        cartList.innerHTML = '<div class="cart-empty">Cart is empty.</div>';
+    } else {
+        cartList.innerHTML = cartItems.map((item) => `
+            <article class="cart-line">
+                <div class="cart-line-main">
+                    <strong>${escapeHtml(item.product_code)}</strong>
+                    <span>${escapeHtml(item.product_name)}</span>
+                </div>
+                <div class="cart-line-price">
+                    <em>${formatCurrency(item.unit_price)}</em>
+                    <span>x ${escapeHtml(item.quantity)}</span>
+                </div>
+                <div class="cart-line-actions" aria-label="Adjust ${escapeHtml(item.product_name)} quantity">
+                    <button type="button" data-cart-minus="${item.product_id}" aria-label="Decrease quantity">-</button>
+                    <button type="button" data-cart-plus="${item.product_id}" aria-label="Increase quantity">+</button>
+                    <button type="button" data-cart-remove="${item.product_id}" aria-label="Remove item">x</button>
+                </div>
+            </article>
+        `).join('');
+
+        cartList.querySelectorAll('[data-cart-minus]').forEach((button) => {
+            button.addEventListener('click', () => changeCartQuantity(Number(button.dataset.cartMinus), -1));
+        });
+        cartList.querySelectorAll('[data-cart-plus]').forEach((button) => {
+            button.addEventListener('click', () => changeCartQuantity(Number(button.dataset.cartPlus), 1));
+        });
+        cartList.querySelectorAll('[data-cart-remove]').forEach((button) => {
+            button.addEventListener('click', () => removeCartItem(Number(button.dataset.cartRemove)));
+        });
+    }
+
     updateCartCount();
     updateCartPayload();
-    subtotal += lineTotal;
-    totalDue += lineTotal;
+    updateTotals();
+}
+
+function updateCartCount() {
+    const cartCount = document.querySelector('[data-cart-count]');
+
+    if (cartCount) {
+        cartCount.textContent = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    }
+}
+
+function updateCartPayload() {
+    if (cartPayload) {
+        cartPayload.value = JSON.stringify(cartItems.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+        })));
+    }
+}
+
+function updateTotals() {
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+    const totalDue = subtotal;
 
     if (subtotalLabel) {
         subtotalLabel.textContent = formatCurrency(subtotal);
@@ -192,92 +557,187 @@ function addSelectedProductToCart() {
     }
 }
 
-function updateCartCount() {
-    const cartCount = document.querySelector('[data-cart-count]');
+function clearCart() {
+    cartItems = [];
+    renderCart();
+}
 
-    if (cartCount && cartList) {
-        cartCount.textContent = cartList.querySelectorAll('.cart-line').length;
+async function changeSite(siteId, adminPassword = '') {
+    const token = checkoutForm?.querySelector('input[name="_token"]')?.value;
+    const formData = new FormData();
+
+    formData.set('site_id', siteId);
+
+    if (adminPassword) {
+        formData.set('admin_password', adminPassword);
     }
-}
 
-function updateCartPayload() {
-    if (cartPayload) {
-        cartPayload.value = JSON.stringify(cartItems);
+    const response = await fetch(endpoints.site, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+        },
+        body: formData,
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+        const message = payload.errors?.admin_password?.[0] || payload.message || 'Could not change POS site.';
+        throw new Error(message);
     }
+
+    return payload.site;
 }
 
-if (searchInput) {
-    searchInput.addEventListener('input', filterResults);
-}
+const scheduleProducts = debounce(() => {
+    loadProducts();
+}, 250);
+const scheduleSuggestions = debounce(() => {
+    loadSuggestions();
+}, 180);
+const scheduleVehicleModels = debounce(() => {
+    loadVehicleModels();
+}, 180);
+const schedulePartTypes = debounce(() => {
+    loadPartTypes();
+}, 180);
+
+searchInput?.addEventListener('input', () => {
+    scheduleProducts();
+    scheduleSuggestions();
+});
+
+vehicleFilter?.addEventListener('input', () => {
+    scheduleVehicleModels();
+    scheduleProducts();
+});
 
 filters.forEach((filter) => {
-    filter.addEventListener('input', filterResults);
-    filter.addEventListener('change', filterResults);
-});
-
-quickSearches.forEach((button) => {
-    button.addEventListener('click', () => {
-        searchInput.value = button.textContent.trim();
-        filterResults();
-        searchInput.focus();
-    });
-});
-
-if (clearSearch) {
-    clearSearch.addEventListener('click', (event) => {
-        event.preventDefault();
-        searchInput.value = '';
-        filterResults();
-        searchInput.focus();
-    });
-}
-
-if (resetSearch) {
-    resetSearch.addEventListener('click', () => {
-        searchInput.value = '';
-        filters.forEach((filter) => {
-            filter.value = '';
+    if (filter === partTypeFilter) {
+        filter.addEventListener('input', () => {
+            schedulePartTypes();
+            scheduleProducts();
         });
-        filterResults();
-        searchInput.focus();
-    });
-}
-
-resultCards.forEach((card) => {
-    card.addEventListener('click', () => {
-        selectProduct(Number(card.dataset.productIndex));
-    });
+        filter.addEventListener('change', scheduleProducts);
+    } else if (filter !== vehicleFilter) {
+        filter.addEventListener('input', scheduleProducts);
+        filter.addEventListener('change', scheduleProducts);
+    }
 });
 
-document.querySelector('[data-add-to-cart]')?.addEventListener('click', addSelectedProductToCart);
+clearSearch?.addEventListener('click', (event) => {
+    event.preventDefault();
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    renderSuggestions([]);
+    loadProducts();
+    searchInput?.focus();
+});
+
+resetSearch?.addEventListener('click', () => {
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    filters.forEach((filter) => {
+        filter.value = '';
+    });
+    renderSuggestions([]);
+    loadProducts();
+    searchInput?.focus();
+});
+
+siteSelector?.addEventListener('change', async () => {
+    const nextSiteId = siteSelector.value;
+    const previousSiteId = selectedSiteId;
+    let adminPassword = '';
+
+    if (!endpoints.canChangeSiteDirectly) {
+        const password = await requestAdminPassword();
+
+        if (password === null) {
+            siteSelector.value = previousSiteId;
+            return;
+        }
+
+        adminPassword = password;
+    }
+
+    try {
+        const site = await changeSite(nextSiteId, adminPassword);
+        selectedSiteId = String(site.id);
+        currentBranch = site.name;
+
+        if (sourceSiteInput) {
+            sourceSiteInput.value = site.id;
+        }
+
+        const activityTitle = document.querySelector('.activity-session strong');
+        if (activityTitle) {
+            activityTitle.textContent = `${site.name} activity`;
+        }
+
+        const headerSiteName = document.querySelector('[data-header-site-name]');
+        if (headerSiteName) {
+            headerSiteName.textContent = site.name;
+        }
+
+        clearCart();
+        await loadProducts();
+    } catch (error) {
+        siteSelector.value = previousSiteId;
+        await showAppAlert(error.message, { title: 'Could not change site' });
+    }
+});
+
 document.querySelector('[data-pos-clear-cart]')?.addEventListener('click', (event) => {
     event.preventDefault();
+    clearCart();
+});
 
-    if (!cartList) {
+checkoutForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (cartItems.length === 0) {
+        await showAppAlert('Add at least one product before completing the sale.', { title: 'Cart is empty' });
         return;
     }
 
-    cartList.innerHTML = '';
-    cartItems = [];
-    updateCartPayload();
-    subtotal = 0;
-    totalDue = 0;
+    try {
+        const response = await fetch(checkoutForm.action, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new FormData(checkoutForm),
+        });
+        const payload = await response.json();
 
-    if (subtotalLabel) {
-        subtotalLabel.textContent = formatCurrency(subtotal);
+        if (!response.ok) {
+            const errors = payload.errors || {};
+            const firstError = Object.values(errors).flat()[0];
+            throw new Error(firstError || payload.message || 'Could not complete sale.');
+        }
+
+        await showAppAlert(payload.message || 'Sale completed successfully.', {
+            title: 'Sale completed',
+            tone: 'success',
+        });
+        clearCart();
+        await loadProducts();
+    } catch (error) {
+        await showAppAlert(error.message, { title: 'Could not complete sale' });
     }
-
-    if (totalDueLabel) {
-        totalDueLabel.textContent = formatCurrency(totalDue);
-    }
-
-    updateCartCount();
 });
 
 completeSaleButton?.addEventListener('click', () => {
     checkoutForm?.requestSubmit();
 });
 
-filterResults();
-updateCartCount();
-updateCartPayload();
+renderProductCards();
+renderCart();
+loadVehicleModels();
+loadPartTypes();

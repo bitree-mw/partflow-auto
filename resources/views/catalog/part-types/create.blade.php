@@ -12,7 +12,7 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to part types</a>
+    <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to product types</a>
 @endsection
 
 @section('content')
@@ -21,13 +21,13 @@
 
         <div class="form-grid">
             <div class="form-field">
-                <label for="name">Part type name</label>
+                <label for="name">Product type name</label>
                 <input class="form-control" id="name" name="name" value="{{ old('name') }}" placeholder="Brake Pads" required>
                 <x-form-error name="name" />
             </div>
 
             <div class="form-field">
-                <label for="code">Part type code</label>
+                <label for="code">Product type code</label>
                 <input class="form-control" id="code" name="code" value="{{ old('code') }}" placeholder="BP" required>
                 <x-form-error name="code" />
             </div>
@@ -40,7 +40,7 @@
         </div>
 
         <div class="form-actions">
-            <button class="btn" type="submit">Save part type</button>
+            <button class="btn" type="submit">Save product type</button>
         </div>
     </form>
 @endsection

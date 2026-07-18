@@ -99,6 +99,26 @@ class ExampleTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_user_can_login_with_username(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'frontcounter',
+            'email' => 'frontcounter@partflow.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+        ]);
+
+        $this->post(route('login.store'), [
+            'login' => 'frontcounter',
+            'password' => 'password',
+        ])
+            ->assertRedirect(route('web.dashboard'))
+            ->assertSessionHas('partflow_api_token')
+            ->assertSessionHas('partflow_api_token_id');
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_payment_accounts_web_flow_uses_api_backed_records(): void
     {
         $this->actingAs(User::factory()->create());
@@ -272,7 +292,7 @@ class ExampleTest extends TestCase
 
         $product = Product::where('brand_id', $brand->id)->firstOrFail();
 
-        $this->assertSame('TYCO1616WP', $product->product_code);
+        $this->assertSame('WPTYCO1616', $product->product_code);
         $this->assertSame('Toyota Corolla 2016 1.6L Sedan Water Pump', $product->product_name);
 
         $this->delete(route('web.catalog.part-types.destroy', $partType))
@@ -285,6 +305,38 @@ class ExampleTest extends TestCase
 
         $this->assertTrue($partType->fresh()->is_active);
         $this->assertTrue($carModel->fresh()->is_active);
+    }
+
+    public function test_catalogue_can_create_product_without_vehicle_fitment(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $brand = Brand::create([
+            'name' => 'Universal Brand',
+            'code' => 'UB',
+            'is_active' => true,
+        ]);
+        $partType = PartType::create([
+            'name' => 'Cleaning Cloth',
+            'code' => 'CC',
+            'is_active' => true,
+        ]);
+
+        $this->post(route('web.catalog.products.store'), [
+            'part_type_id' => $partType->id,
+            'brand_id' => $brand->id,
+            'part_country_of_origin' => 'Malawi',
+            'default_selling_price' => 2500,
+            'default_low_stock_level' => 5,
+            'pack_size' => 1,
+        ])->assertRedirect(route('web.catalog.products.index'));
+
+        $product = Product::where('brand_id', $brand->id)->firstOrFail();
+
+        $this->assertNull($product->car_model_id);
+        $this->assertSame('CC-UBXX-MWI-001', $product->product_code);
+        $this->assertSame('Universal Brand Cleaning Cloth (MWI)', $product->product_name);
+        $this->assertSame(0, $product->compatibilities()->count());
     }
 
     public function test_contacts_and_purchase_workflows_create_real_records(): void

@@ -59,8 +59,8 @@
                     <x-form-error name="destination_site_id" />
                 </div>
                 <div class="form-field">
-                    <label for="purchase_date">Purchase date</label>
-                    <input class="form-control" id="purchase_date" name="document_date" type="date" value="{{ old('document_date', now()->toDateString()) }}">
+                    <label for="purchase_date">Purchase date and time</label>
+                    <input class="form-control" id="purchase_date" name="document_date" type="datetime-local" value="{{ old('document_date') }}">
                     <x-form-error name="document_date" />
                 </div>
                 <div class="form-field">

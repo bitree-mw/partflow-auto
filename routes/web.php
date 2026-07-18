@@ -25,6 +25,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthSessionController::class, 'destroy'])->name('logout');
     Route::get('/pos', [PosController::class, 'index'])->name('web.pos');
+    Route::get('/pos/products.json', [PosController::class, 'productsJson'])->name('web.pos.products');
+    Route::get('/pos/suggestions.json', [PosController::class, 'suggestionsJson'])->name('web.pos.suggestions');
+    Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->name('web.pos.vehicle-models');
+    Route::get('/pos/part-types.json', [PosController::class, 'partTypesJson'])->name('web.pos.part-types');
+    Route::post('/pos/site', [PosController::class, 'updateSite'])->name('web.pos.site');
     Route::post('/pos/sales', [PosController::class, 'store'])->name('web.pos.sales');
 });
 

@@ -180,7 +180,7 @@ class CatalogController extends Controller
                 $requested = (int) $requestedByProduct->get($productId, 0);
 
                 if ($requested > $available) {
-                    $productName = $stocks->get($productId)?->product?->product_name ?? 'This part';
+                    $productName = $stocks->get($productId)?->product?->product_name ?? 'This product';
                     $validator->errors()->add(
                         "items.{$index}.quantity",
                         "{$productName} has {$available} available at the source site."
@@ -510,8 +510,8 @@ class CatalogController extends Controller
             ->through(fn (PartType $partType): array => $this->partTypeRow($partType));
 
         return view('catalog.part-types.index', [
-            'title' => 'Part Types',
-            'description' => 'Maintain standard part categories and short codes used in generated product codes.',
+            'title' => 'Product types',
+            'description' => 'Maintain reusable product categories for parts, fluids, and service consumables.',
             'partTypes' => $partTypes,
             'filters' => $filters,
         ]);
@@ -520,8 +520,8 @@ class CatalogController extends Controller
     public function createPartType(): View
     {
         return view('catalog.part-types.create', [
-            'title' => 'Add Part Type',
-            'description' => 'Create a reusable part type before adding parts/products.',
+            'title' => 'Add product type',
+            'description' => 'Create a reusable product type before adding catalogue products.',
         ]);
     }
 
@@ -529,24 +529,24 @@ class CatalogController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', 'unique:part_types,code'],
+            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', 'unique:product_types,code'],
             'description' => ['nullable', 'string'],
         ], [
-            'code.regex' => 'The part type code may only contain letters and numbers.',
+            'code.regex' => 'The product type code may only contain letters and numbers.',
         ]);
 
         $this->partTypeService->create($validated);
 
         return redirect()
             ->route('web.catalog.part-types.index')
-            ->with('success', 'Part type saved successfully.');
+            ->with('success', 'Product type saved successfully.');
     }
 
     public function editPartType(PartType $partType): View
     {
         return view('catalog.part-types.edit', [
-            'title' => 'Edit Part Type',
-            'description' => 'Update the part type name, code, and active status.',
+            'title' => 'Edit product type',
+            'description' => 'Update the product type name, code, and active status.',
             'partType' => $partType,
         ]);
     }
@@ -555,11 +555,11 @@ class CatalogController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('part_types', 'code')->ignore($partType->id)],
+            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('product_types', 'code')->ignore($partType->id)],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ], [
-            'code.regex' => 'The part type code may only contain letters and numbers.',
+            'code.regex' => 'The product type code may only contain letters and numbers.',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');
@@ -568,14 +568,14 @@ class CatalogController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'This part type is linked to products and cannot be made inactive.');
+                ->with('error', 'This product type is linked to products and cannot be made inactive.');
         }
 
         $this->partTypeService->update($partType, $validated);
 
         return redirect()
             ->route('web.catalog.part-types.index')
-            ->with('success', 'Part type updated successfully.');
+            ->with('success', 'Product type updated successfully.');
     }
 
     public function destroyPartType(PartType $partType): RedirectResponse
@@ -583,14 +583,14 @@ class CatalogController extends Controller
         if ($partType->products()->exists()) {
             return redirect()
                 ->route('web.catalog.part-types.index')
-                ->with('error', 'This part type is linked to products and cannot be made inactive.');
+                ->with('error', 'This product type is linked to products and cannot be made inactive.');
         }
 
         $this->partTypeService->update($partType, ['is_active' => false]);
 
         return redirect()
             ->route('web.catalog.part-types.index')
-            ->with('success', 'Part type marked inactive.');
+            ->with('success', 'Product type marked inactive.');
     }
 
     public function brands(Request $request): View
@@ -728,7 +728,7 @@ class CatalogController extends Controller
 
         return view('catalog.fuel-types.index', [
             'title' => 'Fuel Types',
-            'description' => 'Maintain fuel categories used to generate part codes and narrow compatibility.',
+            'description' => 'Maintain fuel categories used to generate product codes and narrow compatibility.',
             'fuelTypes' => $fuelTypes,
             'filters' => $filters,
         ]);
@@ -838,9 +838,9 @@ class CatalogController extends Controller
             'partTypeOptions' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
             'brandOptions' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'catalogueSummary' => [
-                ['label' => 'Parts available', 'value' => number_format(Product::query()->count()), 'detail' => 'Sellable catalogue items'],
-                ['label' => 'Brands', 'value' => number_format(Brand::query()->count()), 'detail' => 'Part manufacturers'],
-                ['label' => 'Part types', 'value' => number_format(PartType::query()->count()), 'detail' => 'Reusable product categories'],
+                ['label' => 'Products available', 'value' => number_format(Product::query()->count()), 'detail' => 'Sellable catalogue items'],
+                ['label' => 'Brands', 'value' => number_format(Brand::query()->count()), 'detail' => 'Product manufacturers'],
+                ['label' => 'Product types', 'value' => number_format(PartType::query()->count()), 'detail' => 'Reusable product categories'],
                 ['label' => 'Fuel types', 'value' => number_format(FuelType::query()->count()), 'detail' => 'Vehicle power trim'],
                 ['label' => 'Car models', 'value' => number_format(CarModel::query()->count()), 'detail' => 'Fitment and variant records'],
             ],
@@ -852,8 +852,8 @@ class CatalogController extends Controller
         $selectedCarModelIds = $this->normalizeCarModelIds($request->old('compatible_car_model_ids', []));
 
         return view('catalog.products.create', [
-            'title' => 'Add Part',
-            'description' => 'Build a part using car model, part type, fuel, brand, tax, references, and compatibility.',
+            'title' => 'Add Product',
+            'description' => 'Build a product using vehicle fitment, product type, fuel, brand, tax, references, and compatibility.',
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'countries' => config('countries'),
             'partTypes' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
@@ -865,11 +865,19 @@ class CatalogController extends Controller
 
     public function storeProduct(Request $request): RedirectResponse
     {
+        if (! $request->has('compatible_car_model_ids') && $request->filled('car_model_id')) {
+            $request->merge([
+                'compatible_car_model_ids' => [(int) $request->input('car_model_id')],
+            ]);
+        }
+
+        $this->normalizeProductCompatibilityInput($request);
+
         $validated = $request->validate([
             'product_code' => ['nullable', 'string', 'max:100', 'unique:products,product_code'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
-            'part_type_id' => ['required', 'integer', 'exists:part_types,id'],
+            'part_type_id' => ['required', 'integer', 'exists:product_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
@@ -877,7 +885,7 @@ class CatalogController extends Controller
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
-            'compatible_car_model_ids' => ['required', 'array', 'min:1'],
+            'compatible_car_model_ids' => ['nullable', 'array'],
             'compatible_car_model_ids.*' => ['required', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
         ]);
@@ -887,7 +895,7 @@ class CatalogController extends Controller
 
         return redirect()
             ->route('web.catalog.products.index')
-            ->with('success', 'Part saved successfully.');
+            ->with('success', 'Product saved successfully.');
     }
 
     public function carModelOptionsSearch(Request $request): JsonResponse
@@ -972,8 +980,8 @@ class CatalogController extends Controller
         );
 
         return view('catalog.products.edit', [
-            'title' => 'Edit Part',
-            'description' => 'Update catalogue part details, pricing, and compatibility.',
+            'title' => 'Edit Product',
+            'description' => 'Update catalogue product details, pricing, and compatibility.',
             'product' => $product,
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'countries' => config('countries'),
@@ -986,11 +994,13 @@ class CatalogController extends Controller
 
     public function updateProduct(Request $request, Product $product): RedirectResponse
     {
+        $this->normalizeProductCompatibilityInput($request);
+
         $validated = $request->validate([
             'product_code' => ['nullable', 'string', 'max:100', Rule::unique('products', 'product_code')->ignore($product->id)],
             'product_name' => ['nullable', 'string', 'max:255'],
             'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
-            'part_type_id' => ['required', 'integer', 'exists:part_types,id'],
+            'part_type_id' => ['required', 'integer', 'exists:product_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
@@ -998,7 +1008,7 @@ class CatalogController extends Controller
             'default_selling_price' => ['nullable', 'numeric', 'min:0'],
             'default_low_stock_level' => ['nullable', 'integer', 'min:0'],
             'pack_size' => ['nullable', 'numeric', 'min:0.01'],
-            'compatible_car_model_ids' => ['required', 'array', 'min:1'],
+            'compatible_car_model_ids' => ['nullable', 'array'],
             'compatible_car_model_ids.*' => ['required', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
@@ -1011,14 +1021,14 @@ class CatalogController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'This part has stock and cannot be made inactive.');
+                ->with('error', 'This product has stock and cannot be made inactive.');
         }
 
         $this->productService->update($product, $payload);
 
         return redirect()
             ->route('web.catalog.products.index')
-            ->with('success', 'Part updated successfully.');
+            ->with('success', 'Product updated successfully.');
     }
 
     public function destroyProduct(Product $product): RedirectResponse
@@ -1026,14 +1036,14 @@ class CatalogController extends Controller
         if ($this->productHasStock($product)) {
             return redirect()
                 ->route('web.catalog.products.index')
-                ->with('error', 'This part has stock and cannot be made inactive.');
+                ->with('error', 'This product has stock and cannot be made inactive.');
         }
 
         $this->productService->update($product, ['is_active' => false]);
 
         return redirect()
             ->route('web.catalog.products.index')
-            ->with('success', 'Part marked inactive.');
+            ->with('success', 'Product marked inactive.');
     }
 
     private function productPayload(array $validated): array
@@ -1043,7 +1053,9 @@ class CatalogController extends Controller
             ->map(fn (int|string $id): int => (int) $id)
             ->unique()
             ->values();
-        $primaryCarModelId = (int) ($validated['car_model_id'] ?? $selectedCarModelIds->first());
+        $primaryCarModelId = filled($validated['car_model_id'] ?? null)
+            ? (int) $validated['car_model_id']
+            : $selectedCarModelIds->first();
 
         $validated['car_model_id'] = $primaryCarModelId;
         unset($validated['pos_description']);
@@ -1070,6 +1082,20 @@ class CatalogController extends Controller
                 'compatibilities' => $compatibilities,
             ])
             ->all();
+    }
+
+    private function normalizeProductCompatibilityInput(Request $request): void
+    {
+        $compatibleCarModelIds = collect($request->input('compatible_car_model_ids', []))
+            ->filter(fn (mixed $id): bool => filled($id))
+            ->map(fn (int|string $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $request->merge([
+            'compatible_car_model_ids' => $compatibleCarModelIds,
+        ]);
     }
 
     private function catalogueFilters(Request $request, array $extraKeys = []): array

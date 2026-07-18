@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('pos/products', [PosProductController::class, 'index']);
+    Route::get('pos/suggestions', [PosProductController::class, 'suggestions']);
     Route::post('pos/sales', [SaleController::class, 'store']);
 
     Route::get('inventory-documents', [InventoryDocumentController::class, 'index']);

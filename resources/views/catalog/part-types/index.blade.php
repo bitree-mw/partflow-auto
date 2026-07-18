@@ -12,7 +12,7 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.catalog.part-types.create') }}">Add part type</a>
+    <a class="btn" href="{{ route('web.catalog.part-types.create') }}">Add product type</a>
 @endsection
 
 @section('content')
@@ -20,7 +20,7 @@
         <div class="panel-toolbar">
             <form class="filter-form" method="GET" action="{{ route('web.catalog.part-types.index') }}">
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search part types..." aria-label="Search part types">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search product types..." aria-label="Search product types">
 
                 <select name="is_active" aria-label="Filter by status">
                     <option value="">All statuses</option>
@@ -37,7 +37,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th><x-sort-link field="name" label="Part type" /></th>
+                        <th><x-sort-link field="name" label="Product type" /></th>
                         <th><x-sort-link field="code" label="Code" /></th>
                         <th><x-sort-link field="products" label="Products" /></th>
                         <th><x-sort-link field="status" label="Status" /></th>
@@ -57,7 +57,7 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.part-types.edit', $partType['id']) }}" title="Edit part type" aria-label="Edit part type">
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.part-types.edit', $partType['id']) }}" title="Edit product type" aria-label="Edit product type">
                                         <x-icons.pencil />
                                     </a>
                                     @if ($partType['is_active'] && $partType['products'] === 0)
@@ -74,7 +74,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="empty-state">No part types found.</td>
+                            <td colspan="5" class="empty-state">No product types found.</td>
                         </tr>
                     @endforelse
                 </tbody>

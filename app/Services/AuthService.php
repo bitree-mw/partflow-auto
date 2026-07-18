@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -12,6 +14,7 @@ class AuthService
     {
         $user = User::create([
             'name' => $data['name'],
+            'username' => isset($data['username']) ? Str::lower($data['username']) : null,
             'email' => strtolower($data['email']),
             'phone' => $data['phone'] ?? null,
             'password' => $data['password'],
@@ -32,17 +35,25 @@ class AuthService
 
     public function login(array $data, ?string $ipAddress = null): array
     {
-        $user = User::where('email', strtolower($data['email']))->first();
+        $loginKey = array_key_exists('login', $data) ? 'login' : 'email';
+        $login = Str::lower(trim((string) ($data[$loginKey] ?? '')));
+
+        $user = User::query()
+            ->where(function (Builder $query) use ($login) {
+                $query->where('email', $login)
+                    ->orWhere('username', $login);
+            })
+            ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided login details are incorrect.'],
+                $loginKey => ['The provided login details are incorrect.'],
             ]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['This account has been disabled.'],
+                $loginKey => ['This account has been disabled.'],
             ]);
         }
 

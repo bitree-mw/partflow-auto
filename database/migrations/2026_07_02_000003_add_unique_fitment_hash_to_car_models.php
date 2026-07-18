@@ -28,16 +28,25 @@ return new class extends Migration
                 }
             });
 
-        DB::statement('ALTER TABLE car_models MODIFY fitment_hash CHAR(40) NOT NULL');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE car_models MODIFY fitment_hash CHAR(40) NOT NULL');
+        }
+
         DB::statement('CREATE UNIQUE INDEX car_models_fitment_hash_unique ON car_models (fitment_hash)');
     }
 
     public function down(): void
     {
-        DB::statement('DROP INDEX car_models_fitment_hash_unique ON car_models');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('DROP INDEX IF EXISTS car_models_fitment_hash_unique');
+        } else {
+            DB::statement('DROP INDEX car_models_fitment_hash_unique ON car_models');
+        }
 
         if (Schema::hasColumn('car_models', 'fitment_hash')) {
-            DB::statement('ALTER TABLE car_models DROP COLUMN fitment_hash');
+            Schema::table('car_models', function (Blueprint $table): void {
+                $table->dropColumn('fitment_hash');
+            });
         }
     }
 

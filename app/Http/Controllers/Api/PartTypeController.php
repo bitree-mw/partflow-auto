@@ -24,7 +24,7 @@ class PartTypeController extends Controller
 
         return ApiResponse::success(
             data: PartTypeResource::collection($partTypes),
-            message: 'Part types retrieved successfully'
+            message: 'Product types retrieved successfully'
         );
     }
 
@@ -34,7 +34,7 @@ class PartTypeController extends Controller
 
         return ApiResponse::created(
             data: new PartTypeResource($partType),
-            message: 'Part type created successfully'
+            message: 'Product type created successfully'
         );
     }
 
@@ -42,7 +42,7 @@ class PartTypeController extends Controller
     {
         return ApiResponse::success(
             data: new PartTypeResource($part_type),
-            message: 'Part type retrieved successfully'
+            message: 'Product type retrieved successfully'
         );
     }
 
@@ -52,7 +52,7 @@ class PartTypeController extends Controller
 
         return ApiResponse::updated(
             data: new PartTypeResource($partType),
-            message: 'Part type updated successfully'
+            message: 'Product type updated successfully'
         );
     }
 
@@ -60,6 +60,6 @@ class PartTypeController extends Controller
     {
         $this->partTypeService->delete($part_type);
 
-        return ApiResponse::deleted('Part type deleted successfully');
+        return ApiResponse::deleted('Product type deleted successfully');
     }
 }

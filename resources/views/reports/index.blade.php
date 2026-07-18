@@ -12,12 +12,21 @@
 @endpush
 
 @section('content')
+    @php
+        $reportFilters = [
+            'date_from' => request('date_from', $dateFrom),
+            'date_to' => request('date_to', $dateTo),
+            'site_id' => request('site_id'),
+        ];
+        $filteredReportParams = array_filter($reportFilters, fn ($value) => filled($value));
+    @endphp
+
     <section class="report-filter-panel" data-report-filter-panel>
         <form method="GET" action="{{ route('web.reports.index') }}">
             <div>
                 <span class="eyebrow">Date range first</span>
                 <h2>Choose reporting period</h2>
-                <p>CSV downloads use this date range and export full transaction fields, not summary cards.</p>
+                <p>CSV downloads use this date range and {{ $selectedBranchName }} branch filter.</p>
             </div>
 
             <label>
@@ -28,6 +37,18 @@
             <label>
                 To
                 <input class="form-control" type="date" name="date_to" value="{{ request('date_to', $dateTo) }}">
+            </label>
+
+            <label>
+                Branch
+                <select class="form-control searchable-input" name="site_id">
+                    <option value="">All branches</option>
+                    @foreach ($branchOptions as $branch)
+                        <option value="{{ $branch['id'] }}" @selected((string) request('site_id') === (string) $branch['id'])>
+                            {{ $branch['name'] }}
+                        </option>
+                    @endforeach
+                </select>
             </label>
 
             <label>
@@ -52,7 +73,7 @@
             </div>
             <a
                 class="btn-secondary"
-                href="{{ url('/api/reports/export') }}?report_type=profit-and-loss&date_from={{ request('date_from', $dateFrom) }}&date_to={{ request('date_to', $dateTo) }}"
+                href="{{ url('/api/reports/export') }}?{{ http_build_query(array_merge($filteredReportParams, ['report_type' => 'profit-and-loss'])) }}"
             >Download P&L CSV</a>
         </header>
 
@@ -77,7 +98,7 @@
                 </div>
                 <a
                     class="btn-secondary"
-                    href="{{ url('/api/reports/export') }}?report_type={{ $report['type'] }}&date_from={{ request('date_from', $dateFrom) }}&date_to={{ request('date_to', $dateTo) }}"
+                    href="{{ url('/api/reports/export') }}?{{ http_build_query(array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
                 >Download CSV</a>
             </article>
         @endforeach

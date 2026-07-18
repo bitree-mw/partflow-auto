@@ -31,7 +31,7 @@ class StoreProductRequest extends ApiRequest
             'part_type_id' => [
                 'required',
                 'integer',
-                'exists:part_types,id',
+                'exists:product_types,id',
             ],
 
             'fuel_type_id' => [
@@ -126,9 +126,8 @@ class StoreProductRequest extends ApiRequest
             ],
 
             'compatibilities' => [
-                'required',
+                'nullable',
                 'array',
-                'min:1',
             ],
 
             'compatibilities.*.car_model_id' => [

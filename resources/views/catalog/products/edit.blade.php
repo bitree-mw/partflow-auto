@@ -39,9 +39,9 @@
             <span class="eyebrow">Product Details</span>
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="part_type_id">Part type</label>
+                    <label for="part_type_id">Product type</label>
                     <select class="form-control" id="part_type_id" name="part_type_id" data-searchable-select required>
-                        <option value="">Select part type</option>
+                        <option value="">Select product type</option>
                         @foreach ($partTypes as $partType)
                             <option value="{{ $partType['id'] }}" @selected((string) old('part_type_id', $product->part_type_id) === (string) $partType['id'])>
                                 {{ $partType['label'] }}
@@ -65,7 +65,7 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="part_country_of_origin">Part origin</label>
+                    <label for="part_country_of_origin">Product origin</label>
                     <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin', $product->part_country_of_origin) }}" list="part-origin-countries" placeholder="Search country">
                     <x-form-error name="part_country_of_origin" />
                 </div>
@@ -91,7 +91,7 @@
 
                 <div class="form-field">
                     <label for="product_code">Product code</label>
-                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code', $product->product_code) }}" placeholder="BOSC-AF-ZAF-001">
+                    <input class="form-control" id="product_code" name="product_code" value="{{ old('product_code', $product->product_code) }}" placeholder="EOIL-CAST-MWI-001">
                     <x-form-error name="product_code" />
                 </div>
 
@@ -138,8 +138,8 @@
             <span class="eyebrow">Fitment and Compatibility</span>
             <div class="compatibility-panel">
                 <div>
-                    <strong>Compatible car variants</strong>
-                    <p>Select every vehicle variant that can use this part. The first selected variant is saved as the primary fitment.</p>
+                    <strong>Compatible car variants optional</strong>
+                    <p>Add vehicle variants only when this product should appear in vehicle-based search. Products can still be stocked and sold without fitment.</p>
                 </div>
 
                 <div class="compatibility-variant-list" data-compatibility-list>
@@ -169,7 +169,7 @@
         </section>
 
         <div class="form-actions">
-            <button class="btn" type="submit">Update part</button>
+            <button class="btn" type="submit">Update product</button>
         </div>
     </form>
 @endsection

@@ -25,9 +25,9 @@
                     <strong>{{ $item['value'] }}</strong>
                     <p>{{ $item['detail'] }}</p>
 
-                    @if ($item['label'] === 'Parts available')
+                    @if ($item['label'] === 'Products available')
                         <div class="catalogue-card-actions">
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.products.create') }}">Add part</a>
+                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.products.create') }}">Add product</a>
                         </div>
                     @elseif ($item['label'] === 'Brands')
                         <div class="catalogue-card-actions">
@@ -36,10 +36,10 @@
                                 <x-icons.plus />
                             </a>
                         </div>
-                    @elseif ($item['label'] === 'Part types')
+                    @elseif ($item['label'] === 'Product types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.part-types.create') }}" title="Add part type" aria-label="Add part type">
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.part-types.create') }}" title="Add product type" aria-label="Add product type">
                                 <x-icons.plus />
                             </a>
                         </div>
@@ -67,10 +67,10 @@
         <div class="panel-toolbar">
             <form class="filter-form" method="GET" action="{{ route('web.catalog.products.index') }}">
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search parts..." aria-label="Search sellable parts">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search products..." aria-label="Search sellable products">
 
-                <select name="part_type_id" aria-label="Filter by part type">
-                    <option value="">All part types</option>
+                <select name="part_type_id" aria-label="Filter by product type">
+                    <option value="">All product types</option>
                     @foreach ($partTypeOptions as $partType)
                         <option value="{{ $partType['id'] }}" @selected((string) ($filters['part_type_id'] ?? '') === (string) $partType['id'])>
                             {{ $partType['label'] }}
@@ -102,7 +102,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th><x-sort-link field="name" label="Part" /></th>
+                        <th><x-sort-link field="name" label="Product" /></th>
                         <th><x-sort-link field="type" label="Type" /></th>
                         <th><x-sort-link field="brand" label="Brand" /></th>
                         <th><x-sort-link field="compatibility" label="Compatible" /></th>
@@ -135,7 +135,7 @@
                             </td>
                             <td>
                                 <div class="row-actions catalogue-row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.products.edit', $product['id']) }}" title="Edit part" aria-label="Edit part">
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.products.edit', $product['id']) }}" title="Edit product" aria-label="Edit product">
                                         <x-icons.pencil />
                                     </a>
                                     @if ($product['is_active'] && ! $product['has_stock'])

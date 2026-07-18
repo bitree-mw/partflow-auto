@@ -66,7 +66,6 @@ class BrandService
             ->upper()
             ->replaceMatches('/[^A-Z0-9]/', '')
             ->substr(0, 4)
-            ->padRight(4, 'X')
             ->toString();
     }
 

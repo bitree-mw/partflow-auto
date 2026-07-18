@@ -118,7 +118,7 @@ class SystemConfigurationService
             ],
             [
                 'name' => 'Catalogue setup',
-                'items' => ['Car models', 'Fuel types', 'Part types', 'Parts'],
+                'items' => ['Car models', 'Fuel types', 'Product types', 'Products'],
             ],
             [
                 'name' => 'Operations',

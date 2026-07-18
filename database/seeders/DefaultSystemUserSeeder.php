@@ -44,6 +44,7 @@ class DefaultSystemUserSeeder extends Seeder
         $users = [
             [
                 'name' => 'System Admin',
+                'username' => 'admin',
                 'email' => 'admin@partflow.test',
                 'phone' => '+265 991 000 001',
                 'role' => 'System Administrator',
@@ -51,6 +52,7 @@ class DefaultSystemUserSeeder extends Seeder
             ],
             [
                 'name' => 'Branch Manager',
+                'username' => 'manager',
                 'email' => 'manager@partflow.test',
                 'phone' => '+265 991 000 002',
                 'role' => 'Branch Manager',
@@ -58,6 +60,7 @@ class DefaultSystemUserSeeder extends Seeder
             ],
             [
                 'name' => 'Default Cashier',
+                'username' => 'cashier',
                 'email' => 'cashier@partflow.test',
                 'phone' => '+265 991 000 003',
                 'role' => 'Cashier',
@@ -65,6 +68,7 @@ class DefaultSystemUserSeeder extends Seeder
             ],
             [
                 'name' => 'Stock Controller',
+                'username' => 'stock',
                 'email' => 'stock@partflow.test',
                 'phone' => '+265 991 000 004',
                 'role' => 'Stock Controller',
@@ -72,6 +76,7 @@ class DefaultSystemUserSeeder extends Seeder
             ],
             [
                 'name' => 'Reports User',
+                'username' => 'reports',
                 'email' => 'reports@partflow.test',
                 'phone' => '+265 991 000 005',
                 'role' => 'Reports Viewer',
@@ -86,6 +91,7 @@ class DefaultSystemUserSeeder extends Seeder
                     [
                         'role_id' => $roles[$record['role']]->id,
                         'name' => $record['name'],
+                        'username' => $record['username'],
                         'phone' => $record['phone'],
                         'password' => $password,
                         'is_active' => true,
