@@ -30,7 +30,7 @@ class StockMovementController extends Controller
     {
         $stockMovement->load([
             'product.carModel',
-            'product.partType',
+            'product.productType',
             'product.fuelType',
             'product.brand',
             'product.taxProfile',

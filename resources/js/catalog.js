@@ -3,6 +3,7 @@ import { initTableSearch } from './modules/table-search';
 initTableSearch();
 
 const carModelPickers = new WeakSet();
+const productTypePickers = new WeakSet();
 
 function initCarModelPicker(picker) {
     if (carModelPickers.has(picker)) {
@@ -163,6 +164,166 @@ function initCarModelPickers(root = document) {
 }
 
 initCarModelPickers();
+
+function initProductTypePicker(picker) {
+    if (productTypePickers.has(picker)) {
+        return;
+    }
+
+    const endpoint = picker.dataset.endpoint;
+    const valueInput = picker.querySelector('[data-product-type-value]');
+    const searchInput = picker.querySelector('[data-product-type-search]');
+    const results = picker.querySelector('[data-product-type-results]');
+
+    if (!endpoint || !valueInput || !searchInput || !results) {
+        return;
+    }
+
+    productTypePickers.add(picker);
+
+    let abortController = null;
+    let searchTimer = null;
+    let currentQuery = '';
+    let currentPage = 1;
+
+    function closeResults() {
+        results.hidden = true;
+    }
+
+    function removeLoadMoreButton() {
+        results.querySelector('[data-product-type-load-more]')?.remove();
+    }
+
+    function appendOption(item) {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'async-picker-option';
+        option.textContent = item.label;
+
+        option.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+        });
+
+        option.addEventListener('click', () => {
+            valueInput.value = item.id;
+            searchInput.value = item.label;
+            closeResults();
+        });
+
+        results.appendChild(option);
+    }
+
+    function appendLoadMoreButton(meta) {
+        if (!meta?.has_more) {
+            return;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'async-picker-more';
+        button.textContent = 'Load more';
+        button.dataset.productTypeLoadMore = 'true';
+
+        button.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+        });
+
+        button.addEventListener('click', () => {
+            searchProductTypes(currentQuery, meta.next_page || currentPage + 1, true);
+        });
+
+        results.appendChild(button);
+    }
+
+    function renderResults(items, meta = {}, append = false) {
+        if (append) {
+            removeLoadMoreButton();
+        } else {
+            results.replaceChildren();
+        }
+
+        if (!items.length && !append) {
+            const empty = document.createElement('div');
+            empty.className = 'async-picker-empty';
+            empty.textContent = 'No matching product types';
+            results.appendChild(empty);
+            results.hidden = false;
+            return;
+        }
+
+        items.forEach(appendOption);
+        appendLoadMoreButton(meta);
+
+        results.hidden = false;
+    }
+
+    async function searchProductTypes(query = '', page = 1, append = false) {
+        abortController?.abort();
+        abortController = new AbortController();
+        currentQuery = query;
+        currentPage = page;
+
+        const url = new URL(endpoint, window.location.origin);
+        const cleanQuery = query.trim();
+
+        if (cleanQuery) {
+            url.searchParams.set('search', cleanQuery);
+        }
+
+        url.searchParams.set('page', page);
+        url.searchParams.set('per_page', 50);
+
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+                signal: abortController.signal,
+            });
+
+            if (!response.ok) {
+                renderResults([], {}, append);
+                return;
+            }
+
+            const payload = await response.json();
+            renderResults(payload.data || [], payload.meta || {}, append);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                renderResults([], {}, append);
+            }
+        }
+    }
+
+    function queueSearch() {
+        window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => searchProductTypes(searchInput.value, 1), 160);
+    }
+
+    searchInput.addEventListener('focus', () => {
+        searchInput.select();
+        searchProductTypes(searchInput.value, 1);
+    });
+
+    searchInput.addEventListener('input', () => {
+        valueInput.value = '';
+        queueSearch();
+    });
+
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeResults();
+        }
+    });
+
+    searchInput.addEventListener('blur', () => {
+        window.setTimeout(closeResults, 140);
+    });
+}
+
+function initProductTypePickers(root = document) {
+    root.querySelectorAll?.('[data-product-type-picker]').forEach(initProductTypePicker);
+}
+
+initProductTypePickers();
 
 document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
     const addButton = document.querySelector('[data-add-compatibility-variant]');

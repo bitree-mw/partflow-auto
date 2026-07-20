@@ -10,11 +10,11 @@ use App\Http\Controllers\Api\ExpenseCategoryController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FuelTypeController;
 use App\Http\Controllers\Api\InventoryDocumentController;
-use App\Http\Controllers\Api\PartTypeController;
 use App\Http\Controllers\Api\PaymentAccountController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PosProductController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductTypeController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\PurchaseReturnController;
 use App\Http\Controllers\Api\ReportController;
@@ -128,8 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('fuel-types', FuelTypeController::class)
         ->parameters(['fuel-types' => 'fuel_type']);
 
-    Route::apiResource('part-types', PartTypeController::class)
-        ->parameters(['part-types' => 'part_type']);
+    Route::apiResource('product-types', ProductTypeController::class)
+        ->parameters(['product-types' => 'product_type']);
 
     Route::apiResource('contacts', ContactController::class);
 

@@ -23,8 +23,8 @@
             <option value="{{ $filter }}"></option>
         @endforeach
     </datalist>
-    <datalist id="pos-part-type-options">
-        @foreach ($partTypeFilters as $filter)
+    <datalist id="pos-product-type-options">
+        @foreach ($productTypeFilters as $filter)
             <option value="{{ $filter }}"></option>
         @endforeach
     </datalist>
@@ -55,7 +55,7 @@
                 </label>
 
                 <input class="searchable-input" data-pos-filter data-pos-vehicle-filter list="pos-vehicle-options" value="" placeholder="All vehicles" aria-label="Filter products by vehicle">
-                <input class="searchable-input" data-pos-filter data-pos-part-type-filter list="pos-part-type-options" value="" placeholder="All product types" aria-label="Filter products by product type">
+                <input class="searchable-input" data-pos-filter data-pos-product-type-filter list="pos-product-type-options" value="" placeholder="All product types" aria-label="Filter products by product type">
             </div>
 
             <div class="quick-row" aria-label="Quick search chips" data-suggestions-row hidden>
@@ -69,7 +69,7 @@
                     <article class="part-card" data-product-index="{{ $index }}">
                         <div class="part-card-top">
                             <div class="part-card-heading">
-                                <span class="part-type">{{ $product['part_type'] }}</span>
+                                <span class="product-type">{{ $product['product_type'] }}</span>
                                 <span class="part-brand">{{ $product['brand'] }}</span>
                                 <span class="part-code">({{ $product['product_code'] }})</span>
                             </div>

@@ -353,6 +353,10 @@
         min-width: 0;
     }
 
+    .filter-async-picker {
+        min-width: 220px;
+    }
+
     .async-picker-list {
         position: absolute;
         z-index: 30;

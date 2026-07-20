@@ -8,36 +8,36 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to product types</a>
+    <a class="btn-secondary" href="{{ route('web.catalog.product-types.index') }}">Back to product types</a>
 @endsection
 
 @section('content')
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.part-types.update', $partType) }}">
+    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.product-types.update', $productType) }}">
         @csrf
         @method('PUT')
 
         <div class="form-grid">
             <div class="form-field">
                 <label for="name">Product type name</label>
-                <input class="form-control" id="name" name="name" value="{{ old('name', $partType->name) }}" required>
+                <input class="form-control" id="name" name="name" value="{{ old('name', $productType->name) }}" required>
                 <x-form-error name="name" />
             </div>
 
             <div class="form-field">
                 <label for="code">Product type code</label>
-                <input class="form-control" id="code" name="code" value="{{ old('code', $partType->code) }}" required>
+                <input class="form-control" id="code" name="code" value="{{ old('code', $productType->code) }}" required>
                 <x-form-error name="code" />
             </div>
 
             <div class="form-field full">
                 <label for="description">Description</label>
-                <textarea class="form-control" id="description" name="description" rows="4">{{ old('description', $partType->description) }}</textarea>
+                <textarea class="form-control" id="description" name="description" rows="4">{{ old('description', $productType->description) }}</textarea>
                 <x-form-error name="description" />
             </div>
 
             <input type="hidden" name="is_active" value="0">
             <label class="checkbox-field full">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $partType->is_active))>
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $productType->is_active))>
                 Active
             </label>
         </div>

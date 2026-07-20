@@ -12,11 +12,11 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Back to product types</a>
+    <a class="btn-secondary" href="{{ route('web.catalog.product-types.index') }}">Back to product types</a>
 @endsection
 
 @section('content')
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.part-types.store') }}">
+    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.product-types.store') }}">
         @csrf
 
         <div class="form-grid">

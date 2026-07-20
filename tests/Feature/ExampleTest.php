@@ -8,7 +8,7 @@ use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\Contact;
 use App\Models\InventoryDocument;
-use App\Models\PartType;
+use App\Models\ProductType;
 use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Role;
@@ -62,8 +62,8 @@ class ExampleTest extends TestCase
             '/back-office/catalog/car-models/create',
             '/back-office/catalog/brands',
             '/back-office/catalog/brands/create',
-            '/back-office/catalog/part-types',
-            '/back-office/catalog/part-types/create',
+            '/back-office/catalog/product-types',
+            '/back-office/catalog/product-types/create',
             '/back-office/catalog/fuel-types',
             '/back-office/catalog/fuel-types/create',
             '/back-office/catalog/products',
@@ -233,7 +233,7 @@ class ExampleTest extends TestCase
         ]);
     }
 
-    public function test_catalogue_can_create_brand_part_type_and_product(): void
+    public function test_catalogue_can_create_brand_product_type_and_product(): void
     {
         $this->actingAs(User::factory()->create());
 
@@ -246,13 +246,13 @@ class ExampleTest extends TestCase
 
         $brand = Brand::where('code', 'TB')->firstOrFail();
 
-        $this->post(route('web.catalog.part-types.store'), [
+        $this->post(route('web.catalog.product-types.store'), [
             'name' => 'Water Pump',
             'code' => 'WP',
             'description' => 'Cooling system water pumps.',
-        ])->assertRedirect(route('web.catalog.part-types.index'));
+        ])->assertRedirect(route('web.catalog.product-types.index'));
 
-        $partType = PartType::where('code', 'WP')->firstOrFail();
+        $productType = ProductType::where('code', 'WP')->firstOrFail();
         $make = CarMake::create([
             'name' => 'Toyota',
             'code' => 'TY',
@@ -281,7 +281,7 @@ class ExampleTest extends TestCase
 
         $this->post(route('web.catalog.products.store'), [
             'car_model_id' => $carModel->id,
-            'part_type_id' => $partType->id,
+            'product_type_id' => $productType->id,
             'brand_id' => $brand->id,
             'part_country_of_origin' => 'Japan',
             'default_purchase_price' => 45000,
@@ -295,15 +295,15 @@ class ExampleTest extends TestCase
         $this->assertSame('WPTYCO1616', $product->product_code);
         $this->assertSame('Toyota Corolla 2016 1.6L Sedan Water Pump', $product->product_name);
 
-        $this->delete(route('web.catalog.part-types.destroy', $partType))
-            ->assertRedirect(route('web.catalog.part-types.index'))
+        $this->delete(route('web.catalog.product-types.destroy', $productType))
+            ->assertRedirect(route('web.catalog.product-types.index'))
             ->assertSessionHas('error');
 
         $this->delete(route('web.catalog.car-models.destroy', $carModel))
             ->assertRedirect(route('web.catalog.car-models.index'))
             ->assertSessionHas('error');
 
-        $this->assertTrue($partType->fresh()->is_active);
+        $this->assertTrue($productType->fresh()->is_active);
         $this->assertTrue($carModel->fresh()->is_active);
     }
 
@@ -316,14 +316,14 @@ class ExampleTest extends TestCase
             'code' => 'UB',
             'is_active' => true,
         ]);
-        $partType = PartType::create([
+        $productType = ProductType::create([
             'name' => 'Cleaning Cloth',
             'code' => 'CC',
             'is_active' => true,
         ]);
 
         $this->post(route('web.catalog.products.store'), [
-            'part_type_id' => $partType->id,
+            'product_type_id' => $productType->id,
             'brand_id' => $brand->id,
             'part_country_of_origin' => 'Malawi',
             'default_selling_price' => 2500,
@@ -385,7 +385,7 @@ class ExampleTest extends TestCase
             'year' => 2014,
             'is_active' => true,
         ]);
-        $partType = PartType::create([
+        $productType = ProductType::create([
             'name' => 'Oil Filter',
             'code' => 'OF',
             'is_active' => true,
@@ -394,7 +394,7 @@ class ExampleTest extends TestCase
             'product_code' => 'NSNT14OF',
             'product_name' => 'Nissan Tiida Oil Filter',
             'car_model_id' => $carModel->id,
-            'part_type_id' => $partType->id,
+            'product_type_id' => $productType->id,
             'default_purchase_price' => 10000,
             'default_selling_price' => 15000,
             'default_low_stock_level' => 2,

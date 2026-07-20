@@ -12,13 +12,13 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.catalog.part-types.create') }}">Add product type</a>
+    <a class="btn" href="{{ route('web.catalog.product-types.create') }}">Add product type</a>
 @endsection
 
 @section('content')
     <section class="data-panel">
         <div class="panel-toolbar">
-            <form class="filter-form" method="GET" action="{{ route('web.catalog.part-types.index') }}">
+            <form class="filter-form" method="GET" action="{{ route('web.catalog.product-types.index') }}">
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                 <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search product types..." aria-label="Search product types">
 
@@ -29,7 +29,7 @@
                 </select>
 
                 <button class="btn-secondary" type="submit">Filter</button>
-                <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">Reset</a>
+                <a class="btn-secondary" href="{{ route('web.catalog.product-types.index') }}">Reset</a>
                 <x-page-size-controls />
             </form>
         </div>
@@ -45,23 +45,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($partTypes as $partType)
+                    @forelse ($productTypes as $productType)
                         <tr>
-                            <td><strong>{{ $partType['name'] }}</strong></td>
-                            <td>{{ $partType['code'] }}</td>
-                            <td>{{ $partType['products'] }}</td>
+                            <td><strong>{{ $productType['name'] }}</strong></td>
+                            <td>{{ $productType['code'] }}</td>
+                            <td>{{ $productType['products'] }}</td>
                             <td>
-                                <span @class(['status-pill', 'inactive' => ! $partType['is_active']])>
-                                    {{ $partType['status'] }}
+                                <span @class(['status-pill', 'inactive' => ! $productType['is_active']])>
+                                    {{ $productType['status'] }}
                                 </span>
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.part-types.edit', $partType['id']) }}" title="Edit product type" aria-label="Edit product type">
+                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.product-types.edit', $productType['id']) }}" title="Edit product type" aria-label="Edit product type">
                                         <x-icons.pencil />
                                     </a>
-                                    @if ($partType['is_active'] && $partType['products'] === 0)
-                                        <form method="POST" action="{{ route('web.catalog.part-types.destroy', $partType['id']) }}">
+                                    @if ($productType['is_active'] && $productType['products'] === 0)
+                                        <form method="POST" action="{{ route('web.catalog.product-types.destroy', $productType['id']) }}">
                                             @csrf
                                             @method('DELETE')
                                             <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
@@ -82,7 +82,7 @@
         </div>
 
         <div class="pagination-wrap">
-            {{ $partTypes->links() }}
+            {{ $productTypes->links() }}
         </div>
     </section>
 @endsection

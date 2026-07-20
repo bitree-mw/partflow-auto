@@ -30,10 +30,10 @@ class PosProductResource extends JsonResource
             'selling_price' => $sellingPrice,
             'unit_cost' => $unitCost,
             'margin' => $sellingPrice - $unitCost,
-            'part_type' => $product->partType ? [
-                'id' => $product->partType->id,
-                'name' => $product->partType->name,
-                'code' => $product->partType->code,
+            'product_type' => $product->productType ? [
+                'id' => $product->productType->id,
+                'name' => $product->productType->name,
+                'code' => $product->productType->code,
             ] : null,
             'fuel_type' => $product->fuelType ? [
                 'id' => $product->fuelType->id,

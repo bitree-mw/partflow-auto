@@ -15,7 +15,7 @@ class StockMovementService
         return StockMovement::query()
             ->with([
                 'product.carModel',
-                'product.partType',
+                'product.productType',
                 'product.fuelType',
                 'product.brand',
                 'product.taxProfile',

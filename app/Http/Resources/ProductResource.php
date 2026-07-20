@@ -19,8 +19,8 @@ class ProductResource extends JsonResource
                 return new CarModelResource($this->carModel);
             }),
 
-            'part_type' => $this->whenLoaded('partType', function () {
-                return new PartTypeResource($this->partType);
+            'product_type' => $this->whenLoaded('productType', function () {
+                return new ProductTypeResource($this->productType);
             }),
 
             'fuel_type' => $this->whenLoaded('fuelType', function () {
@@ -36,7 +36,7 @@ class ProductResource extends JsonResource
             }),
 
             'car_model_id' => $this->car_model_id,
-            'part_type_id' => $this->part_type_id,
+            'product_type_id' => $this->product_type_id,
             'fuel_type_id' => $this->fuel_type_id,
             'brand_id' => $this->brand_id,
             'tax_profile_id' => $this->tax_profile_id,

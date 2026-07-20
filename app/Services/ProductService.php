@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\Brand;
 use App\Models\CarModel;
 use App\Models\FuelType;
-use App\Models\PartType;
 use App\Models\Product;
+use App\Models\ProductType;
 use App\Models\ProductReference;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ class ProductService
         return Product::query()
             ->with([
                 'carModel',
-                'partType',
+                'productType',
                 'fuelType',
                 'brand',
                 'taxProfile',
@@ -39,8 +39,8 @@ class ProductService
                         });
                 });
             })
-            ->when(isset($filters['part_type_id']), function ($query) use ($filters) {
-                $query->where('part_type_id', $filters['part_type_id']);
+            ->when(isset($filters['product_type_id']), function ($query) use ($filters) {
+                $query->where('product_type_id', $filters['product_type_id']);
             })
             ->when(isset($filters['fuel_type_id']), function ($query) use ($filters) {
                 $query->where('fuel_type_id', $filters['fuel_type_id']);
@@ -74,7 +74,7 @@ class ProductService
                 'product_code' => $productCode,
                 'product_name' => $data['product_name'] ?? $this->generateProductName($data),
                 'car_model_id' => $data['car_model_id'],
-                'part_type_id' => $data['part_type_id'],
+                'product_type_id' => $data['product_type_id'],
                 'fuel_type_id' => $data['fuel_type_id'] ?? null,
                 'brand_id' => $data['brand_id'],
                 'tax_profile_id' => $data['tax_profile_id'] ?? null,
@@ -108,7 +108,7 @@ class ProductService
                 empty($data['product_code']) &&
                 (
                     array_key_exists('car_model_id', $data) ||
-                    array_key_exists('part_type_id', $data) ||
+                    array_key_exists('product_type_id', $data) ||
                     array_key_exists('fuel_type_id', $data) ||
                     array_key_exists('brand_id', $data) ||
                     array_key_exists('part_country_of_origin', $data)
@@ -133,7 +133,7 @@ class ProductService
                 ! array_key_exists('product_name', $data) &&
                 (
                     array_key_exists('car_model_id', $data) ||
-                    array_key_exists('part_type_id', $data) ||
+                    array_key_exists('product_type_id', $data) ||
                     array_key_exists('fuel_type_id', $data) ||
                     array_key_exists('brand_id', $data) ||
                     array_key_exists('part_country_of_origin', $data)
@@ -177,11 +177,11 @@ class ProductService
     private function generateProductCode(array $data, ?int $ignoreProductId = null): string
     {
         $carModel = CarModel::find($data['car_model_id'] ?? null);
-        $partType = PartType::findOrFail($data['part_type_id']);
+        $productType = ProductType::findOrFail($data['product_type_id']);
 
         if ($carModel) {
             $baseCode = implode('', [
-                $this->cleanCode($partType->code),
+                $this->cleanCode($productType->code),
                 $this->cleanCode($carModel->make_code ?: $carModel->make),
                 $this->cleanCode($carModel->model_code ?: $carModel->model),
                 $this->yearCode($carModel->year),
@@ -193,10 +193,10 @@ class ProductService
 
         $brand = Brand::find($data['brand_id'] ?? null) ?? Brand::find($this->unknownBrandId());
         $brandCode = $this->brandCodePrefix($brand?->id);
-        $partCode = $this->cleanCode($partType->code);
+        $productTypeCode = $this->cleanCode($productType->code);
         $countryCode = $this->countryCode($data['part_country_of_origin'] ?? null);
 
-        return $this->nextProductCode("{$partCode}-{$brandCode}-{$countryCode}", $ignoreProductId);
+        return $this->nextProductCode("{$productTypeCode}-{$brandCode}-{$countryCode}", $ignoreProductId);
     }
 
     private function normalizeManualProductCode(string $productCode): string
@@ -283,7 +283,7 @@ class ProductService
     private function generateProductName(array $data): string
     {
         $carModel = CarModel::find($data['car_model_id'] ?? null);
-        $partType = PartType::findOrFail($data['part_type_id']);
+        $productType = ProductType::findOrFail($data['product_type_id']);
 
         if ($carModel) {
             return Str::of(collect([
@@ -292,7 +292,7 @@ class ProductService
                 $carModel->year,
                 $carModel->engine_size,
                 $carModel->variant_name,
-                $partType->name,
+                $productType->name,
             ])->filter()->join(' '))->squish()->toString();
         }
 
@@ -306,7 +306,7 @@ class ProductService
 
         $nameParts = [
             $brand?->name,
-            $partType->name,
+            $productType->name,
         ];
 
         $name = collect($nameParts)
@@ -451,7 +451,7 @@ class ProductService
     {
         return [
             'carModel',
-            'partType',
+            'productType',
             'fuelType',
             'brand',
             'taxProfile',

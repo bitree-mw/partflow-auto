@@ -42,7 +42,7 @@ class SiteStockController extends Controller
     {
         $siteStock->load([
             'product.carModel',
-            'product.partType',
+            'product.productType',
             'product.fuelType',
             'product.brand',
             'site',

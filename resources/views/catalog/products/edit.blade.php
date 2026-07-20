@@ -27,6 +27,7 @@
         $selectedCompatibleCarModels = old('compatible_car_model_ids', $existingCompatibilityIds ?: ['']);
         $compatibilityNotes = old('compatibility_notes', $product->compatibilities->first()?->notes);
         $selectedCarModelLookup = collect($selectedCarModels ?? [])->keyBy('id');
+        $selectedProductType = collect($selectedProductTypes ?? [])->keyBy('id')->get((int) old('product_type_id', $product->product_type_id));
     @endphp
 
     <x-country-datalist id="part-origin-countries" :countries="$countries" />
@@ -39,16 +40,13 @@
             <span class="eyebrow">Product Details</span>
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="part_type_id">Product type</label>
-                    <select class="form-control" id="part_type_id" name="part_type_id" data-searchable-select required>
-                        <option value="">Select product type</option>
-                        @foreach ($partTypes as $partType)
-                            <option value="{{ $partType['id'] }}" @selected((string) old('part_type_id', $product->part_type_id) === (string) $partType['id'])>
-                                {{ $partType['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="part_type_id" />
+                    <label for="product_type_id">Product type</label>
+                    <div class="async-picker" data-product-type-picker data-endpoint="{{ route('web.catalog.product-type-options') }}">
+                        <input id="product_type_id" type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? old('product_type_id', $product->product_type_id) }}" data-product-type-value>
+                        <input class="form-control" type="search" value="{{ $selectedProductType['label'] ?? '' }}" placeholder="Search product type or code" autocomplete="off" required data-product-type-search>
+                        <div class="async-picker-list" data-product-type-results hidden></div>
+                    </div>
+                    <x-form-error name="product_type_id" />
                 </div>
 
                 <div class="form-field">

@@ -17,6 +17,10 @@
 @endsection
 
 @section('content')
+    @php
+        $selectedProductType = collect($selectedProductTypes ?? [])->keyBy('id')->get((int) ($filters['product_type_id'] ?? 0));
+    @endphp
+
     <section class="catalogue-hub">
         <div class="catalogue-summary">
             @foreach ($catalogueSummary as $item)
@@ -38,8 +42,8 @@
                         </div>
                     @elseif ($item['label'] === 'Product types')
                         <div class="catalogue-card-actions">
-                            <a class="btn-secondary" href="{{ route('web.catalog.part-types.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.part-types.create') }}" title="Add product type" aria-label="Add product type">
+                            <a class="btn-secondary" href="{{ route('web.catalog.product-types.index') }}">View</a>
+                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.product-types.create') }}" title="Add product type" aria-label="Add product type">
                                 <x-icons.plus />
                             </a>
                         </div>
@@ -69,14 +73,11 @@
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                 <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search products..." aria-label="Search sellable products">
 
-                <select name="part_type_id" aria-label="Filter by product type">
-                    <option value="">All product types</option>
-                    @foreach ($partTypeOptions as $partType)
-                        <option value="{{ $partType['id'] }}" @selected((string) ($filters['part_type_id'] ?? '') === (string) $partType['id'])>
-                            {{ $partType['label'] }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="async-picker filter-async-picker" data-product-type-picker data-endpoint="{{ route('web.catalog.product-type-options') }}">
+                    <input type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? ($filters['product_type_id'] ?? '') }}" data-product-type-value>
+                    <input class="form-control" type="search" value="{{ $selectedProductType['label'] ?? '' }}" placeholder="All product types" autocomplete="off" aria-label="Filter by product type" data-product-type-search>
+                    <div class="async-picker-list" data-product-type-results hidden></div>
+                </div>
 
                 <select name="brand_id" aria-label="Filter by brand">
                     <option value="">All brands</option>

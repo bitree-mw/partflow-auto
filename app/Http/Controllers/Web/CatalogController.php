@@ -8,7 +8,7 @@ use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\FuelType;
 use App\Models\InventoryDocument;
-use App\Models\PartType;
+use App\Models\ProductType;
 use App\Models\Product;
 use App\Models\Site;
 use App\Models\SiteStock;
@@ -18,7 +18,7 @@ use App\Services\BrandService;
 use App\Services\CarModelService;
 use App\Services\FuelTypeService;
 use App\Services\InventoryDocumentService;
-use App\Services\PartTypeService;
+use App\Services\ProductTypeService;
 use App\Services\ProductService;
 use App\Services\SiteService;
 use Illuminate\Contracts\View\View;
@@ -33,7 +33,7 @@ class CatalogController extends Controller
 {
     public function __construct(
         private readonly CarModelService $carModelService,
-        private readonly PartTypeService $partTypeService,
+        private readonly ProductTypeService $productTypeService,
         private readonly ProductService $productService,
         private readonly FuelTypeService $fuelTypeService,
         private readonly BrandService $brandService,
@@ -487,15 +487,15 @@ class CatalogController extends Controller
             ->with('success', 'Car model marked inactive.');
     }
 
-    public function partTypes(Request $request): View
+    public function productTypes(Request $request): View
     {
         $filters = $this->catalogueFilters($request);
-        $partTypeQuery = PartType::query()
+        $productTypeQuery = ProductType::query()
             ->withCount('products')
             ->search($filters['search'] ?? null)
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']));
 
-        $this->applyCatalogueSort($partTypeQuery, $filters, [
+        $this->applyCatalogueSort($productTypeQuery, $filters, [
             'name' => 'name',
             'code' => 'code',
             'products' => 'products_count',
@@ -504,28 +504,28 @@ class CatalogController extends Controller
             ['name', 'asc'],
         ]);
 
-        $partTypes = $partTypeQuery
+        $productTypes = $productTypeQuery
             ->paginate($this->perPage($request))
             ->withQueryString()
-            ->through(fn (PartType $partType): array => $this->partTypeRow($partType));
+            ->through(fn (ProductType $productType): array => $this->productTypeRow($productType));
 
-        return view('catalog.part-types.index', [
+        return view('catalog.product-types.index', [
             'title' => 'Product types',
             'description' => 'Maintain reusable product categories for parts, fluids, and service consumables.',
-            'partTypes' => $partTypes,
+            'productTypes' => $productTypes,
             'filters' => $filters,
         ]);
     }
 
-    public function createPartType(): View
+    public function createProductType(): View
     {
-        return view('catalog.part-types.create', [
+        return view('catalog.product-types.create', [
             'title' => 'Add product type',
             'description' => 'Create a reusable product type before adding catalogue products.',
         ]);
     }
 
-    public function storePartType(Request $request): RedirectResponse
+    public function storeProductType(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -535,27 +535,27 @@ class CatalogController extends Controller
             'code.regex' => 'The product type code may only contain letters and numbers.',
         ]);
 
-        $this->partTypeService->create($validated);
+        $this->productTypeService->create($validated);
 
         return redirect()
-            ->route('web.catalog.part-types.index')
+            ->route('web.catalog.product-types.index')
             ->with('success', 'Product type saved successfully.');
     }
 
-    public function editPartType(PartType $partType): View
+    public function editProductType(ProductType $product_type): View
     {
-        return view('catalog.part-types.edit', [
+        return view('catalog.product-types.edit', [
             'title' => 'Edit product type',
             'description' => 'Update the product type name, code, and active status.',
-            'partType' => $partType,
+            'productType' => $product_type,
         ]);
     }
 
-    public function updatePartType(Request $request, PartType $partType): RedirectResponse
+    public function updateProductType(Request $request, ProductType $product_type): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('product_types', 'code')->ignore($partType->id)],
+            'code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('product_types', 'code')->ignore($product_type->id)],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ], [
@@ -564,32 +564,32 @@ class CatalogController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active');
 
-        if (! $validated['is_active'] && $partType->products()->exists()) {
+        if (! $validated['is_active'] && $product_type->products()->exists()) {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with('error', 'This product type is linked to products and cannot be made inactive.');
         }
 
-        $this->partTypeService->update($partType, $validated);
+        $this->productTypeService->update($product_type, $validated);
 
         return redirect()
-            ->route('web.catalog.part-types.index')
+            ->route('web.catalog.product-types.index')
             ->with('success', 'Product type updated successfully.');
     }
 
-    public function destroyPartType(PartType $partType): RedirectResponse
+    public function destroyProductType(ProductType $product_type): RedirectResponse
     {
-        if ($partType->products()->exists()) {
+        if ($product_type->products()->exists()) {
             return redirect()
-                ->route('web.catalog.part-types.index')
+                ->route('web.catalog.product-types.index')
                 ->with('error', 'This product type is linked to products and cannot be made inactive.');
         }
 
-        $this->partTypeService->update($partType, ['is_active' => false]);
+        $this->productTypeService->update($product_type, ['is_active' => false]);
 
         return redirect()
-            ->route('web.catalog.part-types.index')
+            ->route('web.catalog.product-types.index')
             ->with('success', 'Product type marked inactive.');
     }
 
@@ -798,7 +798,7 @@ class CatalogController extends Controller
 
     public function products(Request $request): View
     {
-        $filters = $this->catalogueFilters($request, ['part_type_id', 'brand_id']);
+        $filters = $this->catalogueFilters($request, ['product_type_id', 'brand_id']);
         $productQuery = Product::query()
             ->select('products.*')
             ->selectSub(function ($query) {
@@ -807,15 +807,15 @@ class CatalogController extends Controller
                     ->whereColumn('site_stocks.product_id', 'products.id');
             }, 'stock_total')
             ->withCount('compatibilities')
-            ->with(['carModel', 'partType', 'fuelType', 'brand', 'taxProfile', 'siteStocks.site'])
+            ->with(['carModel', 'productType', 'fuelType', 'brand', 'taxProfile', 'siteStocks.site'])
             ->search($filters['search'] ?? null)
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
-            ->when($filters['part_type_id'] ?? null, fn ($query, $partTypeId) => $query->where('part_type_id', $partTypeId))
+            ->when($filters['product_type_id'] ?? null, fn ($query, $productTypeId) => $query->where('product_type_id', $productTypeId))
             ->when($filters['brand_id'] ?? null, fn ($query, $brandId) => $query->where('brand_id', $brandId));
 
         $this->applyCatalogueSort($productQuery, $filters, [
             'name' => 'product_name',
-            'type' => 'part_type_id',
+            'type' => 'product_type_id',
             'brand' => 'brand_id',
             'compatibility' => 'compatibilities_count',
             'price' => 'default_selling_price',
@@ -835,12 +835,14 @@ class CatalogController extends Controller
             'description' => 'Manage sellable parts, generated product codes, references, pricing, and compatibility.',
             'products' => $products,
             'filters' => $filters,
-            'partTypeOptions' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
+            'selectedProductTypes' => $this->productTypeOptionsByIds(
+                $this->normalizeProductTypeIds($filters['product_type_id'] ?? null)
+            ),
             'brandOptions' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'catalogueSummary' => [
                 ['label' => 'Products available', 'value' => number_format(Product::query()->count()), 'detail' => 'Sellable catalogue items'],
                 ['label' => 'Brands', 'value' => number_format(Brand::query()->count()), 'detail' => 'Product manufacturers'],
-                ['label' => 'Product types', 'value' => number_format(PartType::query()->count()), 'detail' => 'Reusable product categories'],
+                ['label' => 'Product types', 'value' => number_format(ProductType::query()->count()), 'detail' => 'Reusable product categories'],
                 ['label' => 'Fuel types', 'value' => number_format(FuelType::query()->count()), 'detail' => 'Vehicle power trim'],
                 ['label' => 'Car models', 'value' => number_format(CarModel::query()->count()), 'detail' => 'Fitment and variant records'],
             ],
@@ -850,13 +852,14 @@ class CatalogController extends Controller
     public function createProduct(Request $request): View
     {
         $selectedCarModelIds = $this->normalizeCarModelIds($request->old('compatible_car_model_ids', []));
+        $selectedProductTypeIds = $this->normalizeProductTypeIds($request->old('product_type_id'));
 
         return view('catalog.products.create', [
             'title' => 'Add Product',
             'description' => 'Build a product using vehicle fitment, product type, fuel, brand, tax, references, and compatibility.',
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
+            'selectedProductTypes' => $this->productTypeOptionsByIds($selectedProductTypeIds),
             'countries' => config('countries'),
-            'partTypes' => $this->partTypeOptions($this->partTypeService->list(['is_active' => true])),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list(['is_active' => true])),
             'brands' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'taxProfiles' => $this->taxProfileOptions(),
@@ -877,7 +880,7 @@ class CatalogController extends Controller
             'product_code' => ['nullable', 'string', 'max:100', 'unique:products,product_code'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
-            'part_type_id' => ['required', 'integer', 'exists:product_types,id'],
+            'product_type_id' => ['required', 'integer', 'exists:product_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
@@ -967,9 +970,53 @@ class CatalogController extends Controller
         ]);
     }
 
+    public function productTypeOptionsSearch(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $selectedIds = $this->normalizeProductTypeIds($request->query('ids', []));
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(100, max(25, (int) $request->query('per_page', 50)));
+        $query = ProductType::query();
+        $hasMore = false;
+
+        if ($selectedIds->isNotEmpty()) {
+            $query->whereIn('id', $selectedIds);
+        } else {
+            $query->active();
+
+            if ($search !== '') {
+                $query->search($search);
+            }
+        }
+
+        $results = $query
+            ->orderBy('name')
+            ->orderBy('code')
+            ->orderBy('id')
+            ->when(
+                $selectedIds->isEmpty(),
+                fn ($query) => $query->offset(($page - 1) * $perPage)->limit($perPage + 1)
+            )
+            ->get();
+
+        if ($selectedIds->isEmpty()) {
+            $hasMore = $results->count() > $perPage;
+            $results = $results->take($perPage);
+        }
+
+        return response()->json([
+            'data' => $this->productTypeOptions($results),
+            'meta' => [
+                'has_more' => $hasMore,
+                'page' => $page,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ]);
+    }
+
     public function editProduct(Request $request, Product $product): View
     {
-        $product->load(['compatibilities', 'carModel', 'partType', 'fuelType', 'brand', 'taxProfile']);
+        $product->load(['compatibilities', 'carModel', 'productType', 'fuelType', 'brand', 'taxProfile']);
         $existingCompatibilityIds = collect([$product->car_model_id])
             ->merge($product->compatibilities->pluck('car_model_id'))
             ->filter()
@@ -978,14 +1025,17 @@ class CatalogController extends Controller
         $selectedCarModelIds = $this->normalizeCarModelIds(
             $request->old('compatible_car_model_ids', $existingCompatibilityIds)
         );
+        $selectedProductTypeIds = $this->normalizeProductTypeIds(
+            $request->old('product_type_id', $product->product_type_id)
+        );
 
         return view('catalog.products.edit', [
             'title' => 'Edit Product',
             'description' => 'Update catalogue product details, pricing, and compatibility.',
             'product' => $product,
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
+            'selectedProductTypes' => $this->productTypeOptionsByIds($selectedProductTypeIds),
             'countries' => config('countries'),
-            'partTypes' => $this->partTypeOptions($this->partTypeService->list()),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list()),
             'brands' => $this->brandOptions($this->brandService->list()),
             'taxProfiles' => $this->taxProfileOptions(),
@@ -1000,7 +1050,7 @@ class CatalogController extends Controller
             'product_code' => ['nullable', 'string', 'max:100', Rule::unique('products', 'product_code')->ignore($product->id)],
             'product_name' => ['nullable', 'string', 'max:255'],
             'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
-            'part_type_id' => ['required', 'integer', 'exists:product_types,id'],
+            'product_type_id' => ['required', 'integer', 'exists:product_types,id'],
             'fuel_type_id' => ['nullable', 'integer', 'exists:fuel_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'tax_profile_id' => ['nullable', 'integer', 'exists:tax_profiles,id'],
@@ -1266,22 +1316,22 @@ class CatalogController extends Controller
             ->all();
     }
 
-    private function partTypeRows(Collection $partTypes): array
+    private function productTypeRows(Collection $productTypes): array
     {
-        return $partTypes
-            ->map(fn (PartType $partType): array => $this->partTypeRow($partType))
+        return $productTypes
+            ->map(fn (ProductType $productType): array => $this->productTypeRow($productType))
             ->all();
     }
 
-    private function partTypeRow(PartType $partType): array
+    private function productTypeRow(ProductType $productType): array
     {
         return [
-            'id' => $partType->id,
-            'name' => $partType->name,
-            'code' => $partType->code,
-            'products' => $partType->products_count ?? 0,
-            'is_active' => (bool) $partType->is_active,
-            'status' => $partType->is_active ? 'Active' : 'Inactive',
+            'id' => $productType->id,
+            'name' => $productType->name,
+            'code' => $productType->code,
+            'products' => $productType->products_count ?? 0,
+            'is_active' => (bool) $productType->is_active,
+            'status' => $productType->is_active ? 'Active' : 'Inactive',
         ];
     }
 
@@ -1348,7 +1398,7 @@ class CatalogController extends Controller
             'id' => $product->id,
             'name' => $product->product_name,
             'code' => $product->product_code,
-            'type' => $product->partType?->name ?? 'Unassigned',
+            'type' => $product->productType?->name ?? 'Unassigned',
             'brand' => $product->brand?->name ?? 'Unbranded',
             'compatible_count' => $compatibilityCount,
             'compatible_label' => $compatibilityCount.' other '.($compatibilityCount === 1 ? 'car' : 'cars'),
@@ -1418,12 +1468,42 @@ class CatalogController extends Controller
             ->values();
     }
 
-    private function partTypeOptions(Collection $partTypes): array
+    private function normalizeProductTypeIds(mixed $ids): Collection
     {
-        return $partTypes
-            ->map(fn (PartType $partType): array => [
-                'id' => $partType->id,
-                'label' => "{$partType->name} ({$partType->code})",
+        return collect(is_array($ids) ? $ids : [$ids])
+            ->filter(fn (mixed $value): bool => $value !== null && $value !== '')
+            ->map(fn (mixed $value): int => (int) $value)
+            ->filter(fn (int $value): bool => $value > 0)
+            ->unique()
+            ->values();
+    }
+
+    private function productTypeOptionsByIds(Collection $ids): array
+    {
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $options = $this->productTypeOptions(
+            ProductType::query()
+                ->whereIn('id', $ids)
+                ->get()
+        );
+        $optionsById = collect($options)->keyBy('id');
+
+        return $ids
+            ->map(fn (int $id): ?array => $optionsById->get($id))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function productTypeOptions(Collection $productTypes): array
+    {
+        return $productTypes
+            ->map(fn (ProductType $productType): array => [
+                'id' => $productType->id,
+                'label' => "{$productType->name} ({$productType->code})",
             ])
             ->all();
     }

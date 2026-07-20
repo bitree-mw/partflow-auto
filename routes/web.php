@@ -28,7 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/products.json', [PosController::class, 'productsJson'])->name('web.pos.products');
     Route::get('/pos/suggestions.json', [PosController::class, 'suggestionsJson'])->name('web.pos.suggestions');
     Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->name('web.pos.vehicle-models');
-    Route::get('/pos/part-types.json', [PosController::class, 'partTypesJson'])->name('web.pos.part-types');
+    Route::get('/pos/product-types.json', [PosController::class, 'productTypesJson'])->name('web.pos.product-types');
     Route::post('/pos/site', [PosController::class, 'updateSite'])->name('web.pos.site');
     Route::post('/pos/sales', [PosController::class, 'store'])->name('web.pos.sales');
 });
@@ -88,12 +88,12 @@ Route::prefix('back-office')
             Route::put('brands/{brand}', 'updateBrand')->name('brands.update');
             Route::delete('brands/{brand}', 'destroyBrand')->name('brands.destroy');
 
-            Route::get('part-types', 'partTypes')->name('part-types.index');
-            Route::get('part-types/create', 'createPartType')->name('part-types.create');
-            Route::post('part-types', 'storePartType')->name('part-types.store');
-            Route::get('part-types/{part_type}/edit', 'editPartType')->name('part-types.edit');
-            Route::put('part-types/{part_type}', 'updatePartType')->name('part-types.update');
-            Route::delete('part-types/{part_type}', 'destroyPartType')->name('part-types.destroy');
+            Route::get('product-types', 'productTypes')->name('product-types.index');
+            Route::get('product-types/create', 'createProductType')->name('product-types.create');
+            Route::post('product-types', 'storeProductType')->name('product-types.store');
+            Route::get('product-types/{product_type}/edit', 'editProductType')->name('product-types.edit');
+            Route::put('product-types/{product_type}', 'updateProductType')->name('product-types.update');
+            Route::delete('product-types/{product_type}', 'destroyProductType')->name('product-types.destroy');
 
             Route::get('fuel-types', 'fuelTypes')->name('fuel-types.index');
             Route::get('fuel-types/create', 'createFuelType')->name('fuel-types.create');
@@ -103,6 +103,7 @@ Route::prefix('back-office')
             Route::delete('fuel-types/{fuel_type}', 'destroyFuelType')->name('fuel-types.destroy');
 
             Route::get('car-model-options', 'carModelOptionsSearch')->name('car-model-options');
+            Route::get('product-type-options', 'productTypeOptionsSearch')->name('product-type-options');
             Route::get('products', 'products')->name('products.index');
             Route::get('products/create', 'createProduct')->name('products.create');
             Route::post('products', 'storeProduct')->name('products.store');

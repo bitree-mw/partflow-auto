@@ -16,7 +16,7 @@ class ReportRepository
     public function currentStockBySite(array $filters = []): Collection
     {
         return SiteStock::query()
-            ->with(['site', 'product.carModel', 'product.partType', 'product.fuelType', 'product.brand'])
+            ->with(['site', 'product.carModel', 'product.productType', 'product.fuelType', 'product.brand'])
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_id', $filters['site_id']))
             ->when(isset($filters['product_id']), fn ($query) => $query->where('product_id', $filters['product_id']))
             ->orderBy('site_id')

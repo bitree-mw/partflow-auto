@@ -14,7 +14,7 @@ class SiteStockService
         return SiteStock::query()
             ->with([
                 'product.carModel',
-                'product.partType',
+                'product.productType',
                 'product.fuelType',
                 'product.brand',
                 'site',
@@ -63,7 +63,7 @@ class SiteStockService
 
             return $siteStock->load([
                 'product.carModel',
-                'product.partType',
+                'product.productType',
                 'product.fuelType',
                 'product.brand',
                 'site',
@@ -87,7 +87,7 @@ class SiteStockService
 
             return $siteStock->refresh()->load([
                 'product.carModel',
-                'product.partType',
+                'product.productType',
                 'product.fuelType',
                 'product.brand',
                 'site',

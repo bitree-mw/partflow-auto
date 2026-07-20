@@ -36,7 +36,7 @@ class UpdateProductRequest extends ApiRequest
                 'exists:car_models,id',
             ],
 
-            'part_type_id' => [
+            'product_type_id' => [
                 'sometimes',
                 'required',
                 'integer',

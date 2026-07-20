@@ -38,7 +38,7 @@ class PosController extends Controller
             'saleNumber' => 'Draft sale',
             'quickSearches' => [],
             'vehicleFilters' => collect(['All vehicles'])->merge(collect($products)->pluck('vehicle')->filter()->unique())->values()->all(),
-            'partTypeFilters' => collect(['All product types'])->merge(collect($products)->pluck('part_type')->filter()->unique())->values()->all(),
+            'productTypeFilters' => collect(['All product types'])->merge(collect($products)->pluck('product_type')->filter()->unique())->values()->all(),
             'products' => $products,
             'selectedProduct' => $selectedProduct,
             'cartLines' => [],
@@ -55,7 +55,7 @@ class PosController extends Controller
                 'products' => route('web.pos.products'),
                 'suggestions' => route('web.pos.suggestions'),
                 'vehicleModels' => route('web.pos.vehicle-models'),
-                'partTypes' => route('web.pos.part-types'),
+                'productTypes' => route('web.pos.product-types'),
                 'site' => route('web.pos.site'),
                 'canChangeSiteDirectly' => $this->isAdmin($request->user()),
             ],
@@ -71,7 +71,7 @@ class PosController extends Controller
                 'search',
                 'compatible_car_model_id',
                 'vehicle_search',
-                'part_type',
+                'product_type',
             ])),
             'site_id' => $currentSite?->id,
             'site_name' => $currentSite?->name,
@@ -100,17 +100,17 @@ class PosController extends Controller
         ]);
     }
 
-    public function partTypesJson(Request $request): JsonResponse
+    public function productTypesJson(Request $request): JsonResponse
     {
         return response()->json([
-            'partTypes' => collect($this->apiCall($request, 'GET', 'part-types', [
+            'productTypes' => collect($this->apiCall($request, 'GET', 'product-types', [
                 'search' => $request->query('search'),
             ])['data'] ?? [])
-                ->map(fn (array $partType): array => [
-                    'id' => $partType['id'] ?? null,
-                    'name' => $partType['name'] ?? '',
-                    'code' => $partType['code'] ?? '',
-                    'label' => trim(($partType['name'] ?? '').' '.(($partType['code'] ?? '') ? "({$partType['code']})" : '')),
+                ->map(fn (array $productType): array => [
+                    'id' => $productType['id'] ?? null,
+                    'name' => $productType['name'] ?? '',
+                    'code' => $productType['code'] ?? '',
+                    'label' => trim(($productType['name'] ?? '').' '.(($productType['code'] ?? '') ? "({$productType['code']})" : '')),
                 ])
                 ->values()
                 ->all(),
@@ -283,7 +283,7 @@ class PosController extends Controller
             'product_name' => $primaryStock['product_name'] ?? 'Unnamed product',
             'pos_description' => $primaryStock['pos_description'] ?? ($primaryStock['product_name'] ?? 'Unnamed product'),
             'vehicle' => $vehicle,
-            'part_type' => data_get($primaryStock, 'part_type.name', 'Unassigned'),
+            'product_type' => data_get($primaryStock, 'product_type.name', 'Unassigned'),
             'brand' => data_get($primaryStock, 'brand.name', 'Unbranded'),
             'part_country_of_origin' => $primaryStock['part_country_of_origin'] ?: 'Not set',
             'barcode' => $this->reference($references, 'barcode'),
@@ -319,7 +319,7 @@ class PosController extends Controller
             'product_name' => 'No stocked parts yet',
             'pos_description' => 'Receive or add parts before selling from POS.',
             'vehicle' => 'No vehicle',
-            'part_type' => 'No product type',
+            'product_type' => 'No product type',
             'brand' => 'Unbranded',
             'part_country_of_origin' => 'Not set',
             'barcode' => 'N/A',

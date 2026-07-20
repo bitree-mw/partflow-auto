@@ -28,7 +28,7 @@ class StoreProductRequest extends ApiRequest
                 'exists:car_models,id',
             ],
 
-            'part_type_id' => [
+            'product_type_id' => [
                 'required',
                 'integer',
                 'exists:product_types,id',

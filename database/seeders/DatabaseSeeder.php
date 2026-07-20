@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CommonPartBrandSeeder::class,
             MalawiVehicleMakeModelSeeder::class,
-            CommonVehiclePartTypeSeeder::class,
+            VehicleProductTypeSeeder::class,
             PartFlowBaseTestingSeeder::class,
             PartFlowPurchaseSalesTestingSeeder::class,
             DefaultSystemUserSeeder::class,

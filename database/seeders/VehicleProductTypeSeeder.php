@@ -2,30 +2,48 @@
 
 namespace Database\Seeders;
 
-use App\Models\PartType;
+use App\Models\ProductType;
 use Illuminate\Database\Seeder;
 
-class CommonVehiclePartTypeSeeder extends Seeder
+class VehicleProductTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $partTypes = [
+        $productTypes = [
             ['name' => 'Oil Filter', 'code' => 'OF', 'description' => 'Engine oil filter service item.'],
             ['name' => 'Air Filter', 'code' => 'AF', 'description' => 'Engine intake air filter.'],
             ['name' => 'Fuel Filter', 'code' => 'FF', 'description' => 'Inline, cartridge, and in-tank fuel filters.'],
             ['name' => 'Cabin Filter', 'code' => 'CF', 'description' => 'Cabin pollen or air conditioning filter.'],
             ['name' => 'Engine Oil', 'code' => 'EOIL', 'description' => 'Engine lubricant sold by bottle, gallon, drum, or service pack.'],
             ['name' => 'Coolant', 'code' => 'CLNT', 'description' => 'Radiator coolant or antifreeze service fluid.'],
+            ['name' => 'Coolant Additive', 'code' => 'CLAD', 'description' => 'Cooling system additive or conditioner.'],
+            ['name' => 'Radiator Flush', 'code' => 'RDFL', 'description' => 'Cooling system flush treatment.'],
             ['name' => 'Brake Fluid', 'code' => 'BRFL', 'description' => 'Hydraulic brake and clutch fluid.'],
+            ['name' => 'Clutch Fluid', 'code' => 'CLFL', 'description' => 'Hydraulic clutch service fluid.'],
             ['name' => 'Transmission Fluid', 'code' => 'TRFL', 'description' => 'Automatic or manual transmission service fluid.'],
+            ['name' => 'Automatic Transmission Fluid', 'code' => 'ATF', 'description' => 'Automatic transmission fluid sold by bottle, gallon, or drum.'],
             ['name' => 'Power Steering Fluid', 'code' => 'PSFL', 'description' => 'Hydraulic power steering service fluid.'],
             ['name' => 'Gear Oil', 'code' => 'GROL', 'description' => 'Gearbox or differential oil.'],
+            ['name' => 'Differential Oil', 'code' => 'DIOL', 'description' => 'Differential service oil.'],
             ['name' => 'Grease', 'code' => 'GRSE', 'description' => 'Automotive bearing, chassis, or multipurpose grease.'],
             ['name' => 'Washer Fluid', 'code' => 'WSFL', 'description' => 'Windscreen washer fluid.'],
+            ['name' => 'Windscreen Cleaner', 'code' => 'WSCL', 'description' => 'Glass or windscreen cleaning product.'],
             ['name' => 'Engine Flush', 'code' => 'ENFL', 'description' => 'Engine oil system flush treatment.'],
+            ['name' => 'Oil Additive', 'code' => 'OADD', 'description' => 'Engine oil additive or treatment.'],
             ['name' => 'Fuel Treatment', 'code' => 'FTRT', 'description' => 'Fuel injector cleaner, additive, or treatment.'],
+            ['name' => 'Diesel Exhaust Fluid', 'code' => 'DEF', 'description' => 'AdBlue or diesel exhaust fluid for emissions systems.'],
             ['name' => 'Brake Cleaner', 'code' => 'BRCL', 'description' => 'Brake and parts cleaning spray or solvent.'],
+            ['name' => 'Contact Cleaner', 'code' => 'CTCL', 'description' => 'Electrical contact cleaning spray.'],
+            ['name' => 'Carburetor Cleaner', 'code' => 'CBCL', 'description' => 'Carburetor and throttle body cleaning spray.'],
+            ['name' => 'Penetrating Oil', 'code' => 'PNOL', 'description' => 'Penetrating lubricant for seized bolts and fittings.'],
+            ['name' => 'Silicone Spray', 'code' => 'SISP', 'description' => 'Silicone lubricant and protectant spray.'],
             ['name' => 'A/C Refrigerant', 'code' => 'ACRF', 'description' => 'Air conditioning refrigerant or recharge gas.'],
+            ['name' => 'Battery Water', 'code' => 'BTWT', 'description' => 'Battery top-up water.'],
+            ['name' => 'Distilled Water', 'code' => 'DIWT', 'description' => 'Distilled water for batteries, coolant mixes, and workshop use.'],
+            ['name' => 'Tyre Sealant', 'code' => 'TYSL', 'description' => 'Emergency tyre puncture sealant.'],
+            ['name' => 'Car Shampoo', 'code' => 'CSHP', 'description' => 'Vehicle wash shampoo.'],
+            ['name' => 'Polish And Wax', 'code' => 'PLWX', 'description' => 'Exterior polish, wax, or paint protection product.'],
+            ['name' => 'Interior Cleaner', 'code' => 'INCL', 'description' => 'Interior trim, dashboard, and upholstery cleaner.'],
             ['name' => 'Spark Plug Set', 'code' => 'SP', 'description' => 'Spark plugs sold individually or as a set.'],
             ['name' => 'Glow Plug', 'code' => 'GP', 'description' => 'Diesel engine glow plug.'],
             ['name' => 'Brake Pads Front', 'code' => 'BPF', 'description' => 'Front disc brake pad set.'],
@@ -120,6 +138,7 @@ class CommonVehiclePartTypeSeeder extends Seeder
             ['name' => 'Alternator', 'code' => 'ALT', 'description' => 'Charging alternator.'],
             ['name' => 'Battery', 'code' => 'BAT', 'description' => 'Automotive battery.'],
             ['name' => 'Fuse Box', 'code' => 'FBX', 'description' => 'Main or cabin fuse box.'],
+            ['name' => 'Fuse', 'code' => 'FUS', 'description' => 'Blade, cartridge, or automotive electrical fuse.'],
             ['name' => 'Relay', 'code' => 'RLY', 'description' => 'Automotive electrical relay.'],
             ['name' => 'Window Regulator Left', 'code' => 'WRL', 'description' => 'Left door window regulator.'],
             ['name' => 'Window Regulator Right', 'code' => 'WRR', 'description' => 'Right door window regulator.'],
@@ -128,12 +147,15 @@ class CommonVehiclePartTypeSeeder extends Seeder
             ['name' => 'Wiper Motor', 'code' => 'WPM', 'description' => 'Windscreen wiper motor.'],
             ['name' => 'Head Lamp Left', 'code' => 'HLL', 'description' => 'Left head lamp assembly.'],
             ['name' => 'Head Lamp Right', 'code' => 'HLR', 'description' => 'Right head lamp assembly.'],
+            ['name' => 'Headlight Bulb', 'code' => 'HLB', 'description' => 'Headlight bulb or globe.'],
             ['name' => 'Tail Lamp Left', 'code' => 'TLL', 'description' => 'Left tail lamp assembly.'],
             ['name' => 'Tail Lamp Right', 'code' => 'TLR', 'description' => 'Right tail lamp assembly.'],
+            ['name' => 'Tail Light Bulb', 'code' => 'TLB', 'description' => 'Tail, stop, or brake light bulb.'],
             ['name' => 'Fog Lamp Left', 'code' => 'FGL', 'description' => 'Left fog lamp.'],
             ['name' => 'Fog Lamp Right', 'code' => 'FGR', 'description' => 'Right fog lamp.'],
             ['name' => 'Indicator Lamp Left', 'code' => 'ILL', 'description' => 'Left indicator or corner lamp.'],
             ['name' => 'Indicator Lamp Right', 'code' => 'ILR', 'description' => 'Right indicator or corner lamp.'],
+            ['name' => 'Indicator Bulb', 'code' => 'INB', 'description' => 'Indicator, marker, or signal light bulb.'],
             ['name' => 'Side Mirror Left', 'code' => 'SML', 'description' => 'Left side mirror assembly.'],
             ['name' => 'Side Mirror Right', 'code' => 'SMR', 'description' => 'Right side mirror assembly.'],
             ['name' => 'Front Bumper', 'code' => 'FBP', 'description' => 'Front bumper cover or assembly.'],
@@ -193,10 +215,10 @@ class CommonVehiclePartTypeSeeder extends Seeder
             ['name' => 'Mud Flap Rear Right', 'code' => 'MFRR', 'description' => 'Rear right mud flap.'],
         ];
 
-        foreach ($partTypes as $partType) {
-            PartType::updateOrCreate(
-                ['code' => $partType['code']],
-                $partType + ['is_active' => true]
+        foreach ($productTypes as $productType) {
+            ProductType::updateOrCreate(
+                ['code' => $productType['code']],
+                $productType + ['is_active' => true]
             );
         }
     }

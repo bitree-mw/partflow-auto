@@ -5,7 +5,7 @@ let currentBranch = JSON.parse(document.querySelector('#pos-current-branch')?.te
 const endpoints = JSON.parse(document.querySelector('#pos-endpoints-data')?.textContent || '{}');
 const searchInput = document.querySelector('#part-search');
 const vehicleFilter = document.querySelector('[data-pos-vehicle-filter]');
-const partTypeFilter = document.querySelector('[data-pos-part-type-filter]');
+const productTypeFilter = document.querySelector('[data-pos-product-type-filter]');
 const filters = Array.from(document.querySelectorAll('[data-pos-filter]'));
 const clearSearch = document.querySelector('[data-pos-clear]');
 const resetSearch = document.querySelector('[data-pos-reset]');
@@ -27,7 +27,7 @@ let cartItems = [];
 let searchController = null;
 let suggestionController = null;
 let vehicleController = null;
-let partTypeController = null;
+let productTypeController = null;
 let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
 let vehicleOptions = new Map();
 
@@ -210,7 +210,7 @@ function renderProductCards() {
         <article class="part-card" data-product-index="${index}">
             <div class="part-card-top">
                 <div class="part-card-heading">
-                    <span class="part-type">${escapeHtml(product.part_type)}</span>
+                    <span class="product-type">${escapeHtml(product.product_type)}</span>
                     <span class="part-brand">${escapeHtml(product.brand)}</span>
                     <span class="part-code">(${escapeHtml(product.product_code)})</span>
                 </div>
@@ -249,7 +249,7 @@ async function loadProducts() {
     const params = new URLSearchParams();
     const search = (searchInput?.value || '').trim();
     const vehicleId = selectedVehicleId();
-    const partType = (partTypeFilter?.value || '').trim();
+    const productType = (productTypeFilter?.value || '').trim();
 
     if (search) {
         params.set('search', search);
@@ -265,8 +265,8 @@ async function loadProducts() {
         }
     }
 
-    if (partType && partType.toLowerCase() !== 'all product types') {
-        params.set('part_type', partType);
+    if (productType && productType.toLowerCase() !== 'all product types') {
+        params.set('product_type', productType);
     }
 
     productGrid?.setAttribute('aria-busy', 'true');
@@ -396,22 +396,22 @@ async function loadVehicleModels() {
     }
 }
 
-async function loadPartTypes() {
-    if (!endpoints.partTypes || !partTypeFilter) {
+async function loadProductTypes() {
+    if (!endpoints.productTypes || !productTypeFilter) {
         return;
     }
 
-    partTypeController?.abort();
-    partTypeController = new AbortController();
+    productTypeController?.abort();
+    productTypeController = new AbortController();
 
     const params = new URLSearchParams({
-        search: partTypeFilter.value.trim(),
+        search: productTypeFilter.value.trim(),
     });
 
     try {
-        const response = await fetch(`${endpoints.partTypes}?${params}`, {
+        const response = await fetch(`${endpoints.productTypes}?${params}`, {
             headers: { Accept: 'application/json' },
-            signal: partTypeController.signal,
+            signal: productTypeController.signal,
         });
         const payload = await response.json();
 
@@ -419,17 +419,17 @@ async function loadPartTypes() {
             throw new Error(payload.message || 'Could not load product types.');
         }
 
-        const datalist = document.querySelector('#pos-part-type-options');
+        const datalist = document.querySelector('#pos-product-type-options');
 
         if (datalist) {
             datalist.innerHTML = '<option value="All product types"></option>';
-            (payload.partTypes || []).forEach((partType) => {
-                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(partType.name)}"></option>`);
+            (payload.productTypes || []).forEach((productType) => {
+                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(productType.name)}"></option>`);
             });
         }
     } catch (error) {
         if (error.name !== 'AbortError') {
-            const datalist = document.querySelector('#pos-part-type-options');
+            const datalist = document.querySelector('#pos-product-type-options');
             if (datalist) {
                 datalist.innerHTML = '<option value="All product types"></option>';
             }
@@ -600,8 +600,8 @@ const scheduleSuggestions = debounce(() => {
 const scheduleVehicleModels = debounce(() => {
     loadVehicleModels();
 }, 180);
-const schedulePartTypes = debounce(() => {
-    loadPartTypes();
+const scheduleProductTypes = debounce(() => {
+    loadProductTypes();
 }, 180);
 
 searchInput?.addEventListener('input', () => {
@@ -615,9 +615,9 @@ vehicleFilter?.addEventListener('input', () => {
 });
 
 filters.forEach((filter) => {
-    if (filter === partTypeFilter) {
+    if (filter === productTypeFilter) {
         filter.addEventListener('input', () => {
-            schedulePartTypes();
+            scheduleProductTypes();
             scheduleProducts();
         });
         filter.addEventListener('change', scheduleProducts);
@@ -740,4 +740,4 @@ completeSaleButton?.addEventListener('click', () => {
 renderProductCards();
 renderCart();
 loadVehicleModels();
-loadPartTypes();
+loadProductTypes();

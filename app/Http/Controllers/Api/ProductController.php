@@ -42,7 +42,7 @@ class ProductController extends Controller
     {
         $product->load([
             'carModel',
-            'partType',
+            'productType',
             'fuelType',
             'brand',
             'taxProfile',

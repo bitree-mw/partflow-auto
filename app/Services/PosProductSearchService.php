@@ -15,7 +15,7 @@ class PosProductSearchService
             ->with([
                 'site',
                 'product.carModel',
-                'product.partType',
+                'product.productType',
                 'product.fuelType',
                 'product.brand',
                 'product.taxProfile',
@@ -43,10 +43,10 @@ class PosProductSearchService
                         });
                 });
             })
-            ->when(isset($filters['part_type']) && $filters['part_type'] !== '', function ($query) use ($filters) {
-                $query->whereHas('product.partType', function ($query) use ($filters) {
-                    $query->where('name', $filters['part_type'])
-                        ->orWhere('code', $filters['part_type']);
+            ->when(isset($filters['product_type']) && $filters['product_type'] !== '', function ($query) use ($filters) {
+                $query->whereHas('product.productType', function ($query) use ($filters) {
+                    $query->where('name', $filters['product_type'])
+                        ->orWhere('code', $filters['product_type']);
                 });
             })
             ->when(isset($filters['search']) && $filters['search'] !== '', function ($query) use ($filters) {
@@ -117,13 +117,13 @@ class PosProductSearchService
         }
 
         return Product::query()
-            ->with(['brand', 'partType'])
+            ->with(['brand', 'productType'])
             ->select([
                 'products.id',
                 'products.product_code',
                 'products.product_name',
                 'products.brand_id',
-                'products.part_type_id',
+                'products.product_type_id',
                 DB::raw('COALESCE(SUM(inventory_document_items.quantity), 0) as sold_quantity'),
             ])
             ->join('inventory_document_items', 'inventory_document_items.product_id', '=', 'products.id')
@@ -154,7 +154,7 @@ class PosProductSearchService
                             ->orWhere('variant_name', 'like', "%{$search}%");
                     });
             })
-            ->groupBy('products.id', 'products.product_code', 'products.product_name', 'products.brand_id', 'products.part_type_id')
+            ->groupBy('products.id', 'products.product_code', 'products.product_name', 'products.brand_id', 'products.product_type_id')
             ->orderByDesc('sold_quantity')
             ->orderBy('products.product_name')
             ->limit((int) ($filters['limit'] ?? 5))
@@ -162,7 +162,7 @@ class PosProductSearchService
             ->map(function (Product $product): array {
                 $displayName = collect([
                     $product->brand?->name,
-                    $product->partType?->name,
+                    $product->productType?->name,
                 ])
                     ->filter()
                     ->join(' ');

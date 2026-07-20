@@ -7,7 +7,7 @@ use App\Models\CarModel;
 use App\Models\Contact;
 use App\Models\ExpenseCategory;
 use App\Models\FuelType;
-use App\Models\PartType;
+use App\Models\ProductType;
 use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\ProductCompatibility;
@@ -36,11 +36,11 @@ class PartFlowBaseTestingSeeder extends Seeder
         $this->seedUserSiteAccess($users, $sites);
         $contacts = $this->seedContacts();
         $carModels = $this->seedCarModels();
-        $partTypes = $this->seedPartTypes();
+        $productTypes = $this->seedProductTypes();
         $brands = $this->seedBrands();
         $paymentAccounts = $this->seedPaymentAccounts();
         $this->seedExpenseCategories();
-        $this->seedProducts($carModels, $partTypes, $brands, $sites);
+        $this->seedProducts($carModels, $productTypes, $brands, $sites);
     }
 
     private function seedRoles(): array
@@ -174,7 +174,7 @@ class PartFlowBaseTestingSeeder extends Seeder
             ->all();
     }
 
-    private function seedPartTypes(): array
+    private function seedProductTypes(): array
     {
         $records = [
             ['name' => 'Brake Pads', 'code' => 'BP', 'description' => 'Brake pad sets and friction material.'],
@@ -187,7 +187,7 @@ class PartFlowBaseTestingSeeder extends Seeder
 
         return collect($records)
             ->mapWithKeys(fn (array $record) => [
-                $record['code'] => PartType::updateOrCreate(
+                $record['code'] => ProductType::updateOrCreate(
                     ['code' => $record['code']],
                     $record + ['is_active' => true]
                 ),
@@ -250,7 +250,7 @@ class PartFlowBaseTestingSeeder extends Seeder
         }
     }
 
-    private function seedProducts(array $carModels, array $partTypes, array $brands, array $sites): void
+    private function seedProducts(array $carModels, array $productTypes, array $brands, array $sites): void
     {
         $fuel = FuelType::where('name', 'Petrol')->first();
         $hybrid = FuelType::where('name', 'Hybrid')->first();
@@ -270,7 +270,7 @@ class PartFlowBaseTestingSeeder extends Seeder
                 [
                     'product_name' => $record['name'],
                     'car_model_id' => $carModels[$record['car']]->id,
-                    'part_type_id' => $partTypes[$record['type']]->id,
+                    'product_type_id' => $productTypes[$record['type']]->id,
                     'fuel_type_id' => $record['fuel']->id,
                     'brand_id' => $brands[$record['brand']]->id,
                     'tax_profile_id' => $tax->id,

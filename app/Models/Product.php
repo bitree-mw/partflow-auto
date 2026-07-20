@@ -18,7 +18,7 @@ class Product extends Model
         'product_code',
         'product_name',
         'car_model_id',
-        'part_type_id',
+        'product_type_id',
         'fuel_type_id',
         'brand_id',
         'tax_profile_id',
@@ -50,9 +50,9 @@ class Product extends Model
         return $this->belongsTo(CarModel::class);
     }
 
-    public function partType(): BelongsTo
+    public function productType(): BelongsTo
     {
-        return $this->belongsTo(PartType::class);
+        return $this->belongsTo(ProductType::class);
     }
 
     public function fuelType(): BelongsTo
