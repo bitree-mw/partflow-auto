@@ -18,7 +18,7 @@ class StoreStockTakeRequest extends ApiRequest
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.counted_quantity' => ['required', 'integer', 'min:0'],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
-            'items.*.notes' => ['nullable', 'string'],
+            'items.*.notes' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

@@ -76,9 +76,15 @@
                             </div>
                             <div class="form-field">
                                 <label for="counted_{{ $lineIndex }}">Counted quantity</label>
-                                <input class="form-control" id="counted_{{ $lineIndex }}" name="items[{{ $lineIndex }}][counted_quantity]" type="number" min="0" value="{{ old("items.{$lineIndex}.counted_quantity", $lineItem['counted_quantity'] ?? 0) }}" required>
+                                <input class="form-control" id="counted_{{ $lineIndex }}" name="items[{{ $lineIndex }}][counted_quantity]" type="number" min="0" value="{{ old("items.{$lineIndex}.counted_quantity", $lineItem['counted_quantity'] ?? 0) }}" required data-line-counted>
                                 <small class="field-hint" data-stock-hint>Select site and part</small>
                                 <x-form-error name="items.{{ $lineIndex }}.counted_quantity" />
+                            </div>
+                            <div class="form-field">
+                                <label for="reason_{{ $lineIndex }}">Adjustment reason</label>
+                                <input class="form-control" id="reason_{{ $lineIndex }}" name="items[{{ $lineIndex }}][notes]" value="{{ old("items.{$lineIndex}.notes", $lineItem['notes'] ?? '') }}" maxlength="500" placeholder="e.g. damaged, expired, or count correction" data-adjustment-reason>
+                                <small class="field-hint" data-adjustment-reason-hint>Required when counted stock differs from system stock</small>
+                                <x-form-error name="items.{{ $lineIndex }}.notes" />
                             </div>
                             <button class="icon-action danger site-line-remove" type="button" data-remove-site-line aria-label="Remove line item" title="Remove line item">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -110,8 +116,13 @@
                         </div>
                         <div class="form-field">
                             <label for="counted___INDEX__">Counted quantity</label>
-                            <input class="form-control" id="counted___INDEX__" name="items[__INDEX__][counted_quantity]" type="number" min="0" value="0" required>
+                            <input class="form-control" id="counted___INDEX__" name="items[__INDEX__][counted_quantity]" type="number" min="0" value="0" required data-line-counted>
                             <small class="field-hint" data-stock-hint>Select site and part</small>
+                        </div>
+                        <div class="form-field">
+                            <label for="reason___INDEX__">Adjustment reason</label>
+                            <input class="form-control" id="reason___INDEX__" name="items[__INDEX__][notes]" maxlength="500" placeholder="e.g. damaged, expired, or count correction" data-adjustment-reason>
+                            <small class="field-hint" data-adjustment-reason-hint>Required when counted stock differs from system stock</small>
                         </div>
                         <button class="icon-action danger site-line-remove" type="button" data-remove-site-line aria-label="Remove line item" title="Remove line item">
                             <svg viewBox="0 0 24 24" aria-hidden="true">

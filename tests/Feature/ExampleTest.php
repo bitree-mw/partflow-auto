@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\Role;
 use App\Models\Site;
 use App\Models\SiteStock;
+use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\UserSiteAccess;
 use App\Models\VehicleModel;
@@ -337,6 +338,75 @@ class ExampleTest extends TestCase
         $this->assertSame('CC-UBXX-MWI-001', $product->product_code);
         $this->assertSame('Universal Brand Cleaning Cloth (MWI)', $product->product_name);
         $this->assertSame(0, $product->compatibilities()->count());
+    }
+
+    public function test_stock_take_requires_and_records_a_reason_for_stock_adjustments(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $site = Site::create([
+            'name' => 'Stock Take Warehouse',
+            'code' => 'STW',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+        $productType = ProductType::create([
+            'name' => 'Engine Oil',
+            'code' => 'EOIL',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'product_code' => 'EOIL-GEN-MWI-001',
+            'product_name' => 'Engine Oil',
+            'product_type_id' => $productType->id,
+            'default_selling_price' => 25000,
+            'is_active' => true,
+        ]);
+
+        SiteStock::create([
+            'site_id' => $site->id,
+            'product_id' => $product->id,
+            'quantity_on_hand' => 5,
+            'reserved_quantity' => 0,
+        ]);
+
+        $this->post(route('web.catalog.sites.stock-takes.store'), [
+            'site_id' => $site->id,
+            'document_date' => '2026-07-20',
+            'items' => [[
+                'product_id' => $product->id,
+                'counted_quantity' => 7,
+            ]],
+        ])->assertSessionHasErrors('items.0.notes');
+
+        $this->assertSame(5, SiteStock::where('site_id', $site->id)->where('product_id', $product->id)->value('quantity_on_hand'));
+        $this->assertDatabaseCount('inventory_documents', 0);
+
+        $reason = 'Two sealed containers found in the receiving area.';
+
+        $this->post(route('web.catalog.sites.stock-takes.store'), [
+            'site_id' => $site->id,
+            'document_date' => '2026-07-20',
+            'items' => [[
+                'product_id' => $product->id,
+                'counted_quantity' => 7,
+                'notes' => $reason,
+            ]],
+        ])->assertRedirect();
+
+        $stockTake = InventoryDocument::where('document_type', 'stock_take')->firstOrFail();
+        $item = $stockTake->items()->firstOrFail();
+        $movement = StockMovement::where('inventory_document_id', $stockTake->id)->firstOrFail();
+
+        $this->assertSame(7, SiteStock::where('site_id', $site->id)->where('product_id', $product->id)->value('quantity_on_hand'));
+        $this->assertSame($reason, $item->notes);
+        $this->assertSame($reason, $movement->notes);
+        $this->assertSame(2, $movement->quantity_change);
+
+        $this->get(route('web.catalog.sites.stock-takes.show', $stockTake))
+            ->assertOk()
+            ->assertSee($reason);
     }
 
     public function test_contacts_and_purchase_workflows_create_real_records(): void

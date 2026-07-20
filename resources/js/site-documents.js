@@ -33,6 +33,9 @@ document.querySelectorAll('[data-site-document-form]').forEach((form) => {
         const hint = line.querySelector('[data-stock-hint]');
         const summary = line.querySelector('[data-stock-summary]');
         const quantity = line.querySelector('[data-line-quantity]');
+        const countedQuantity = line.querySelector('[data-line-counted]');
+        const adjustmentReason = line.querySelector('[data-adjustment-reason]');
+        const adjustmentReasonHint = line.querySelector('[data-adjustment-reason-hint]');
         const { siteId, productId } = lineSelection(line);
         const stock = stockForLine(line);
         const hasSelection = Boolean(siteId && productId);
@@ -50,6 +53,14 @@ document.querySelectorAll('[data-site-document-form]').forEach((form) => {
 
             if (quantity) {
                 quantity.removeAttribute('max');
+            }
+
+            if (adjustmentReason) {
+                adjustmentReason.required = false;
+            }
+
+            if (adjustmentReasonHint) {
+                adjustmentReasonHint.textContent = 'Required when counted stock differs from system stock';
             }
 
             return;
@@ -72,6 +83,20 @@ document.querySelectorAll('[data-site-document-form]').forEach((form) => {
                 quantity.max = stock.available;
             } else {
                 quantity.removeAttribute('max');
+            }
+        }
+
+        if (mode === 'stock-take' && adjustmentReason) {
+            const counted = Number.parseInt(countedQuantity?.value ?? '', 10);
+            const hasCount = Number.isFinite(counted);
+            const variance = hasCount ? counted - Number(stock.on_hand) : 0;
+
+            adjustmentReason.required = hasCount && variance !== 0;
+
+            if (adjustmentReasonHint) {
+                adjustmentReasonHint.textContent = variance === 0
+                    ? 'No adjustment reason needed'
+                    : `Required for ${variance > 0 ? '+' : ''}${variance} stock adjustment`;
             }
         }
     }
@@ -124,8 +149,14 @@ document.querySelectorAll('[data-site-document-form]').forEach((form) => {
     });
 
     lines.addEventListener('change', (event) => {
-        if (event.target.matches('[data-line-product], [data-line-quantity]')) {
+        if (event.target.matches('[data-line-product], [data-line-quantity], [data-line-counted]')) {
             refreshLines();
+        }
+    });
+
+    lines.addEventListener('input', (event) => {
+        if (event.target.matches('[data-line-counted]')) {
+            refreshLine(event.target.closest('[data-site-document-line]'));
         }
     });
 

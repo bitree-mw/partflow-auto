@@ -9,6 +9,7 @@ use App\Models\TaxProfile;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InventoryDocumentService
 {
@@ -210,11 +211,18 @@ class InventoryDocumentService
             $document = $this->createBaseDocument('stock_take', $data, $user, $status);
             $items = [];
 
-            foreach ($data['items'] as $row) {
+            foreach ($data['items'] as $index => $row) {
                 $product = Product::findOrFail($row['product_id']);
                 $systemQuantity = $this->stockMovementService->currentQuantity($product->id, $document->source_site_id);
                 $countedQuantity = (int) $row['counted_quantity'];
                 $varianceQuantity = $countedQuantity - $systemQuantity;
+                $adjustmentReason = trim((string) ($row['notes'] ?? ''));
+
+                if ($varianceQuantity !== 0 && $adjustmentReason === '') {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.notes" => ['An adjustment reason is required when the counted quantity differs from system stock.'],
+                    ]);
+                }
 
                 $items[] = $document->items()->create([
                     'product_id' => $product->id,
@@ -229,7 +237,7 @@ class InventoryDocumentService
                     'system_quantity' => $systemQuantity,
                     'counted_quantity' => $countedQuantity,
                     'variance_quantity' => $varianceQuantity,
-                    'notes' => $row['notes'] ?? null,
+                    'notes' => $adjustmentReason !== '' ? $adjustmentReason : null,
                 ])->load('product');
             }
 

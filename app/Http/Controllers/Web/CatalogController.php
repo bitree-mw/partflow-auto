@@ -252,6 +252,7 @@ class CatalogController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,id'],
             'items.*.counted_quantity' => ['required', 'integer', 'min:0'],
+            'items.*.notes' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -263,6 +264,7 @@ class CatalogController extends Controller
             'items' => collect($validated['items'])->map(fn (array $item): array => [
                 'product_id' => (int) $item['product_id'],
                 'counted_quantity' => (int) $item['counted_quantity'],
+                'notes' => $item['notes'] ?? null,
             ])->values()->all(),
         ], $request->user());
 

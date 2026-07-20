@@ -47,6 +47,7 @@
                         <th>System</th>
                         <th>Counted</th>
                         <th>Variance</th>
+                        <th>Adjustment reason</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,6 +62,7 @@
                                     {{ $item->variance_quantity > 0 ? '+' : '' }}{{ $item->variance_quantity }}
                                 </span>
                             </td>
+                            <td>{{ $item->variance_quantity !== 0 ? $item->notes : 'No adjustment' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

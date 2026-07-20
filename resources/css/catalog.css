@@ -224,7 +224,7 @@
 
     .site-document-line-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(180px, 0.35fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(160px, 0.3fr) minmax(240px, 0.6fr) auto;
         gap: 12px;
         align-items: start;
     }
