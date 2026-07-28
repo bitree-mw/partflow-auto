@@ -91,7 +91,15 @@
                                         <form method="POST" action="{{ $mode === 'customers' ? route('web.customers.destroy', $contact['id']) : route('web.suppliers.destroy', $contact['id']) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                title="Deactivate {{ $mode === 'customers' ? 'customer' : 'supplier' }}"
+                                                aria-label="Deactivate {{ $mode === 'customers' ? 'customer' : 'supplier' }}"
+                                                data-confirm-title="Deactivate {{ $mode === 'customers' ? 'customer' : 'supplier' }}?"
+                                                data-confirm="Deactivate &quot;{{ $contact['name'] }}&quot;? The contact will be hidden from new transactions."
+                                                data-confirm-label="Deactivate"
+                                            >
                                                 <x-icons.trash />
                                             </button>
                                         </form>

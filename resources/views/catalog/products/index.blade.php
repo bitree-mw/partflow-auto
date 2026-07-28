@@ -143,7 +143,15 @@
                                         <form method="POST" action="{{ route('web.catalog.products.destroy', $product['id']) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                title="Deactivate product"
+                                                aria-label="Deactivate product"
+                                                data-confirm-title="Deactivate product?"
+                                                data-confirm="Deactivate &quot;{{ $product['name'] }}&quot;? It will no longer appear in active catalogue or POS searches."
+                                                data-confirm-label="Deactivate"
+                                            >
                                                 <x-icons.trash />
                                             </button>
                                         </form>

@@ -340,6 +340,34 @@ class ExampleTest extends TestCase
         $this->assertSame(0, $product->compatibilities()->count());
     }
 
+    public function test_product_forms_fill_the_product_type_column_and_deactivation_requires_confirmation(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $productType = ProductType::create([
+            'name' => 'Brake Pad',
+            'code' => 'BP',
+            'is_active' => true,
+        ]);
+        Product::create([
+            'product_code' => 'BP-UNKN-UNK-001',
+            'product_name' => 'Brake Pad',
+            'product_type_id' => $productType->id,
+            'default_selling_price' => 25000,
+            'is_active' => true,
+        ]);
+
+        $this->get(route('web.catalog.products.create'))
+            ->assertOk()
+            ->assertSee('class="form-field product-type-field"', false)
+            ->assertSee('data-product-type-picker', false);
+
+        $this->get(route('web.catalog.products.index'))
+            ->assertOk()
+            ->assertSee('data-confirm-title="Deactivate product?"', false)
+            ->assertSee('data-confirm-label="Deactivate"', false);
+    }
+
     public function test_stock_take_requires_and_records_a_reason_for_stock_adjustments(): void
     {
         $user = User::factory()->create();

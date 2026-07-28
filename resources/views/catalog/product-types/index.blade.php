@@ -64,7 +64,15 @@
                                         <form method="POST" action="{{ route('web.catalog.product-types.destroy', $productType['id']) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                title="Deactivate product type"
+                                                aria-label="Deactivate product type"
+                                                data-confirm-title="Deactivate product type?"
+                                                data-confirm="Deactivate &quot;{{ $productType['name'] }}&quot;? It will no longer be available when adding products."
+                                                data-confirm-label="Deactivate"
+                                            >
                                                 <x-icons.trash />
                                             </button>
                                         </form>

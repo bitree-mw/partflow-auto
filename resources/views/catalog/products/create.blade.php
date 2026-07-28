@@ -32,7 +32,7 @@
         <section class="form-section">
             <span class="eyebrow">Product Details</span>
             <div class="form-grid">
-                <div class="form-field">
+                <div class="form-field product-type-field">
                     <label for="product_type_id">Product type</label>
                     <div class="async-picker" data-product-type-picker data-endpoint="{{ route('web.catalog.product-type-options') }}">
                         <input id="product_type_id" type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? old('product_type_id') }}" data-product-type-value>

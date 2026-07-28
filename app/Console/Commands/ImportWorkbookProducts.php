@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Product;
+use App\Models\ProductReference;
 use App\Models\ProductType;
 use App\Models\TaxProfile;
 use App\Services\ProductService;
@@ -16,9 +17,12 @@ use Throwable;
 
 class ImportWorkbookProducts extends Command
 {
+    private int $historyPreservedCount = 0;
+
     protected $signature = 'products:import-workbook-manifest
         {manifest=database/data/january_2026_workbook_products.json : Absolute path or project-relative manifest path}
-        {--dry-run : Validate and preview changes without writing to the database}';
+        {--dry-run : Validate and preview changes without writing to the database}
+        {--replace-existing-import : Permanently replace the earlier JAN26-coded workbook import}';
 
     protected $description = 'Import normalized, deduplicated products from a workbook manifest';
 
@@ -40,11 +44,12 @@ class ImportWorkbookProducts extends Command
         }
 
         $this->table(
-            ['Manifest rows', 'Will create', 'Already present', 'New product types', 'Zero-price rows'],
+            ['Manifest rows', 'Will create', 'Already present', 'Will replace', 'New product types', 'Zero-price rows'],
             [[
                 count($products),
                 $preview['create_count'],
                 $preview['skip_count'],
+                $preview['legacy_count'],
                 count($preview['new_types']),
                 $preview['zero_price_count'],
             ]]
@@ -54,6 +59,15 @@ class ImportWorkbookProducts extends Command
             $this->line('New product types: '.implode(', ', $preview['new_types']));
         }
 
+        if ($preview['legacy_count'] > 0 && ! $this->option('replace-existing-import')) {
+            $this->error(sprintf(
+                '%d earlier JAN26-coded products exist. Re-run with --replace-existing-import.',
+                $preview['legacy_count'],
+            ));
+
+            return self::FAILURE;
+        }
+
         if ($this->option('dry-run')) {
             $this->info('Dry run complete. No database changes were made.');
 
@@ -61,7 +75,13 @@ class ImportWorkbookProducts extends Command
         }
 
         try {
-            $result = DB::transaction(fn (): array => $this->import($products));
+            $result = DB::transaction(function () use ($products): array {
+                $replaced = $this->option('replace-existing-import')
+                    ? $this->deleteLegacyImport($products)
+                    : 0;
+
+                return ['replaced' => $replaced] + $this->import($products);
+            });
         } catch (Throwable $exception) {
             $this->error('Import rolled back: '.$exception->getMessage());
 
@@ -69,12 +89,20 @@ class ImportWorkbookProducts extends Command
         }
 
         $this->info(sprintf(
-            'Import complete: %d products created, %d already present, %d product types created.',
+            'Import complete: %d earlier products replaced, %d products created, %d already present, %d product types created.',
+            $result['replaced'],
             $result['created'],
             $result['skipped'],
             $result['types_created'],
         ));
         $this->line('Site stock quantities were not changed.');
+
+        if ($this->historyPreservedCount > 0) {
+            $this->line(sprintf(
+                '%d product(s) were corrected in place to preserve stock and transaction history.',
+                $this->historyPreservedCount,
+            ));
+        }
 
         return self::SUCCESS;
     }
@@ -99,8 +127,8 @@ class ImportWorkbookProducts extends Command
             throw new RuntimeException('Manifest JSON is invalid: '.$exception->getMessage(), 0, $exception);
         }
 
-        if (! is_array($manifest) || ($manifest['schema_version'] ?? null) !== 1) {
-            throw new RuntimeException('Manifest schema_version must be 1.');
+        if (! is_array($manifest) || ($manifest['schema_version'] ?? null) !== 2) {
+            throw new RuntimeException('Manifest schema_version must be 2.');
         }
 
         if (($manifest['import_key'] ?? null) !== 'january-2026-workbook-products') {
@@ -126,11 +154,11 @@ class ImportWorkbookProducts extends Command
             'other',
         ];
         $validated = [];
-        $codes = [];
+        $sourceKeys = [];
 
         foreach ($products as $index => $product) {
             $validator = Validator::make($product, [
-                'product_code' => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-]+$/'],
+                'source_key' => ['required', 'string', 'max:100', 'regex:/^JAN26-[A-F0-9]{8}$/'],
                 'product_name' => ['required', 'string', 'max:255'],
                 'product_type' => ['required', 'array'],
                 'product_type.name' => ['required', 'string', 'max:255'],
@@ -158,14 +186,32 @@ class ImportWorkbookProducts extends Command
             }
 
             $row = $validator->validated();
-            $code = strtoupper($row['product_code']);
+            $sourceKey = strtoupper($row['source_key']);
 
-            if (isset($codes[$code])) {
-                throw new RuntimeException("Manifest contains duplicate product code: {$code}");
+            if (isset($sourceKeys[$sourceKey])) {
+                throw new RuntimeException("Manifest contains duplicate source key: {$sourceKey}");
             }
 
-            $codes[$code] = true;
-            $row['product_code'] = $code;
+            if ($row['product_name'] !== $row['product_type']['name']) {
+                throw new RuntimeException(
+                    "Manifest product {$sourceKey} must use the product type as its product name."
+                );
+            }
+
+            $hasSourceReference = collect($row['references'])->contains(
+                fn (array $reference): bool =>
+                    $reference['reference_type'] === 'other' &&
+                    strtoupper($reference['reference_value']) === $sourceKey
+            );
+
+            if (! $hasSourceReference) {
+                throw new RuntimeException(
+                    "Manifest product {$sourceKey} is missing its provenance reference."
+                );
+            }
+
+            $sourceKeys[$sourceKey] = true;
+            $row['source_key'] = $sourceKey;
             $row['product_type']['code'] = strtoupper($row['product_type']['code']);
             $validated[] = $row;
         }
@@ -175,11 +221,12 @@ class ImportWorkbookProducts extends Command
 
     private function preview(array $products): array
     {
-        $manifestCodes = collect($products)->pluck('product_code');
-        $existingCodes = Product::withTrashed()
-            ->whereIn('product_code', $manifestCodes)
-            ->pluck('product_code')
-            ->map(fn (string $code): string => strtoupper($code))
+        $manifestSourceKeys = collect($products)->pluck('source_key');
+        $existingSourceKeys = ProductReference::query()
+            ->where('reference_type', 'other')
+            ->whereIn('reference_value', $manifestSourceKeys)
+            ->pluck('reference_value')
+            ->map(fn (string $sourceKey): string => strtoupper($sourceKey))
             ->flip();
         $existingTypes = ProductType::withTrashed()
             ->whereIn('code', collect($products)->pluck('product_type.code')->unique())
@@ -195,10 +242,13 @@ class ImportWorkbookProducts extends Command
 
         return [
             'create_count' => collect($products)
-                ->reject(fn (array $product): bool => $existingCodes->has($product['product_code']))
+                ->reject(fn (array $product): bool => $existingSourceKeys->has($product['source_key']))
                 ->count(),
             'skip_count' => collect($products)
-                ->filter(fn (array $product): bool => $existingCodes->has($product['product_code']))
+                ->filter(fn (array $product): bool => $existingSourceKeys->has($product['source_key']))
+                ->count(),
+            'legacy_count' => Product::query()
+                ->where('product_code', 'like', '%-JAN26-%')
                 ->count(),
             'new_types' => $newTypes,
             'zero_price_count' => collect($products)
@@ -219,17 +269,15 @@ class ImportWorkbookProducts extends Command
         $typeIds = [];
 
         foreach ($products as $row) {
-            $existingProduct = Product::withTrashed()
-                ->where('product_code', $row['product_code'])
+            $existingProduct = Product::query()
+                ->whereHas('references', function ($query) use ($row): void {
+                    $query
+                        ->where('reference_type', 'other')
+                        ->where('reference_value', $row['source_key']);
+                })
                 ->first();
 
             if ($existingProduct) {
-                if ($existingProduct->trashed()) {
-                    throw new RuntimeException(
-                        "Product code {$row['product_code']} belongs to a deleted product."
-                    );
-                }
-
                 $skipped++;
 
                 continue;
@@ -266,7 +314,6 @@ class ImportWorkbookProducts extends Command
             }
 
             $this->productService->create([
-                'product_code' => $row['product_code'],
                 'product_name' => $row['product_name'],
                 'car_model_id' => null,
                 'product_type_id' => $typeIds[$typeCode],
@@ -292,5 +339,66 @@ class ImportWorkbookProducts extends Command
             'skipped' => $skipped,
             'types_created' => $typesCreated,
         ];
+    }
+
+    private function deleteLegacyImport(array $products): int
+    {
+        $legacyQuery = Product::query()->where('product_code', 'like', '%-JAN26-%');
+        $historyProducts = (clone $legacyQuery)
+            ->where(function ($query): void {
+                $query
+                    ->whereHas('siteStocks')
+                    ->orWhereHas('inventoryDocumentItems')
+                    ->orWhereHas('stockMovements');
+            })
+            ->get();
+        $manifestBySourceKey = collect($products)->keyBy('source_key');
+        $historyIds = $historyProducts->pluck('id');
+        $legacyProducts = (clone $legacyQuery)
+            ->when(
+                $historyIds->isNotEmpty(),
+                fn ($query) => $query->whereNotIn('id', $historyIds)
+            )
+            ->get();
+
+        $legacyProducts->each(fn (Product $product) => $product->forceDelete());
+
+        foreach ($historyProducts as $product) {
+            if (preg_match('/-JAN26-([A-F0-9]{8})$/', $product->product_code, $matches) !== 1) {
+                throw new RuntimeException(
+                    "Cannot derive a source key for history-bearing product {$product->product_code}."
+                );
+            }
+
+            $sourceKey = 'JAN26-'.$matches[1];
+            $row = $manifestBySourceKey->get($sourceKey);
+
+            if (! $row) {
+                throw new RuntimeException(
+                    "History-bearing product {$product->product_code} is missing from the replacement manifest."
+                );
+            }
+
+            $productType = ProductType::withTrashed()
+                ->where('code', $row['product_type']['code'])
+                ->firstOrFail();
+
+            $this->productService->update($product, [
+                'product_name' => $row['product_name'],
+                'car_model_id' => null,
+                'product_type_id' => $productType->id,
+                'fuel_type_id' => null,
+                'brand_id' => null,
+                'part_country_of_origin' => null,
+                'description' => $row['description'],
+                'is_active' => true,
+                'references' => $row['references'],
+                'compatibilities' => [],
+            ]);
+        }
+
+        $this->historyPreservedCount = $historyProducts->count();
+
+        return $legacyProducts->count() + $historyProducts->count();
     }
 }

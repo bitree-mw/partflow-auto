@@ -8,6 +8,72 @@ function dismissDialog(dialog) {
     dialog.remove();
 }
 
+let confirmationListenerBound = false;
+
+function requestConfirmation({
+    title = 'Confirm action',
+    message,
+    confirmLabel = 'Confirm',
+}) {
+    return new Promise((resolve) => {
+        const dialog = document.createElement('dialog');
+        const card = document.createElement('div');
+        const header = document.createElement('header');
+        const eyebrow = document.createElement('span');
+        const heading = document.createElement('h2');
+        const copy = document.createElement('p');
+        const actions = document.createElement('div');
+        const cancelButton = document.createElement('button');
+        const confirmButton = document.createElement('button');
+        let settled = false;
+
+        dialog.className = 'app-confirm-dialog';
+        card.className = 'app-confirm-dialog-card';
+        eyebrow.className = 'eyebrow';
+        eyebrow.textContent = 'Please confirm';
+        heading.textContent = title;
+        copy.textContent = message;
+        actions.className = 'app-confirm-dialog-actions';
+        cancelButton.className = 'btn-secondary';
+        cancelButton.type = 'button';
+        cancelButton.textContent = 'Cancel';
+        confirmButton.className = 'btn-danger';
+        confirmButton.type = 'button';
+        confirmButton.textContent = confirmLabel;
+
+        const finish = (confirmed) => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            resolve(confirmed);
+            dismissDialog(dialog);
+        };
+
+        cancelButton.addEventListener('click', () => finish(false));
+        confirmButton.addEventListener('click', () => finish(true));
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) {
+                finish(false);
+            }
+        });
+        dialog.addEventListener('cancel', (event) => {
+            event.preventDefault();
+            finish(false);
+        });
+
+        header.append(eyebrow, heading);
+        actions.append(cancelButton, confirmButton);
+        card.append(header, copy, actions);
+        dialog.append(card);
+        document.body.append(dialog);
+        dialog.addEventListener('close', () => dialog.remove(), { once: true });
+        dialog.showModal();
+        cancelButton.focus();
+    });
+}
+
 export function initAppDialogs() {
     document.querySelectorAll('.app-alert-dialog').forEach((dialog) => {
         dialog.querySelectorAll('form[method="dialog"]').forEach((form) => {
@@ -39,4 +105,45 @@ export function initAppDialogs() {
             dialog.remove();
         });
     });
+
+    if (confirmationListenerBound) {
+        return;
+    }
+
+    confirmationListenerBound = true;
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        const submitter = event.submitter;
+        const message = submitter?.dataset.confirm || form.dataset.confirm;
+
+        if (!message || form.dataset.confirmBypass === 'true') {
+            return;
+        }
+
+        event.preventDefault();
+
+        requestConfirmation({
+            title: submitter?.dataset.confirmTitle || form.dataset.confirmTitle || 'Confirm action',
+            message,
+            confirmLabel: submitter?.dataset.confirmLabel || form.dataset.confirmLabel || 'Confirm',
+        }).then((confirmed) => {
+            if (!confirmed) {
+                submitter?.focus();
+                return;
+            }
+
+            form.dataset.confirmBypass = 'true';
+
+            try {
+                if (submitter) {
+                    form.requestSubmit(submitter);
+                } else {
+                    form.requestSubmit();
+                }
+            } finally {
+                delete form.dataset.confirmBypass;
+            }
+        });
+    }, true);
 }

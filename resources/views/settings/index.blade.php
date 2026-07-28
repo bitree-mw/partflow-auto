@@ -202,6 +202,9 @@
                                                 formaction="{{ route('web.settings.update', ['car_make_id' => $make['id']]) }}"
                                                 title="Make inactive"
                                                 aria-label="Make inactive"
+                                                data-confirm-title="Deactivate car make?"
+                                                data-confirm="Deactivate &quot;{{ $make['name'] }}&quot;? It will no longer be available when adding vehicle models."
+                                                data-confirm-label="Deactivate"
                                             >
                                                 <x-icons.trash />
                                             </button>

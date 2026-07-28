@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CommonPartBrandSeeder::class,
             MalawiVehicleMakeModelSeeder::class,
             VehicleProductTypeSeeder::class,
+            CptWorkbookProductTypeSeeder::class,
             PartFlowBaseTestingSeeder::class,
             PartFlowPurchaseSalesTestingSeeder::class,
             DefaultSystemUserSeeder::class,

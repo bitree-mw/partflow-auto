@@ -353,6 +353,13 @@
         min-width: 0;
     }
 
+    .product-type-field,
+    .product-type-field .async-picker,
+    .product-type-field [data-product-type-search] {
+        width: 100%;
+        max-width: none;
+    }
+
     .filter-async-picker {
         min-width: 220px;
     }

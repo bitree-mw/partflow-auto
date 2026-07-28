@@ -64,7 +64,15 @@
                                         <form method="POST" action="{{ route('web.catalog.fuel-types.destroy', $fuelType['id']) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                title="Deactivate fuel type"
+                                                aria-label="Deactivate fuel type"
+                                                data-confirm-title="Deactivate fuel type?"
+                                                data-confirm="Deactivate &quot;{{ $fuelType['name'] }}&quot;? Existing products remain unchanged."
+                                                data-confirm-label="Deactivate"
+                                            >
                                                 <x-icons.trash />
                                             </button>
                                         </form>

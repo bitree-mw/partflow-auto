@@ -68,7 +68,15 @@
                                         <form method="POST" action="{{ route('web.catalog.car-models.destroy', $carModel['id']) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                            <button
+                                                class="icon-action icon-danger"
+                                                type="submit"
+                                                title="Deactivate vehicle"
+                                                aria-label="Deactivate vehicle"
+                                                data-confirm-title="Deactivate vehicle?"
+                                                data-confirm="Deactivate &quot;{{ $carModel['make'] }} {{ $carModel['model'] }} {{ $carModel['year'] }}&quot;? It will no longer be available for new product fitments."
+                                                data-confirm-label="Deactivate"
+                                            >
                                                 <x-icons.trash />
                                             </button>
                                         </form>

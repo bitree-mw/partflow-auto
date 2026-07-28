@@ -84,7 +84,15 @@
                                     <form method="POST" action="{{ route('web.payment-accounts.destroy', $account) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="icon-action icon-danger" type="submit" title="Delete account" aria-label="Delete account">
+                                        <button
+                                            class="icon-action icon-danger"
+                                            type="submit"
+                                            title="Deactivate payment account"
+                                            aria-label="Deactivate payment account"
+                                            data-confirm-title="Deactivate payment account?"
+                                            data-confirm="Deactivate &quot;{{ $account->account_name }}&quot;? It will no longer be available for new payments."
+                                            data-confirm-label="Deactivate"
+                                        >
                                             <x-icons.trash />
                                         </button>
                                     </form>

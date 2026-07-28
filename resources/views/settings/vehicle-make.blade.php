@@ -66,7 +66,15 @@
                             <form method="POST" action="{{ route('web.settings.vehicle-models.destroy', $model['id']) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="icon-action icon-danger" type="submit" title="Make inactive" aria-label="Make inactive">
+                                <button
+                                    class="icon-action icon-danger"
+                                    type="submit"
+                                    title="Deactivate vehicle model"
+                                    aria-label="Deactivate vehicle model"
+                                    data-confirm-title="Deactivate vehicle model?"
+                                    data-confirm="Deactivate &quot;{{ $model['name'] }}&quot;? It will no longer be available for new fitments."
+                                    data-confirm-label="Deactivate"
+                                >
                                     <x-icons.trash />
                                 </button>
                             </form>
