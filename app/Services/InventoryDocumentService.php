@@ -357,12 +357,18 @@ class InventoryDocumentService
         float $invoiceDiscount = 0,
         int $profitMultiplier = 0
     ): array {
+        if ($invoiceDiscount < 0) {
+            throw ValidationException::withMessages([
+                'discount_amount' => ['Document discount cannot be negative.'],
+            ]);
+        }
+
         $prepared = [];
         $subtotalAmount = 0;
         $itemDiscountAmount = 0;
         $netBeforeInvoiceDiscount = 0;
 
-        foreach ($items as $row) {
+        foreach ($items as $index => $row) {
             $product = Product::query()
                 ->with('taxProfile')
                 ->findOrFail($row['product_id']);
@@ -373,6 +379,25 @@ class InventoryDocumentService
             $lineUnitAmount = $priceBasis === 'cost' ? $unitCost : $unitPrice;
             $lineSubtotal = round($quantity * $lineUnitAmount, 2);
             $lineDiscount = round((float) ($row['discount_amount'] ?? 0), 2);
+
+            if ($quantity < 1) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.quantity" => ['Quantity must be at least 1.'],
+                ]);
+            }
+
+            if ($unitCost < 0 || $unitPrice < 0) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.unit_price" => ['Prices and costs cannot be negative.'],
+                ]);
+            }
+
+            if ($lineDiscount < 0 || $lineDiscount > $lineSubtotal) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.discount_amount" => ['Line discount must be between zero and the line subtotal.'],
+                ]);
+            }
+
             $lineNetBeforeInvoiceDiscount = max(0, round($lineSubtotal - $lineDiscount, 2));
 
             $prepared[] = [

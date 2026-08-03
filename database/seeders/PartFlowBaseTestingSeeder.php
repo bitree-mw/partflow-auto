@@ -12,7 +12,6 @@ use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\ProductCompatibility;
 use App\Models\ProductReference;
-use App\Models\Role;
 use App\Models\Site;
 use App\Models\SiteStock;
 use App\Models\TaxProfile;
@@ -45,22 +44,7 @@ class PartFlowBaseTestingSeeder extends Seeder
 
     private function seedRoles(): array
     {
-        $records = [
-            'System Administrator' => ['*'],
-            'Branch Manager' => ['sales.*', 'stock.*', 'reports.view'],
-            'Cashier' => ['sales.create', 'sales.view', 'pos.use'],
-            'Stock Controller' => ['stock.*', 'catalogue.view'],
-            'Reports Viewer' => ['reports.view'],
-        ];
-
-        return collect($records)
-            ->mapWithKeys(fn (array $permissions, string $name) => [
-                $name => Role::updateOrCreate(
-                    ['name' => $name],
-                    ['permissions' => $permissions, 'is_active' => true]
-                ),
-            ])
-            ->all();
+        return DefaultRolePermissionSeeder::upsert();
     }
 
     private function seedSites(): array

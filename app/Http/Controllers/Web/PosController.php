@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\InventoryDocumentService;
@@ -13,6 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route as RouteFacade;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
@@ -147,11 +150,29 @@ class PosController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'source_site_id' => ['required', 'integer', 'exists:sites,id'],
-            'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
+            'source_site_id' => [
+                'required',
+                'integer',
+                Rule::exists('sites', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')),
+            ],
+            'contact_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('contacts', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')),
+            ],
             'document_date' => ['nullable', 'date'],
             'cart_payload' => ['required', 'string'],
-            'payment_account_id' => ['nullable', 'integer', 'exists:payment_accounts,id'],
+            'payment_account_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('payment_accounts', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')),
+            ],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -163,22 +184,48 @@ class PosController extends Controller
             ]);
         }
 
-        $items = collect($cart)
-            ->filter(fn ($item): bool => ! empty($item['product_id']) && ! empty($item['quantity']))
+        $cartData = Validator::make(
+            ['items' => $cart],
+            [
+                'items' => ['required', 'array', 'min:1', 'max:100'],
+                'items.*' => ['required', 'array'],
+                'items.*.product_id' => [
+                    'required',
+                    'integer',
+                    'distinct',
+                    Rule::exists('products', 'id')->where(fn ($query) => $query
+                        ->where('is_active', true)
+                        ->whereNull('deleted_at')),
+                ],
+                'items.*.quantity' => ['required', 'integer', 'min:1', 'max:10000'],
+            ],
+            [
+                'items.required' => 'Add at least one product before completing the sale.',
+                'items.min' => 'Add at least one product before completing the sale.',
+                'items.max' => 'A sale cannot contain more than 100 different products.',
+                'items.*.product_id.required' => 'Every sale line must have a product.',
+                'items.*.product_id.distinct' => 'The same product cannot appear twice in the cart.',
+                'items.*.product_id.exists' => 'A product in the cart is no longer available. Please rebuild the sale.',
+                'items.*.quantity.required' => 'Every sale line must have a quantity.',
+                'items.*.quantity.integer' => 'Sale quantities must be whole numbers.',
+                'items.*.quantity.min' => 'Sale quantities must be at least 1.',
+                'items.*.quantity.max' => 'A sale quantity cannot exceed 10,000 units.',
+            ]
+        )->validate();
+
+        $products = Product::query()
+            ->whereIn('id', collect($cartData['items'])->pluck('product_id'))
+            ->get(['id', 'default_selling_price'])
+            ->keyBy('id');
+
+        $items = collect($cartData['items'])
             ->map(fn (array $item): array => [
                 'product_id' => (int) $item['product_id'],
                 'quantity' => (int) $item['quantity'],
-                'unit_price' => (float) ($item['unit_price'] ?? 0),
+                'unit_price' => (float) $products->get((int) $item['product_id'])->default_selling_price,
                 'discount_amount' => 0,
             ])
-            ->values()
             ->all();
-
-        if (empty($items)) {
-            throw ValidationException::withMessages([
-                'cart_payload' => 'Add at least one product before completing the sale.',
-            ]);
-        }
 
         $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();
 

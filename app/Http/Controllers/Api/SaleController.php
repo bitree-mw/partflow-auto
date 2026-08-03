@@ -26,7 +26,20 @@ class SaleController extends Controller
 
     public function store(StoreSaleRequest $request): JsonResponse
     {
-        $sale = $this->inventoryDocumentService->createSale($request->validated(), $request->user());
+        $data = $request->validated();
+
+        if (! $request->user()->hasPermission('sales.price_override')) {
+            $data['discount_amount'] = 0;
+            $data['items'] = collect($data['items'])
+                ->map(function (array $item): array {
+                    unset($item['unit_price'], $item['discount_amount'], $item['tax_profile_id']);
+
+                    return $item;
+                })
+                ->all();
+        }
+
+        $sale = $this->inventoryDocumentService->createSale($data, $request->user());
 
         return ApiResponse::created(new InventoryDocumentResource($sale), 'Sale created successfully');
     }

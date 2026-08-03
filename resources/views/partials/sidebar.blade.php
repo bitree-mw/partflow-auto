@@ -28,55 +28,75 @@
     $navigationGroups = [
         'Workspace' => [
             ['label' => 'Overview', 'icon' => 'grid', 'href' => route('web.dashboard'), 'active' => request()->routeIs('web.dashboard')],
-            ['label' => 'Point of sale', 'icon' => 'receipt', 'href' => route('web.pos'), 'active' => request()->routeIs('web.pos')],
+            ['label' => 'Point of sale', 'icon' => 'receipt', 'href' => route('web.pos'), 'active' => request()->routeIs('web.pos'), 'permission' => 'sales.create'],
         ],
         'Operations' => [
-            ['label' => 'Sales', 'icon' => 'trend', 'href' => route('web.sales.index'), 'active' => request()->routeIs('web.sales.*')],
-            ['label' => 'Purchases', 'icon' => 'basket', 'href' => route('web.purchases.index'), 'active' => request()->routeIs('web.purchases.*')],
-            ['label' => 'Customers', 'icon' => 'users', 'href' => route('web.customers.index'), 'active' => request()->routeIs('web.customers.*')],
-            ['label' => 'Suppliers', 'icon' => 'truck', 'href' => route('web.suppliers.index'), 'active' => request()->routeIs('web.suppliers.*')],
+            ['label' => 'Sales', 'icon' => 'trend', 'href' => route('web.sales.index'), 'active' => request()->routeIs('web.sales.*'), 'permission' => 'sales.view'],
+            ['label' => 'Purchases', 'icon' => 'basket', 'href' => route('web.purchases.index'), 'active' => request()->routeIs('web.purchases.*'), 'permission' => 'purchases.view'],
+            ['label' => 'Customers', 'icon' => 'users', 'href' => route('web.customers.index'), 'active' => request()->routeIs('web.customers.*'), 'permission' => 'customers.view'],
+            ['label' => 'Suppliers', 'icon' => 'truck', 'href' => route('web.suppliers.index'), 'active' => request()->routeIs('web.suppliers.*'), 'permission' => 'suppliers.view'],
         ],
         'Catalogue' => [
-            ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*')],
-            ['label' => 'Parts catalogue', 'icon' => 'parts', 'href' => route('web.catalog.products.index'), 'active' => request()->routeIs('web.catalog.*') && ! request()->routeIs('web.catalog.sites.*')],
+            ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*'), 'permission' => 'stock.view'],
+            ['label' => 'Parts catalogue', 'icon' => 'parts', 'href' => route('web.catalog.products.index'), 'active' => request()->routeIs('web.catalog.*') && ! request()->routeIs('web.catalog.sites.*'), 'permission' => 'catalogue.view'],
         ],
         'Intelligence' => [
-            ['label' => 'Reports', 'icon' => 'bars', 'href' => route('web.reports.index'), 'active' => request()->routeIs('web.reports.*')],
+            ['label' => 'Reports', 'icon' => 'bars', 'href' => route('web.reports.index'), 'active' => request()->routeIs('web.reports.*'), 'permission' => 'reports.view'],
             ['label' => 'Alerts', 'icon' => 'bell', 'href' => route('web.alerts.index'), 'active' => request()->routeIs('web.alerts.*'), 'badge' => $alertCount],
         ],
         'Admin' => [
-            ['label' => 'Admin settings', 'icon' => 'shield', 'href' => route('web.settings.index'), 'active' => request()->routeIs('web.settings.*')],
+            ['label' => 'Admin settings', 'icon' => 'shield', 'href' => route('web.settings.index'), 'active' => request()->routeIs('web.settings.*'), 'permission' => 'settings.manage'],
         ],
     ];
 @endphp
 
-<aside class="app-sidebar" aria-label="Primary navigation">
+<aside class="app-sidebar" aria-label="Primary navigation" data-app-sidebar>
     <a class="brand-mark" href="{{ route('web.dashboard') }}">
         <span>{{ $appSystem['business_initials'] ?? 'PF' }}</span>
         <strong>{{ $appSystem['business_name'] ?? 'PartFlow Auto' }}</strong>
         <small>{{ $appSystem['tagline'] ?? 'Auto parts operations' }}</small>
     </a>
 
-    <nav class="sidebar-nav" aria-label="Application sections">
+    <button
+        class="sidebar-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="app-sidebar-navigation"
+        data-sidebar-toggle
+    >
+        <span aria-hidden="true">☰</span>
+        <strong>Menu</strong>
+    </button>
+
+    <nav class="sidebar-nav" id="app-sidebar-navigation" aria-label="Application sections" data-sidebar-navigation>
         @foreach ($navigationGroups as $group => $items)
-            <section class="sidebar-group" aria-label="{{ $group }}">
-                <p>{{ $group }}</p>
+            @php
+                $visibleItems = collect($items)->filter(
+                    fn (array $item): bool => empty($item['permission'])
+                        || $signedInUser?->hasPermission($item['permission'])
+                );
+            @endphp
 
-                @foreach ($items as $item)
-                    <a
-                        href="{{ $item['href'] }}"
-                        @class(['active' => $item['active'], 'disabled' => $item['href'] === '#'])
-                        @if ($item['href'] === '#') aria-disabled="true" tabindex="-1" @endif
-                    >
-                        <span class="nav-icon" aria-hidden="true">{!! $icons[$item['icon']] !!}</span>
-                        <span>{{ $item['label'] }}</span>
+            @if ($visibleItems->isNotEmpty())
+                <section class="sidebar-group" aria-label="{{ $group }}">
+                    <p>{{ $group }}</p>
 
-                        @if (! empty($item['badge']))
-                            <em>{{ $item['badge'] }}</em>
-                        @endif
-                    </a>
-                @endforeach
-            </section>
+                    @foreach ($visibleItems as $item)
+                        <a
+                            href="{{ $item['href'] }}"
+                            @class(['active' => $item['active'], 'disabled' => $item['href'] === '#'])
+                            @if ($item['href'] === '#') aria-disabled="true" tabindex="-1" @endif
+                        >
+                            <span class="nav-icon" aria-hidden="true">{!! $icons[$item['icon']] !!}</span>
+                            <span>{{ $item['label'] }}</span>
+
+                            @if (! empty($item['badge']))
+                                <em>{{ $item['badge'] }}</em>
+                            @endif
+                        </a>
+                    @endforeach
+                </section>
+            @endif
         @endforeach
     </nav>
 

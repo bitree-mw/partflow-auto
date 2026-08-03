@@ -12,7 +12,9 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.catalog.fuel-types.create') }}">Add fuel type</a>
+    @if (auth()->user()?->hasPermission('catalogue.manage'))
+        <a class="btn" href="{{ route('web.catalog.fuel-types.create') }}">Add fuel type</a>
+    @endif
 @endsection
 
 @section('content')
@@ -56,28 +58,30 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.fuel-types.edit', $fuelType['id']) }}" title="Edit fuel type" aria-label="Edit fuel type">
-                                        <x-icons.pencil />
-                                    </a>
-                                    @if ($fuelType['is_active'])
-                                        <form method="POST" action="{{ route('web.catalog.fuel-types.destroy', $fuelType['id']) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button
-                                                class="icon-action icon-danger"
-                                                type="submit"
-                                                title="Deactivate fuel type"
-                                                aria-label="Deactivate fuel type"
-                                                data-confirm-title="Deactivate fuel type?"
-                                                data-confirm="Deactivate &quot;{{ $fuelType['name'] }}&quot;? Existing products remain unchanged."
-                                                data-confirm-label="Deactivate"
-                                            >
-                                                <x-icons.trash />
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
+                                @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                    <div class="row-actions">
+                                        <a class="icon-action icon-edit" href="{{ route('web.catalog.fuel-types.edit', $fuelType['id']) }}" title="Edit fuel type" aria-label="Edit fuel type">
+                                            <x-icons.pencil />
+                                        </a>
+                                        @if ($fuelType['is_active'])
+                                            <form method="POST" action="{{ route('web.catalog.fuel-types.destroy', $fuelType['id']) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button
+                                                    class="icon-action icon-danger"
+                                                    type="submit"
+                                                    title="Deactivate fuel type"
+                                                    aria-label="Deactivate fuel type"
+                                                    data-confirm-title="Deactivate fuel type?"
+                                                    data-confirm="Deactivate &quot;{{ $fuelType['name'] }}&quot;? Existing products remain unchanged."
+                                                    data-confirm-label="Deactivate"
+                                                >
+                                                    <x-icons.trash />
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                         </tr>
                     @empty

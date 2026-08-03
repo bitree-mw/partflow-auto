@@ -38,6 +38,7 @@ class ReportRepository
     public function lowStockBySite(array $filters = []): Collection
     {
         return $this->stockLevelQuery($filters)
+            ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->get();
     }

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\Site;
 use App\Models\User;
 use App\Models\UserSiteAccess;
@@ -20,22 +19,7 @@ class DefaultSystemUserSeeder extends Seeder
 
     private function seedRoles(): array
     {
-        $roles = [
-            'System Administrator' => ['*'],
-            'Branch Manager' => ['sales.*', 'purchases.*', 'stock.*', 'catalogue.*', 'reports.view', 'settings.view'],
-            'Cashier' => ['pos.use', 'sales.create', 'sales.view', 'customers.view'],
-            'Stock Controller' => ['purchases.*', 'stock.*', 'catalogue.view', 'suppliers.view'],
-            'Reports Viewer' => ['reports.view', 'sales.view', 'purchases.view', 'stock.view'],
-        ];
-
-        return collect($roles)
-            ->mapWithKeys(fn (array $permissions, string $name) => [
-                $name => Role::updateOrCreate(
-                    ['name' => $name],
-                    ['permissions' => $permissions, 'is_active' => true]
-                ),
-            ])
-            ->all();
+        return DefaultRolePermissionSeeder::upsert();
     }
 
     private function seedUsers(array $roles): array

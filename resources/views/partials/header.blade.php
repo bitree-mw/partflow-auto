@@ -23,7 +23,7 @@
             ]);
         @endphp
 
-        @if (! $hideGlobalSiteSwitcher && ! empty($globalSiteOptions ?? []))
+        @if (! $hideGlobalSiteSwitcher && ! empty($globalSiteOptions ?? []) && auth()->user()?->hasAnyPermission(['sales.view', 'sales.create', 'purchases.view', 'customers.view', 'suppliers.view']))
             <form
                 class="header-branch-switcher"
                 method="POST"
@@ -71,7 +71,7 @@
 
         @hasSection('header_actions')
             @yield('header_actions')
-        @else
+        @elseif (auth()->user()?->hasPermission('sales.create'))
             <a class="btn" href="{{ route('web.pos') }}">New sale</a>
         @endif
     </div>

@@ -12,7 +12,9 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ $createRoute }}">Add {{ $mode === 'customers' ? 'customer' : 'supplier' }}</a>
+    @if (auth()->user()?->hasPermission($mode === 'customers' ? 'customers.manage' : 'suppliers.manage'))
+        <a class="btn" href="{{ $createRoute }}">Add {{ $mode === 'customers' ? 'customer' : 'supplier' }}</a>
+    @endif
 @endsection
 
 @section('content')
@@ -87,7 +89,11 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    @if ($contact['is_active'] && (float) $contact['balance_amount'] <= 0)
+                                    @if (
+                                        auth()->user()?->hasPermission($mode === 'customers' ? 'customers.manage' : 'suppliers.manage')
+                                        && $contact['is_active']
+                                        && (float) $contact['balance_amount'] <= 0
+                                    )
                                         <form method="POST" action="{{ $mode === 'customers' ? route('web.customers.destroy', $contact['id']) : route('web.suppliers.destroy', $contact['id']) }}">
                                             @csrf
                                             @method('DELETE')

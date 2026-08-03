@@ -23,9 +23,9 @@ class SiteStockService
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
             ->when(isset($filters['low_stock']), function ($query) use ($filters) {
                 if (filter_var($filters['low_stock'], FILTER_VALIDATE_BOOLEAN)) {
-                    $query->whereRaw(
-                        '(quantity_on_hand - reserved_quantity) <= COALESCE(low_stock_level, 0)'
-                    );
+                    $query
+                        ->whereRaw('COALESCE(low_stock_level, 0) > 0')
+                        ->whereRaw('(quantity_on_hand - reserved_quantity) <= COALESCE(low_stock_level, 0)');
                 }
             })
             ->when(isset($filters['search']), function ($query) use ($filters) {

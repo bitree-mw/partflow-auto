@@ -12,7 +12,9 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.catalog.brands.create') }}">Add brand</a>
+    @if (auth()->user()?->hasPermission('catalogue.manage'))
+        <a class="btn" href="{{ route('web.catalog.brands.create') }}">Add brand</a>
+    @endif
 @endsection
 
 @section('content')
@@ -58,28 +60,30 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.brands.edit', $brand['id']) }}" title="Edit brand" aria-label="Edit brand">
-                                        <x-icons.pencil />
-                                    </a>
-                                    @if ($brand['is_active'])
-                                        <form method="POST" action="{{ route('web.catalog.brands.destroy', $brand['id']) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button
-                                                class="icon-action icon-danger"
-                                                type="submit"
-                                                title="Deactivate brand"
-                                                aria-label="Deactivate brand"
-                                                data-confirm-title="Deactivate brand?"
-                                                data-confirm="Deactivate &quot;{{ $brand['name'] }}&quot;? Existing products remain unchanged."
-                                                data-confirm-label="Deactivate"
-                                            >
-                                                <x-icons.trash />
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
+                                @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                    <div class="row-actions">
+                                        <a class="icon-action icon-edit" href="{{ route('web.catalog.brands.edit', $brand['id']) }}" title="Edit brand" aria-label="Edit brand">
+                                            <x-icons.pencil />
+                                        </a>
+                                        @if ($brand['is_active'])
+                                            <form method="POST" action="{{ route('web.catalog.brands.destroy', $brand['id']) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button
+                                                    class="icon-action icon-danger"
+                                                    type="submit"
+                                                    title="Deactivate brand"
+                                                    aria-label="Deactivate brand"
+                                                    data-confirm-title="Deactivate brand?"
+                                                    data-confirm="Deactivate &quot;{{ $brand['name'] }}&quot;? Existing products remain unchanged."
+                                                    data-confirm-label="Deactivate"
+                                                >
+                                                    <x-icons.trash />
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                         </tr>
                     @empty

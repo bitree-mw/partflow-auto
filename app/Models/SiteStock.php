@@ -69,6 +69,8 @@ class SiteStock extends Model
 
     public function scopeLowStock(Builder $query): Builder
     {
-        return $query->whereRaw('(quantity_on_hand - reserved_quantity) <= COALESCE(low_stock_level, 0)');
+        return $query
+            ->whereRaw('COALESCE(low_stock_level, 0) > 0')
+            ->whereRaw('(quantity_on_hand - reserved_quantity) <= COALESCE(low_stock_level, 0)');
     }
 }

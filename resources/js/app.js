@@ -100,6 +100,46 @@ function initGlobalSiteSwitcher() {
     });
 }
 
+function initMobileSidebar() {
+    const sidebar = document.querySelector('[data-app-sidebar]');
+    const toggle = sidebar?.querySelector('[data-sidebar-toggle]');
+    const navigation = sidebar?.querySelector('[data-sidebar-navigation]');
+    const mobileQuery = window.matchMedia('(max-width: 1120px)');
+
+    if (!sidebar || !toggle || !navigation) {
+        return;
+    }
+
+    const setOpen = (open) => {
+        const mobileOpen = mobileQuery.matches && open;
+
+        sidebar.classList.toggle('sidebar-open', mobileOpen);
+        toggle.setAttribute('aria-expanded', mobileOpen ? 'true' : 'false');
+        toggle.querySelector('strong').textContent = mobileOpen ? 'Close menu' : 'Menu';
+    };
+
+    toggle.addEventListener('click', () => {
+        setOpen(!sidebar.classList.contains('sidebar-open'));
+    });
+
+    navigation.addEventListener('click', (event) => {
+        if (event.target.closest('a')) {
+            setOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && sidebar.classList.contains('sidebar-open')) {
+            setOpen(false);
+            toggle.focus();
+        }
+    });
+
+    mobileQuery.addEventListener('change', () => setOpen(false));
+    setOpen(false);
+}
+
 initAppDialogs();
 initSearchableSelects();
 initGlobalSiteSwitcher();
+initMobileSidebar();

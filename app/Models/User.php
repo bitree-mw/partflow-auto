@@ -104,6 +104,35 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function hasPermission(string $permission): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $this->loadMissing('role');
+
+        if (! $this->role?->is_active) {
+            return false;
+        }
+
+        return collect($this->role->permissions ?? [])->contains(function (string $granted) use ($permission): bool {
+            if ($granted === '*' || $granted === $permission) {
+                return true;
+            }
+
+            return str_ends_with($granted, '.*')
+                && str_starts_with($permission, str($granted)->beforeLast('*')->toString());
+        });
+    }
+
+    public function hasAnyPermission(array $permissions): bool
+    {
+        return collect($permissions)
+            ->filter()
+            ->contains(fn (string $permission): bool => $this->hasPermission($permission));
+    }
+
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function (Builder $query) use ($search) {

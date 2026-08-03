@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('alerts', [AlertController::class, 'index']);
     Route::get('alerts/summary', [AlertController::class, 'summary']);
 
-    Route::prefix('reports')->controller(ReportController::class)->group(function () {
+    Route::prefix('reports')->controller(ReportController::class)->middleware('permission:reports.view')->group(function () {
         Route::get('current-stock-by-site', 'currentStockBySite');
         Route::get('low-stock-by-site', 'lowStockBySite');
         Route::get('out-of-stock-products', 'outOfStockProducts');
@@ -67,79 +67,98 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('export', 'export');
     });
 
-    Route::get('pos/products', [PosProductController::class, 'index']);
-    Route::get('pos/suggestions', [PosProductController::class, 'suggestions']);
-    Route::post('pos/sales', [SaleController::class, 'store']);
+    Route::get('pos/products', [PosProductController::class, 'index'])->middleware('permission:sales.create');
+    Route::get('pos/suggestions', [PosProductController::class, 'suggestions'])->middleware('permission:sales.create');
+    Route::post('pos/sales', [SaleController::class, 'store'])->middleware('permission:sales.create');
 
-    Route::get('inventory-documents', [InventoryDocumentController::class, 'index']);
-    Route::get('inventory-documents/{inventoryDocument}', [InventoryDocumentController::class, 'show']);
+    Route::get('inventory-documents', [InventoryDocumentController::class, 'index'])->middleware('permission:sales.view,purchases.view,stock.view');
+    Route::get('inventory-documents/{inventoryDocument}', [InventoryDocumentController::class, 'show'])->middleware('permission:sales.view,purchases.view,stock.view');
 
-    Route::get('stock-movements', [StockMovementController::class, 'index']);
-    Route::get('stock-movements/{stockMovement}', [StockMovementController::class, 'show']);
+    Route::get('stock-movements', [StockMovementController::class, 'index'])->middleware('permission:stock.view');
+    Route::get('stock-movements/{stockMovement}', [StockMovementController::class, 'show'])->middleware('permission:stock.view');
 
-    Route::get('purchases', [PurchaseController::class, 'index']);
-    Route::post('purchases', [PurchaseController::class, 'store']);
-    Route::get('purchases/{inventoryDocument}', [PurchaseController::class, 'show']);
+    Route::get('purchases', [PurchaseController::class, 'index'])->middleware('permission:purchases.view');
+    Route::post('purchases', [PurchaseController::class, 'store'])->middleware('permission:purchases.create');
+    Route::get('purchases/{inventoryDocument}', [PurchaseController::class, 'show'])->middleware('permission:purchases.view');
 
-    Route::get('sales', [SaleController::class, 'index']);
-    Route::post('sales', [SaleController::class, 'store']);
-    Route::get('sales/{inventoryDocument}', [SaleController::class, 'show']);
+    Route::get('sales', [SaleController::class, 'index'])->middleware('permission:sales.view');
+    Route::post('sales', [SaleController::class, 'store'])->middleware('permission:sales.create');
+    Route::get('sales/{inventoryDocument}', [SaleController::class, 'show'])->middleware('permission:sales.view');
 
-    Route::get('transfers', [TransferController::class, 'index']);
-    Route::post('transfers', [TransferController::class, 'store']);
-    Route::get('transfers/{inventoryDocument}', [TransferController::class, 'show']);
+    Route::get('transfers', [TransferController::class, 'index'])->middleware('permission:stock.view');
+    Route::post('transfers', [TransferController::class, 'store'])->middleware('permission:stock.transfer');
+    Route::get('transfers/{inventoryDocument}', [TransferController::class, 'show'])->middleware('permission:stock.view');
 
-    Route::get('stock-adjustments', [StockAdjustmentController::class, 'index']);
-    Route::post('stock-adjustments', [StockAdjustmentController::class, 'store']);
-    Route::get('stock-adjustments/{inventoryDocument}', [StockAdjustmentController::class, 'show']);
+    Route::get('stock-adjustments', [StockAdjustmentController::class, 'index'])->middleware('permission:stock.view');
+    Route::post('stock-adjustments', [StockAdjustmentController::class, 'store'])->middleware('permission:stock.adjust');
+    Route::get('stock-adjustments/{inventoryDocument}', [StockAdjustmentController::class, 'show'])->middleware('permission:stock.view');
 
-    Route::get('stock-takes', [StockTakeController::class, 'index']);
-    Route::post('stock-takes', [StockTakeController::class, 'store']);
-    Route::get('stock-takes/{inventoryDocument}', [StockTakeController::class, 'show']);
+    Route::get('stock-takes', [StockTakeController::class, 'index'])->middleware('permission:stock.view');
+    Route::post('stock-takes', [StockTakeController::class, 'store'])->middleware('permission:stock.adjust');
+    Route::get('stock-takes/{inventoryDocument}', [StockTakeController::class, 'show'])->middleware('permission:stock.view');
 
-    Route::get('sale-returns', [SaleReturnController::class, 'index']);
-    Route::post('sale-returns', [SaleReturnController::class, 'store']);
-    Route::get('sale-returns/{inventoryDocument}', [SaleReturnController::class, 'show']);
+    Route::get('sale-returns', [SaleReturnController::class, 'index'])->middleware('permission:sales.view');
+    Route::post('sale-returns', [SaleReturnController::class, 'store'])->middleware('permission:sales.manage');
+    Route::get('sale-returns/{inventoryDocument}', [SaleReturnController::class, 'show'])->middleware('permission:sales.view');
 
-    Route::get('purchase-returns', [PurchaseReturnController::class, 'index']);
-    Route::post('purchase-returns', [PurchaseReturnController::class, 'store']);
-    Route::get('purchase-returns/{inventoryDocument}', [PurchaseReturnController::class, 'show']);
+    Route::get('purchase-returns', [PurchaseReturnController::class, 'index'])->middleware('permission:purchases.view');
+    Route::post('purchase-returns', [PurchaseReturnController::class, 'store'])->middleware('permission:purchases.manage');
+    Route::get('purchase-returns/{inventoryDocument}', [PurchaseReturnController::class, 'show'])->middleware('permission:purchases.view');
 
     Route::apiResource('payment-accounts', PaymentAccountController::class)
-        ->parameters(['payment-accounts' => 'payment_account']);
+        ->only(['index', 'show'])
+        ->parameters(['payment-accounts' => 'payment_account'])
+        ->middleware('permission:payment-accounts.view');
+
+    Route::apiResource('payment-accounts', PaymentAccountController::class)
+        ->only(['store', 'update', 'destroy'])
+        ->parameters(['payment-accounts' => 'payment_account'])
+        ->middleware('permission:payment-accounts.manage');
 
     Route::apiResource('payments', PaymentController::class)
-        ->only(['index', 'store', 'show', 'destroy']);
+        ->only(['index', 'store', 'show', 'destroy'])
+        ->middleware('permission:sales.manage,purchases.manage');
 
     Route::apiResource('expense-categories', ExpenseCategoryController::class)
-        ->parameters(['expense-categories' => 'expense_category']);
+        ->parameters(['expense-categories' => 'expense_category'])
+        ->middleware('permission:purchases.manage');
 
-    Route::apiResource('expenses', ExpenseController::class);
+    Route::apiResource('expenses', ExpenseController::class)->middleware('permission:purchases.manage');
 
-    Route::apiResource('site-stocks', SiteStockController::class);
+    Route::apiResource('site-stocks', SiteStockController::class)->only(['index', 'show'])->middleware('permission:stock.view');
+    Route::apiResource('site-stocks', SiteStockController::class)->except(['index', 'show'])->middleware('permission:stock.adjust');
 
-    Route::apiResource('products', ProductController::class);
+    Route::apiResource('products', ProductController::class)->only(['index', 'show'])->middleware('permission:catalogue.view,sales.create,purchases.create,stock.view');
+    Route::apiResource('products', ProductController::class)->except(['index', 'show'])->middleware('permission:catalogue.manage');
 
     Route::apiResource('tax-profiles', TaxProfileController::class)
-        ->parameters(['tax-profiles' => 'tax_profile']);
+        ->parameters(['tax-profiles' => 'tax_profile'])
+        ->middleware('permission:catalogue.manage');
 
-    Route::apiResource('brands', BrandController::class);
+    Route::apiResource('brands', BrandController::class)->only(['index', 'show'])->middleware('permission:catalogue.view');
+    Route::apiResource('brands', BrandController::class)->except(['index', 'show'])->middleware('permission:catalogue.manage');
 
     Route::apiResource('fuel-types', FuelTypeController::class)
-        ->parameters(['fuel-types' => 'fuel_type']);
+        ->parameters(['fuel-types' => 'fuel_type'])
+        ->middleware('permission:catalogue.manage');
 
     Route::apiResource('product-types', ProductTypeController::class)
-        ->parameters(['product-types' => 'product_type']);
+        ->parameters(['product-types' => 'product_type'])
+        ->middleware('permission:catalogue.manage');
 
-    Route::apiResource('contacts', ContactController::class);
+    Route::apiResource('contacts', ContactController::class)->only(['index', 'show'])->middleware('permission:customers.view,suppliers.view,sales.create,purchases.create');
+    Route::apiResource('contacts', ContactController::class)->except(['index', 'show'])->middleware('permission:customers.manage,suppliers.manage');
 
     Route::apiResource('car-models', CarModelController::class)
-        ->parameters(['car-models' => 'car_model']);
+        ->parameters(['car-models' => 'car_model'])
+        ->middleware('permission:catalogue.manage');
 
     Route::apiResource('user-site-accesses', UserSiteAccessController::class)
-        ->parameters(['user-site-accesses' => 'user_site_access']);
+        ->parameters(['user-site-accesses' => 'user_site_access'])
+        ->middleware('permission:settings.manage');
 
-    Route::apiResource('roles', RoleController::class);
-    Route::apiResource('sites', SiteController::class);
+    Route::apiResource('roles', RoleController::class)->middleware('permission:settings.manage');
+    Route::apiResource('sites', SiteController::class)->only(['index', 'show'])->middleware('permission:stock.view,sales.create,purchases.create');
+    Route::apiResource('sites', SiteController::class)->except(['index', 'show'])->middleware('permission:settings.manage');
 
 });

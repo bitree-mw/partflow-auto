@@ -44,7 +44,7 @@ class ExampleTest extends TestCase
 
     public function test_back_office_pages_return_successful_responses(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $pages = [
             '/pos',
@@ -122,7 +122,7 @@ class ExampleTest extends TestCase
 
     public function test_payment_accounts_web_flow_uses_api_backed_records(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $this->get(route('web.payment-accounts.index'))
             ->assertOk()
@@ -168,7 +168,7 @@ class ExampleTest extends TestCase
 
     public function test_admin_settings_persist_and_add_entities_from_dialog_actions(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $this->post(route('web.settings.update'), [
             'settings_action' => 'save_settings',
@@ -236,7 +236,7 @@ class ExampleTest extends TestCase
 
     public function test_catalogue_can_create_brand_product_type_and_product(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $this->post(route('web.catalog.brands.store'), [
             'name' => 'Test Brand',
@@ -310,7 +310,7 @@ class ExampleTest extends TestCase
 
     public function test_catalogue_can_create_product_without_vehicle_fitment(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $brand = Brand::create([
             'name' => 'Universal Brand',
@@ -342,7 +342,7 @@ class ExampleTest extends TestCase
 
     public function test_product_forms_fill_the_product_type_column_and_deactivation_requires_confirmation(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->adminUser());
 
         $productType = ProductType::create([
             'name' => 'Brake Pad',
@@ -370,7 +370,7 @@ class ExampleTest extends TestCase
 
     public function test_stock_take_requires_and_records_a_reason_for_stock_adjustments(): void
     {
-        $user = User::factory()->create();
+        $user = $this->adminUser();
         $this->actingAs($user);
 
         $site = Site::create([
@@ -439,7 +439,7 @@ class ExampleTest extends TestCase
 
     public function test_contacts_and_purchase_workflows_create_real_records(): void
     {
-        $user = User::factory()->create();
+        $user = $this->adminUser();
         $this->actingAs($user);
 
         $this->post(route('web.customers.store'), [
@@ -568,13 +568,26 @@ class ExampleTest extends TestCase
                 ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 16000],
             ]),
             'payment_account_id' => $account->id,
-            'amount_paid' => 16000,
+            'amount_paid' => 15000,
         ])->assertRedirect(route('web.pos'));
 
         $sale = InventoryDocument::where('document_type', 'sale')->latest('id')->firstOrFail();
 
         $this->assertSame('paid', $sale->payment_status);
-        $this->assertEquals(16000, (float) $sale->total_amount);
+        $this->assertEquals(15000, (float) $sale->total_amount);
         $this->assertEquals(3, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
+    }
+
+    private function adminUser(array $attributes = []): User
+    {
+        $role = Role::query()->firstOrCreate(
+            ['name' => 'Test Administrator'],
+            ['permissions' => ['*'], 'is_active' => true],
+        );
+
+        return User::factory()->create(array_merge([
+            'role_id' => $role->id,
+            'is_active' => true,
+        ], $attributes));
     }
 }

@@ -160,8 +160,6 @@
             </section>
 
             <div class="checkout-actions">
-                <button class="ghost-button" type="button">Hold</button>
-                <button class="ghost-button" type="button">Discount</button>
                 <button class="pay-button" type="button" data-complete-sale>Complete sale</button>
             </div>
         </aside>

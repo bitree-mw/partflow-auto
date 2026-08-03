@@ -12,7 +12,9 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.purchases.create') }}">New purchase</a>
+    @if (auth()->user()?->hasPermission('purchases.create'))
+        <a class="btn" href="{{ route('web.purchases.create') }}">New purchase</a>
+    @endif
 @endsection
 
 @section('content')
@@ -91,9 +93,11 @@
                             <td>{{ $purchase['paid'] }}</td>
                             <td><span @class(['status-pill', $purchase['tone']])>{{ $purchase['status'] }}</span></td>
                             <td>
-                                <a class="icon-action icon-edit" href="{{ route('web.purchases.edit', $purchase['id']) }}" aria-label="Edit purchase" title="Edit purchase">
-                                    <x-icons.pencil />
-                                </a>
+                                @if (auth()->user()?->hasPermission('purchases.manage'))
+                                    <a class="icon-action icon-edit" href="{{ route('web.purchases.edit', $purchase['id']) }}" aria-label="Edit purchase" title="Edit purchase">
+                                        <x-icons.pencil />
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

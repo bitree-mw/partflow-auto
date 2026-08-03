@@ -8,9 +8,15 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.sites.create') }}">Add site</a>
-    <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Parts catalogue</a>
-    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @if (auth()->user()?->hasPermission('settings.manage'))
+        <a class="btn-secondary" href="{{ route('web.catalog.sites.create') }}">Add site</a>
+    @endif
+    @if (auth()->user()?->hasPermission('catalogue.view'))
+        <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Parts catalogue</a>
+    @endif
+    @if (auth()->user()?->hasPermission('sales.create'))
+        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @endif
 @endsection
 
 @section('content')
@@ -34,7 +40,9 @@
                 <p>Move multiple parts from a source site to a destination site. The system checks available quantities before stock is moved.</p>
             </header>
             <div class="site-workflow-actions">
-                <a class="btn" href="{{ route('web.catalog.sites.transfers.create') }}">New transfer</a>
+                @if (auth()->user()?->hasPermission('stock.transfer'))
+                    <a class="btn" href="{{ route('web.catalog.sites.transfers.create') }}">New transfer</a>
+                @endif
                 <a class="btn-secondary" href="{{ route('web.catalog.sites.transfers.index') }}">View transfers</a>
             </div>
         </article>
@@ -46,7 +54,9 @@
                 <p>Count multiple catalogue parts at one site, compare against system stock, and review the variance report after posting.</p>
             </header>
             <div class="site-workflow-actions">
-                <a class="btn" href="{{ route('web.catalog.sites.stock-takes.create') }}">New stock take</a>
+                @if (auth()->user()?->hasPermission('stock.adjust'))
+                    <a class="btn" href="{{ route('web.catalog.sites.stock-takes.create') }}">New stock take</a>
+                @endif
                 <a class="btn-secondary" href="{{ route('web.catalog.sites.stock-takes.index') }}">View stock takes</a>
             </div>
         </article>

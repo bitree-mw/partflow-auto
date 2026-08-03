@@ -12,7 +12,9 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @if (auth()->user()?->hasPermission('sales.create'))
+        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @endif
 @endsection
 
 @section('content')
@@ -66,9 +68,11 @@
                             <td>{{ $sale['profit'] }}</td>
                             <td><span @class(['status-pill', $sale['payment_tone'] ?? 'neutral'])>{{ $sale['status'] }}</span></td>
                             <td>
-                                <a class="icon-action icon-edit" href="{{ route('web.sales.edit', $sale['id']) }}" aria-label="Edit sale" title="Edit sale">
-                                    <x-icons.pencil />
-                                </a>
+                                @if (auth()->user()?->hasPermission('sales.manage'))
+                                    <a class="icon-action icon-edit" href="{{ route('web.sales.edit', $sale['id']) }}" aria-label="Edit sale" title="Edit sale">
+                                        <x-icons.pencil />
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

@@ -40,6 +40,7 @@ class AlertService
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
+            ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->selectRaw('products.id as product_id, products.product_name, products.product_code, sites.id as site_id, sites.name as site_name')
             ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')

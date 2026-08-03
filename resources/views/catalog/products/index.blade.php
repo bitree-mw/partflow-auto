@@ -12,8 +12,12 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.sites.index') }}">Warehouse</a>
-    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @if (auth()->user()?->hasPermission('stock.view'))
+        <a class="btn-secondary" href="{{ route('web.catalog.sites.index') }}">Warehouse</a>
+    @endif
+    @if (auth()->user()?->hasPermission('sales.create'))
+        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @endif
 @endsection
 
 @section('content')
@@ -29,37 +33,45 @@
                     <strong>{{ $item['value'] }}</strong>
                     <p>{{ $item['detail'] }}</p>
 
-                    @if ($item['label'] === 'Products available')
+                    @if ($item['label'] === 'Products available' && auth()->user()?->hasPermission('catalogue.manage'))
                         <div class="catalogue-card-actions">
                             <a class="btn catalogue-add-button" href="{{ route('web.catalog.products.create') }}">Add product</a>
                         </div>
                     @elseif ($item['label'] === 'Brands')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.brands.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.brands.create') }}" title="Add brand" aria-label="Add brand">
-                                <x-icons.plus />
-                            </a>
+                            @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.brands.create') }}" title="Add brand" aria-label="Add brand">
+                                    <x-icons.plus />
+                                </a>
+                            @endif
                         </div>
                     @elseif ($item['label'] === 'Product types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.product-types.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.product-types.create') }}" title="Add product type" aria-label="Add product type">
-                                <x-icons.plus />
-                            </a>
+                            @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.product-types.create') }}" title="Add product type" aria-label="Add product type">
+                                    <x-icons.plus />
+                                </a>
+                            @endif
                         </div>
                     @elseif ($item['label'] === 'Fuel types')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.fuel-types.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.fuel-types.create') }}" title="Add fuel type" aria-label="Add fuel type">
-                                <x-icons.plus />
-                            </a>
+                            @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.fuel-types.create') }}" title="Add fuel type" aria-label="Add fuel type">
+                                    <x-icons.plus />
+                                </a>
+                            @endif
                         </div>
                     @elseif ($item['label'] === 'Car models')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.car-models.index') }}">View</a>
-                            <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.car-models.create') }}" title="Add car model" aria-label="Add car model">
-                                <x-icons.plus />
-                            </a>
+                            @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                <a class="icon-action catalogue-add-button catalogue-icon-add" href="{{ route('web.catalog.car-models.create') }}" title="Add car model" aria-label="Add car model">
+                                    <x-icons.plus />
+                                </a>
+                            @endif
                         </div>
                     @endif
                 </article>
@@ -136,25 +148,27 @@
                             </td>
                             <td>
                                 <div class="row-actions catalogue-row-actions">
-                                    <a class="icon-action icon-edit" href="{{ route('web.catalog.products.edit', $product['id']) }}" title="Edit product" aria-label="Edit product">
-                                        <x-icons.pencil />
-                                    </a>
-                                    @if ($product['is_active'] && ! $product['has_stock'])
-                                        <form method="POST" action="{{ route('web.catalog.products.destroy', $product['id']) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button
-                                                class="icon-action icon-danger"
-                                                type="submit"
-                                                title="Deactivate product"
-                                                aria-label="Deactivate product"
-                                                data-confirm-title="Deactivate product?"
-                                                data-confirm="Deactivate &quot;{{ $product['name'] }}&quot;? It will no longer appear in active catalogue or POS searches."
-                                                data-confirm-label="Deactivate"
-                                            >
-                                                <x-icons.trash />
-                                            </button>
-                                        </form>
+                                    @if (auth()->user()?->hasPermission('catalogue.manage'))
+                                        <a class="icon-action icon-edit" href="{{ route('web.catalog.products.edit', $product['id']) }}" title="Edit product" aria-label="Edit product">
+                                            <x-icons.pencil />
+                                        </a>
+                                        @if ($product['is_active'] && ! $product['has_stock'])
+                                            <form method="POST" action="{{ route('web.catalog.products.destroy', $product['id']) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button
+                                                    class="icon-action icon-danger"
+                                                    type="submit"
+                                                    title="Deactivate product"
+                                                    aria-label="Deactivate product"
+                                                    data-confirm-title="Deactivate product?"
+                                                    data-confirm="Deactivate &quot;{{ $product['name'] }}&quot;? It will no longer appear in active catalogue or POS searches."
+                                                    data-confirm-label="Deactivate"
+                                                >
+                                                    <x-icons.trash />
+                                                </button>
+                                            </form>
+                                        @endif
                                     @endif
                                 </div>
                             </td>

@@ -8,8 +8,12 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.catalog.products.create') }}">Add part</a>
-    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @if (auth()->user()?->hasPermission('catalogue.manage'))
+        <a class="btn-secondary" href="{{ route('web.catalog.products.create') }}">Add part</a>
+    @endif
+    @if (auth()->user()?->hasPermission('sales.create'))
+        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+    @endif
 @endsection
 
 @section('content')
@@ -54,7 +58,9 @@
                     @endforeach
                 </select>
             </form>
-            <a class="btn-secondary" href="{{ route('web.reports.index') }}">Open reports</a>
+            @if (auth()->user()?->hasPermission('reports.view'))
+                <a class="btn-secondary" href="{{ route('web.reports.index') }}">Open reports</a>
+            @endif
         </div>
     </section>
 
@@ -177,7 +183,9 @@
                 </article>
             </div>
             <p class="money-note">Review returns, discount leakage, and stock variance before closing the day.</p>
-            <a class="btn-secondary" href="{{ route('web.reports.index') }}">View payment report</a>
+            @if (auth()->user()?->hasPermission('reports.view'))
+                <a class="btn-secondary" href="{{ route('web.reports.index') }}">View payment report</a>
+            @endif
         </article>
     </section>
 
