@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the expected API shape for PartFlow Auto. Existing public contracts take priority: inspect routes, controllers, Resources, tests, and the current `ApiResponse` helper before changing response formats.
+This document records the API conventions verified from `routes/api.php`, controllers, Form Requests, API Resources, and `app/Support/ApiResponse.php` on 2026-08-16. Normative guidance is identified separately from current limitations.
 
 ## Standard request flow
 
@@ -18,24 +18,24 @@ This document defines the expected API shape for PartFlow Auto. Existing public 
 
 ## Base path and versioning
 
-Use the existing route configuration. A common base path is `/api`, but do not add `/v1` or alter prefixes unless versioning is an approved project decision.
+The API is currently unversioned under `/api`. Do not add `/v1` or alter prefixes unless versioning and consumer migration are approved.
 
 ## Authentication and authorization
 
 - Use Laravel Sanctum for authenticated API requests.
 - Use Laravel session authentication for protected Blade/web routes; those web routes are not part of the public API contract.
-- Confirm whether the API client uses personal access tokens or Sanctum's stateful cookie authentication before modifying login, logout, CSRF, CORS, or middleware configuration.
+- API login and registration issue Sanctum personal access tokens. The Blade login also creates a token stored in the session for server-side internal API dispatch; this mixed session/token bridge is implemented but should be treated as architectural debt, not the preferred shape for new web actions.
 - Protect restricted API routes with the project's Sanctum middleware, normally `auth:sanctum` unless the repository establishes another convention.
 - Enforce permissions through policies, gates, middleware, or the established roles implementation.
 - Enforce site access on the backend for every site-scoped resource.
 - Return `401 Unauthorized` when authentication is missing or invalid.
 - Return `403 Forbidden` when an authenticated user lacks permission.
 - Do not reveal whether inaccessible cross-site records exist.
-- Do not return an API token from ordinary session-based Blade login unless that is an explicit existing requirement.
+- Public endpoints are `POST /api/auth/register` and `POST /api/auth/login`; all other API routes use `auth:sanctum`.
 
 ## Response envelope
 
-Preserve the actual `ApiResponse` contract. If the project has not yet standardized it, a suitable structure is:
+`app/Support/ApiResponse.php` defines the implemented success shape:
 
 ```json
 {
@@ -45,7 +45,7 @@ Preserve the actual `ApiResponse` contract. If the project has not yet standardi
 }
 ```
 
-For errors:
+Implemented errors use:
 
 ```json
 {
@@ -55,7 +55,7 @@ For errors:
 }
 ```
 
-Do not change field names, nesting, pagination metadata, or message behaviour without checking API consumers and tests.
+`data` is always present on success and may be `null`; `errors` is present on errors only when supplied; optional success `meta` is supported. Delete responses return HTTP 200 with `data: null`. Do not change these details without checking API consumers and tests.
 
 ## HTTP status codes
 
@@ -109,9 +109,9 @@ page, per_page, search, site_id, status, from, to, sort, direction
 
 Only implement parameters supported by the endpoint and document them in its tests or API documentation.
 
-## Expected endpoint families
+## Implemented endpoint families
 
-The following families describe PartFlow Auto's required capabilities. Actual paths and availability must be verified in `routes/api.php` and route registrations.
+The protected API currently exposes these families:
 
 | Capability | Typical endpoints or actions |
 | --- | --- |
@@ -121,18 +121,19 @@ The following families describe PartFlow Auto's required capabilities. Actual pa
 | Parts | CRUD/search, compatibility, pricing, and low-stock settings. |
 | Vehicle data | Makes, models, years, engines, and fuel types. |
 | Suppliers | Supplier CRUD and purchase-related lookup. |
-| Purchases | Create, list, view, receive/post, or cancel according to the status model. |
+| Purchases | Create, list, and view. No receive/cancel action endpoint exists. |
 | Inventory | Site balances, stock movements, low-stock list, and controlled adjustments. |
-| Transfers | Create, approve, dispatch, receive, reject, or cancel according to allowed transitions. |
-| Sales | Checkout, list, view, and supported void/return actions. |
-| Customers/debtors | Customer CRUD, balances, credit activity, and payment allocation. |
-| Reports | Sales, purchases, stock, movement, transfer, profit, and debtor reports where implemented. |
+| Transfers | Create, list, and view. No approve/dispatch/receive/reject/cancel actions exist. |
+| Sales | POS checkout plus sale list/create/view; sale-return routes exist, but void/refund rules are incomplete. |
+| Customers/debtors | Contact CRUD (including a credit-limit field) and document balance reporting; no enforced credit policy, ledger, aging, or statement API exists. |
+| Payments/expenses | Payments, payment accounts/methods, expenses, and expense categories. Payments are currently deletable. |
+| Reports | Stock, sales, purchases, movements, transfers, profit, customer balances, payments, variances, expenses, and CSV export. |
 
 Do not create every route in this table automatically. First compare the required capability with existing routes and the approved implementation scope.
 
 ## Stateful business actions
 
-Use explicit action endpoints when an operation changes business state and ordinary CRUD would hide important rules. Examples may include:
+The following action endpoints are **planned**, not implemented:
 
 ```text
 POST /transfers/{transfer}/dispatch
@@ -141,7 +142,7 @@ POST /purchases/{purchase}/receive
 POST /sales/{sale}/payments
 ```
 
-Exact verbs and paths must follow existing project conventions. Each action should:
+Exact verbs and paths require approval. When implemented, each action should:
 
 1. Authorize the user and site.
 2. Validate required input.
@@ -158,6 +159,14 @@ Exact verbs and paths must follow existing project conventions. Each action shou
 - Use transactions for purchases, transfers, sales, stock adjustments, debts, and payments.
 - Use locking or another documented concurrency strategy where simultaneous operations can oversell stock.
 - Make duplicate submission behaviour explicit for checkout, receipt, dispatch, and payment endpoints.
+
+### Current SiteStock exception
+
+`/api/site-stocks` currently exposes create, update, and delete endpoints that can directly alter or remove quantities without a `StockMovement`. This is a verified integrity gap, not an approved convention. Planned behavior is to allow direct threshold maintenance only; quantity changes must use stock adjustments or stock takes.
+
+## Collection behavior
+
+Many current `index` actions return unpaginated Resource collections. Pagination, sort parameters, and consistent list metadata are planned improvements; clients must not assume every collection currently returns pagination metadata.
 
 ## Dates, money, and statuses
 

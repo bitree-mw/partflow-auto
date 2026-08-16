@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines how developers and AI agents should build and modify the PartFlow Auto user interface. The confirmed frontend stack is Laravel Blade and Tailwind CSS, running through Laravel on PHP 8.4. Verify the installed Laravel, Tailwind, Vite, and JavaScript versions from the repository before changing configuration.
+This document records the Blade frontend verified on 2026-08-16 and the rules for extending it. The locked stack is Laravel 12.62.0, Blade, Tailwind CSS 4.3.1, Vite 7.3.5, Laravel Vite Plugin 2.1.0, Axios 1.18.1, and vanilla JavaScript, running locally on PHP 8.4.
 
 ## Frontend architecture
 
@@ -17,11 +17,11 @@ The preferred flow is:
 - Tailwind utilities provide styling; avoid adding custom CSS when existing utilities or components are sufficient.
 - Protected Blade pages use Laravel session authentication.
 - Web forms must include CSRF protection and display Laravel validation errors safely.
-- Use Sanctum only when the Blade interface intentionally calls protected API endpoints; do not create tokens for ordinary server-rendered navigation and form submissions.
+- The current Blade login creates a Sanctum personal access token stored in the session for server-side internal API dispatch. This is implemented but is architectural debt; new web actions should not expand that coupling without an explicit decision.
 
 ## Expected view structure
 
-Confirm the actual structure before moving existing files. A suitable convention is:
+The verified structure is:
 
 ```text
 resources/views/
@@ -29,41 +29,39 @@ resources/views/
 │   └── app.blade.php
 ├── components/
 ├── partials/
-├── auth/
+├── auth/                  # login
 ├── dashboard/
-├── parts/
-├── suppliers/
+├── catalog/               # products, reference data, sites, transfers, stock takes
+├── contacts/              # customer and supplier screens
 ├── purchases/
-├── inventory/
-├── transfers/
 ├── sales/
-├── customers/
-├── debtors/
+├── payment-accounts/
 ├── reports/
-└── users/
+├── settings/
+├── alerts/
+└── pos.blade.php
 ```
 
 Do not reorganize working views merely to match this example. Record and follow the existing repository convention.
 
-## Required screens
+## Verified screen status
 
-| Area | Screens and capabilities | Important information |
+| Area | Status | Verified surface and limitation |
 | --- | --- | --- |
-| Authentication | Login and logout. | Validation and safe authentication errors. |
-| Dashboard | Business summary and alerts. | Sales, stock value, low stock, debt, and site context. |
-| Parts | List, create, view, and edit parts. | Part code, name, category, brand, price, VAT, compatibility, and stock. |
-| Compatibility | Assign vehicle make, model, year, engine, and fuel type. | Clear compatibility combinations and duplicate prevention. |
-| Suppliers | Supplier list and maintenance. | Contact details and purchase history where authorized. |
-| Purchases | Record and inspect purchases. | Supplier, site, items, cost, totals, status, and stock effect. |
-| Inventory | Site stock, low-stock items, and adjustments. | Quantity on hand, threshold, movement history, and reason. |
-| Transfers | Request, approve, dispatch, receive, and inspect transfers. | Source, destination, items, quantities, status, and audit trail. |
-| Point of sale | Product search, cart, customer, discount, VAT, and payment. | Current-site availability and server-calculated totals. |
-| Sales | Sale list, receipt/detail view, and permitted follow-up actions. | Payment status, destination, staff member, and audit information. |
-| Customers and debtors | Customer records, balances, credit sales, and repayments. | Outstanding balance, due information, and payment history. |
-| Users and access | User, role, permission, and site assignment management. | Only visible and usable by authorized roles. |
-| Reports | Filtered operational and financial reports. | Date range, site, totals, export options if implemented. |
+| Authentication | **Partial** | Login/logout pages exist; password reset and a web registration flow do not. |
+| Dashboard and alerts | **Partial** | Summary and alert pages exist; presentation and date/filter behavior are limited. |
+| Catalogue and compatibility | **Implemented** | Product, brand, type, fuel, car-model, and compatibility management screens exist. |
+| Contacts | **Implemented — basic** | Customer and supplier list/create/delete screens exist; transaction-history/statement pages do not. |
+| Purchases | **Partial** | List/create/edit screens exist; there is no receive action screen. |
+| Site inventory | **Partial** | Site overview and stock-take screens exist; direct quantity CRUD is not an approved adjustment workflow. |
+| Transfers | **Partial** | List/create/show screens exist; approve, dispatch, receive, reject, and cancel screens do not. |
+| POS and sales | **Partial** | Search/cart/customer/payment checkout and sale list/edit exist; printable receipt, idempotent checkout, and void/reversal UI do not. |
+| Customers and debtors | **Partial** | Customer records, a credit-limit field, and sale balances exist; limit enforcement, due dates, aging, statements, and collection workflow do not. |
+| Users and access | **Partial** | Settings manage roles and site assignments; a conventional user CRUD interface does not exist. |
+| Reports | **Partial** | Report filters and export link exist; the export link does not currently attach the bearer token required by the API route. |
+| Payment accounts | **Implemented — basic** | List/create/show/edit screens exist. Payment reversal/reconciliation UI is not claimed. |
 
-This table describes the required product surface; it does not prove that every screen already exists.
+Status definitions and planned work are maintained in `docs/FEATURES_AND_COMPONENTS.md`.
 
 ## Layout and navigation
 
@@ -167,17 +165,15 @@ The frontend may improve usability, but it must not be the sole enforcement poin
 
 ## Verification commands
 
-Use the commands configured in `package.json`. Common examples are:
+The configured package scripts are:
 
 ```bash
-npm install
 npm run dev
 npm run build
 ```
 
 Do not assume an npm lint or test command exists; inspect `package.json` first.
 
-<!-- INACTIVE: Alpine.js is used for lightweight interactions. Activate only if it is installed. -->
-<!-- INACTIVE: Livewire is used for interactive screens. Activate only if it is installed. -->
-<!-- INACTIVE: A JavaScript unit-test runner is configured. Record its command when confirmed. -->
-<!-- INACTIVE: Browser tests cover the POS and other critical screens. Record the framework when confirmed. -->
+## Inactive optional frontend capabilities
+
+Alpine.js, Livewire, React, Vue, a JavaScript unit-test runner, and browser-test automation are not installed or active. Offline POS, barcode scanning, image uploads, and realtime updates are also inactive optional features rather than implemented UI capabilities.

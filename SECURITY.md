@@ -22,6 +22,43 @@ This file defines security expectations for `Partflow Auto`. It supplements `AGE
 - Public API errors do not expose internal implementation details.
 - Sensitive operations maintain an appropriate audit trail.
 
+## Verified current security state
+
+This section records implementation findings from the current repository working tree on 2026-08-16. It does not weaken the invariants above.
+
+### Implemented controls
+
+- Blade routes use session authentication and CSRF middleware; protected API routes use `auth:sanctum`.
+- `RequirePermission` enforces exact or wildcard role permissions on the server.
+- `SiteAccessService`, Form Request authorization, service checks, scoped queries, dashboards, and reports enforce active user-site access and operation flags in the current working tree. Transfers require access to both sites.
+- Core purchase, sale, transfer, stock-adjustment, stock-take, and payment operations use database transactions; stock movement writes use row locking and reject invalid negative/over-reserved balances.
+- API responses use `app/Support/ApiResponse.php`, and API audit middleware records protected requests.
+
+### Partial controls and risks
+
+| Risk | Evidence | Required direction |
+| --- | --- | --- |
+| Blade login creates a Sanctum token and stores it in the session for internal API calls. | `app/Http/Controllers/Web/AuthSessionController.php` | Decide whether to retain this bridge or move web actions to session-only services/controllers; ensure token lifecycle does not accumulate unnecessary tokens. |
+| Public API registration creates users without a normal administrator-managed role workflow. | `routes/api.php`, `app/Services/AuthService.php` | Confirm whether registration should remain public and which role/status new users receive. |
+| No explicit login/register throttling is attached to the auth routes. | `routes/api.php`, `routes/web.php` | Add an approved throttle policy and regression tests. |
+| Direct SiteStock CRUD can create, update, or delete quantities without a movement. | `routes/api.php`, `app/Services/SiteStockService.php` | Confirmed planned correction: quantity changes must use adjustments or stock takes; direct edit may remain only for `low_stock_level`. |
+| Sale input protection replaces catalogue price but does not remove client-submitted `unit_cost`. | `app/Http/Controllers/Api/SaleController.php` | Derive cost snapshots from trusted stock/catalogue costing after the costing rule is confirmed. |
+| Payments can be hard-deleted and balances recalculated. | `app/Services/PaymentService.php`, web/API payment routes | Replace destructive correction with the approved immutable reversal method. |
+| Non-production exception responses may include file and line details. | `bootstrap/app.php` | Keep production debug disabled and consider limiting internal paths in all API responses. |
+| The default system-user seeder contains the fallback literal `password`. | `database/seeders/DefaultSystemUserSeeder.php` | Require an explicit environment-supplied value or random bootstrap credential outside production fixtures. |
+
+### Inactive optional controls
+
+Two-factor authentication, named Sanctum token abilities, upload malware scanning, OpenAPI security generation, and route-specific rate-limit policies are not active. They remain optional until approved, except baseline auth throttling listed above, which is a recommended security correction.
+
+### Business rules requiring clarification
+
+- Public registration policy and the initial role/status assigned to a registrant.
+- Token lifetime, device/session limits, and revocation expectations for API and Blade users.
+- Immutable correction/reversal rules for payments, completed sales, purchases, transfers, and returns.
+- Costing source for sale profit snapshots and who may override price, discount, or tax.
+- Return/refund eligibility, approval, destination, VAT effect, and original-document linkage.
+
 ## Prohibited automatic actions
 
 AI agents must not automatically:

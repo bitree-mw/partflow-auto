@@ -4,7 +4,7 @@
 
 This document explains how **PartFlow Auto** is structured. It helps developers and AI coding agents understand the system, place code in the correct layer, preserve established conventions, and safely extend the application without breaking existing functionality.
 
-This document describes the intended architecture. Before changing the application, the developer or AI agent must inspect the existing code and confirm the actual class names, routes, database tables, installed packages, and framework versions.
+This document records the architecture verified in the current repository working tree on 2026-08-16. Normative rules are identified separately from implemented behavior.
 
 ## System overview
 
@@ -18,14 +18,14 @@ PartFlow Auto supports multiple business sites or branches. Stock must be tracke
 
 | Area | Technology | Description |
 | --- | --- | --- |
-| Backend | Laravel `[VERIFY VERSION FROM composer.json]` | Handles business logic, API endpoints, validation, authorization, database access, and transaction processing. |
-| Language | PHP 8.4 | Server-side programming language used by Laravel. |
-| Database | MySQL 9.7.1 | Stores users, products, compatibility data, purchases, stock, sales, debts, payments, and audit information. |
+| Backend | Laravel 12.62.0 (`^12.0`) | Locked framework version and Composer constraint. |
+| Language | PHP 8.4 runtime; Composer permits `^8.2` | The local Herd runtime was verified as PHP 8.4. |
+| Database | MySQL application target; SQLite is the default config and test driver | MySQL uses `utf8mb4` / `utf8mb4_unicode_ci`. The deployed MySQL server version is not verified. |
 | Frontend | Laravel Blade | Provides server-rendered pages and reusable Blade components. |
 | Styling | Tailwind CSS | Provides the design system, responsive layouts, colours, spacing, forms, and interface styling. |
-| Frontend build | Vite `[VERIFY FROM package.json]` | Compiles frontend JavaScript and Tailwind CSS assets. |
-| Authentication | Laravel Sanctum and Laravel session authentication | Sanctum protects API access; session authentication protects Blade/web access. Both flows require server-side authorization. |
-| Hosting | `[VERIFY PRODUCTION ENVIRONMENT]` | Record the hosting type without including credentials, private IP addresses, or secrets. |
+| Frontend build | Vite 7.3.5, Tailwind CSS 4.3.1, Laravel Vite Plugin 2.1.0 | Locked versions from `package-lock.json`; Axios 1.18.1 is also installed. |
+| Authentication | Laravel Sanctum 4.3.2 and Laravel session authentication | Sanctum protects API access; session authentication protects Blade/web access. Both flows require server-side authorization. |
+| Hosting | Not verified | Production hosting and deployed database versions remain operational documentation gaps. |
 
 <!-- INACTIVE: Redis is used for cache, sessions, or queues. Activate only after confirming the project configuration. -->
 <!-- INACTIVE: Object storage such as Amazon S3 is used for part images, invoices, or documents. Activate only if implemented. -->
@@ -116,26 +116,24 @@ API Resources control the public representation of models and collections.
 
 ## Main modules
 
-The model and route names below describe the intended responsibilities. Existing names in the repository take precedence and must be verified before changes are made.
+The following module map uses the classes and route families present in the repository.
 
 | Module | Purpose | Main models or records | Route area |
 | --- | --- | --- | --- |
-| Authentication and users | Login, logout, current-user information, user management, roles, and access control. | `User`, `Role`, `Permission` or the project's equivalent | `/api/login`, `/api/logout`, `/api/users` |
-| Sites or branches | Represents business locations and controls which stock and transactions users may access. | `Site` or `Branch`, user-site access records | `/api/sites` or `/api/branches` |
-| Part catalogue | Maintains part names, descriptions, brands, categories, units, packaging, part codes, purchase prices, selling prices, VAT settings, and low-stock levels. | `Part`, `Brand`, `Category`, `Unit` | `/api/parts`, `/api/brands`, `/api/categories` |
-| Vehicle compatibility | Links parts to compatible vehicle makes, models, years, engines, and fuel types. | `VehicleMake`, `VehicleModel`, `VehicleEngine`, `PartCompatibility` | `/api/vehicles`, `/api/parts/{part}/compatibilities` |
-| Suppliers | Maintains suppliers used when purchasing stock. | `Supplier` | `/api/suppliers` |
-| Purchases | Records stock purchased from suppliers, actual purchase prices, quantities, and receiving status. | `Purchase`, `PurchaseItem` | `/api/purchases` |
-| Inventory | Tracks stock available at each site and records every quantity increase, decrease, correction, or reservation. | `Stock`, `StockMovement`, `StockAdjustment` | `/api/stocks`, `/api/stock-adjustments` |
-| Stock transfers | Moves stock between sites using controlled transfer statuses and traceable transfer items. | `StockTransfer`, `StockTransferItem` | `/api/stock-transfers` |
-| Point of sale and sales | Searches parts, builds a sale, applies approved pricing rules, records payment, completes the sale, and deducts stock. | `Sale`, `SaleItem` | `/api/sales`, `/api/pos` |
-| Customers and debtors | Maintains customers, credit sales, outstanding balances, payment allocations, and debtor histories. | `Customer`, `CustomerAccount`, `DebtorTransaction` or project equivalents | `/api/customers`, `/api/debtors` |
+| Authentication and users | Session login/logout, Sanctum token authentication, roles, and access control. Public registration exists; conventional API user CRUD does not. | `User`, `Role`, `PersonalAccessToken` | `/api/auth/*`, `/api/roles`, web `/login` |
+| Sites or branches | Business locations and explicit per-user operation flags. | `Site`, `UserSiteAccess` | `/api/sites`, `/api/user-site-accesses` |
+| Part catalogue | Products, types, brands, fuel types, references, prices, tax profiles, thresholds, and compatibility. | `Product`, `ProductType`, `Brand`, `FuelType`, `ProductReference`, `TaxProfile` | `/api/products`, `/api/product-types`, `/api/brands`, `/api/fuel-types` |
+| Vehicle compatibility | Structured vehicle make/model and additional product compatibility records. | `CarMake`, `VehicleModel`, `CarModel`, `ProductCompatibility` | `/api/car-models` and product payloads |
+| Contacts | Customers and suppliers share one record with role flags. | `Contact` | `/api/contacts` |
+| Inventory documents | Purchases, sales, transfers, adjustments, stock takes, and returns share generic header/item tables and service logic. | `InventoryDocument`, `InventoryDocumentItem` | `/api/purchases`, `/api/sales`, `/api/transfers`, `/api/stock-adjustments`, `/api/stock-takes`, return routes |
+| Inventory | Per-site balances, reservations, thresholds, and auditable movements. Direct SiteStock quantity CRUD remains an integrity gap. | `SiteStock`, `StockMovement` | `/api/site-stocks`, `/api/stock-movements` |
+| Customers and debtors | Customer contacts, an unenforced contact credit-limit field, and sale-level paid/balance fields. Dedicated ledger, due date, aging, and statement records do not exist. | `Contact`, `InventoryDocument`, `Payment` | `/api/contacts`, `/api/payments`, debtor report |
 | Payments | Records cash, bank, and mobile-money payments and the approved receiving account or destination. | `Payment`, `PaymentMethod`, `PaymentAccount` | `/api/payments`, `/api/payment-accounts` |
-| Pricing, VAT, and discounts | Enforces selling-price, tax, exemption, and discount rules without trusting client-calculated totals. | Part pricing fields or dedicated pricing records | Normally handled through parts, sales, and settings routes |
-| Dashboard and reports | Provides stock, low-stock, sales, purchases, profit, debtors, transfers, and performance summaries. | Reporting queries and resources | `/api/dashboard`, `/api/reports` |
+| Pricing, VAT, and discounts | Product prices and tax profiles feed server-side document calculations; several approval and rounding rules need clarification. | `Product`, `TaxProfile`, `InventoryDocumentItem` | Sales, purchases, products, and settings routes |
+| Expenses | Basic categories, expenses, optional site/account assignment, and reporting. | `Expense`, `ExpenseCategory` | `/api/expenses`, `/api/expense-categories` |
+| Dashboard and reports | Repository-backed summaries, operational reports, and CSV export. | `DashboardRepository`, `ReportRepository` | `/api/dashboard/summary`, `/api/reports/*` |
 
-<!-- INACTIVE: Expenses are managed as a separate module. Activate only if expense tracking exists in PartFlow Auto. -->
-<!-- INACTIVE: Returns and refunds are implemented. Activate only after documenting stock, payment, and audit effects. -->
+Returns and expenses are present. Returns are partial because they are not linked to original documents and lack approved refund/VAT-reversal rules. See `docs/FEATURES_AND_COMPONENTS.md` for status classifications.
 <!-- INACTIVE: Quotations are converted into sales. Activate only if implemented. -->
 <!-- INACTIVE: Barcode generation and scanning are implemented. Activate only if supported by the current system. -->
 
@@ -168,12 +166,12 @@ Where users can access multiple sites, access should be represented explicitly i
 
 ## Core transaction flows
 
-### Purchase and receiving
+### Purchase and stock increase — current flow
 
 1. An authorized user records the supplier and purchase items.
 2. The server validates parts, quantities, purchase prices, VAT, and site access.
 3. The purchase is saved using a database transaction.
-4. Stock increases only when the purchase reaches the approved receiving state.
+4. A purchase created as `completed` immediately increases stock; a `draft` does not. There is no later receive action.
 5. Each increase creates a traceable stock movement.
 
 ### Sale and stock deduction
@@ -184,13 +182,13 @@ Where users can access multiple sites, access should be represented explicitly i
 4. The sale, items, payment or debtor record, stock deductions, and stock movements are committed in one database transaction.
 5. If any required step fails, the complete operation rolls back.
 
-### Stock transfer
+### Stock transfer — current flow and planned transition
 
 1. An authorized user selects the source site, destination site, and quantities.
 2. The server confirms source stock and access permissions.
-3. Transfer items preserve the requested and processed quantities.
-4. Dispatch and receipt must create traceable stock movements at the appropriate sites.
-5. A transfer must not be completed twice or received by the source site.
+3. A transfer created as `completed` immediately applies both source and destination movements in one transaction; a `draft` does not move stock.
+4. Requested/dispatched/received quantity fields and separate dispatch/receipt actions are not implemented.
+5. The planned state machine must prevent duplicate dispatch/receipt and receiving into the source site.
 
 ### Debtor payment
 
@@ -261,14 +259,15 @@ No queue or scheduled task is currently confirmed in this document.
 - Existing API response structures and public contracts must be preserved unless a breaking change is explicitly approved.
 - Existing database migrations that may have run in another environment must not be edited; create new migrations for schema changes.
 
-## Known limitations and items to verify
+## Verified limitations and items to clarify
 
 | Item | Impact | Required action |
 | --- | --- | --- |
-| Laravel and PHP versions are not recorded here. | Commands and available framework features may differ by version. | Read `composer.json` and update the technology stack. |
-| Database engine and version require confirmation. | SQL features, indexing, and migration behaviour may differ. | Verify configuration without copying credentials into this document. |
-| Exact route and model names require confirmation. | Documentation may differ from existing implementation names. | Compare this document with `routes/`, `app/Models`, controllers, and migrations. |
-| Role-permission implementation requires confirmation. | Authorization guidance cannot name the correct middleware or package yet. | Inspect middleware, policies, gates, migrations, and installed packages. |
-| Hosting environment is not documented. | Deployment and infrastructure constraints are incomplete. | Record a safe, non-secret description of the production environment. |
+| Direct SiteStock write CRUD can change/delete quantities without movements. | Stock history can diverge from balances. | Planned: restrict direct editing to `low_stock_level`; use adjustments/stock takes for quantities. |
+| Purchase drafts have no receive action; transfers have no dispatch/receipt state machine. | Draft records cannot progress through controlled business transitions. | Confirm state rules, then add explicit actions. |
+| Blade login creates a personal access token for internal API dispatch. | Session and token lifecycles are coupled and each login adds a token. | Decide whether the Blade UI should use session-only web actions or retain this documented bridge. |
+| Payments can be hard-deleted. | Financial history can be removed instead of reversed. | Confirm and implement an immutable reversal strategy. |
+| Part-code generation does not implement the documented fuel suffixes. | Generated identifiers differ from the stated business convention. | Confirm the suffix and existing-code migration/stability rules. |
+| Production database server and hosting are not documented. | Deployment compatibility and operational controls remain unknown. | Record non-secret production facts. |
 
 Add confirmed technical debt only after inspecting the existing implementation. Do not label an architectural difference as technical debt merely because another approach is preferred.

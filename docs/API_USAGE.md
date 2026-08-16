@@ -4,13 +4,7 @@ This guide explains how to call the PartFlow Auto API from a frontend, mobile ap
 
 ## Base URL
 
-Local XAMPP example:
-
-```text
-http://127.0.0.1/partflow-auto/public/api
-```
-
-Laravel serve example:
+The verified route prefix is `/api`; the host depends on the local or deployed environment. For example:
 
 ```text
 http://127.0.0.1:8000/api
@@ -50,8 +44,8 @@ Accept: application/json
 
 ```json
 {
-  "email": "admin@example.com",
-  "password": "password"
+  "email": "user@example.test",
+  "password": "YOUR_PASSWORD"
 }
 ```
 
@@ -115,7 +109,6 @@ Content-Type: application/json
     {
       "product_id": 10,
       "quantity": 2,
-      "unit_price": 8500,
       "discount_amount": 0
     }
   ],
@@ -128,7 +121,7 @@ Content-Type: application/json
 }
 ```
 
-When completed, the sale reduces `site_stocks.quantity_on_hand`, validates available quantity, records `sale_out` stock movements, calculates VAT, and updates payment status.
+When completed, the sale reduces `site_stocks.quantity_on_hand`, validates available quantity, records `sale_out` stock movements, calculates VAT, and updates payment status. The sale endpoint uses the current catalogue selling price; client-submitted `unit_price` is not authoritative. Protection from client-submitted `unit_cost` remains a documented security gap.
 
 ## Purchases
 
@@ -158,7 +151,7 @@ Content-Type: application/json
 }
 ```
 
-Completed purchases increase site stock and create `purchase_in` stock movements.
+Completed purchases increase site stock and create `purchase_in` stock movements. Draft purchases can be created, but there is no separate receive action that later advances a draft.
 
 ## Transfers
 
@@ -181,7 +174,7 @@ Content-Type: application/json
 }
 ```
 
-Transfers create both `transfer_out` and `transfer_in` stock movements.
+Completed transfers create both `transfer_out` and `transfer_in` stock movements immediately. Dispatch and receipt endpoints are planned and are not currently available.
 
 ## Payments
 
@@ -201,7 +194,7 @@ Content-Type: application/json
 }
 ```
 
-Payments update `paid_amount`, `balance_amount`, and `payment_status` on the related inventory document.
+Payments update `paid_amount`, `balance_amount`, and `payment_status` on the related inventory document. Payment deletion currently removes the row and recalculates the document; an immutable reversal workflow is planned.
 
 ## Stock Movements
 
@@ -211,6 +204,8 @@ Stock movements are usually created by inventory document workflows. To review h
 GET /api/stock-movements?site_id=1&product_id=10
 Authorization: Bearer YOUR_TOKEN_HERE
 ```
+
+Do not use SiteStock create/update/delete as a general stock-adjustment interface. Those routes currently permit direct quantity mutation without a movement and are retained only as a known transitional gap. Use `/api/stock-adjustments` or `/api/stock-takes` for quantity corrections.
 
 ## Reports
 
@@ -240,3 +235,6 @@ The dashboard summary returns today sales, today profit, stock value, low-stock 
 - Sales and transfers fail if requested quantity exceeds available stock.
 - `payment_status` can be `unpaid`, `partial`, or `paid`.
 - Inventory document statuses commonly use `draft`, `completed`, or `approved` depending on document type.
+- Most list endpoints currently return unpaginated collections; do not assume pagination metadata unless the specific response provides it.
+- Returns exist as partial sale-return and purchase-return APIs, but original-transaction linkage, refund allocation, and VAT-reversal rules are not implemented.
+- Debtor reporting is derived from document balances. Contacts have a credit-limit field, but enforcement, due dates, aging, and customer statements are not implemented.

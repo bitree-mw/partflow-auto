@@ -75,6 +75,7 @@ Before the first implementation task:
 - Feature inventory or gap review: `docs/FEATURES_AND_COMPONENTS.md`
 - Security-sensitive change: `SECURITY.md`
 - Larger task: `docs/AI_WORKFLOW.md`
+- Skill knowledge: `docs/SKILLS.md`
 
 Read only documents relevant to the current task.
 

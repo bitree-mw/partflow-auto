@@ -2,15 +2,15 @@
 
 ## Purpose
 
-This document defines database responsibilities and integrity rules for PartFlow Auto. It is requirements-based. Inspect actual migrations and models before treating proposed table names as implemented.
+This document records the schema and integrity rules verified in the current repository working tree on 2026-08-16. Requirements that are not implemented are explicitly labelled planned or requiring clarification.
 
 ## Database environment
 
-- Database engine: MySQL
-- Database server version: 9.7.1
-- Charset/collation: `[VERIFY]`
-- Test database: `[VERIFY phpunit.xml AND .env.testing]`
-- Application runtime: PHP 8.4
+- Application target: MySQL configured in `config/database.php`; deployed server version is not verified.
+- Default connection in configuration: SQLite unless `DB_CONNECTION` overrides it.
+- MySQL charset/collation: `utf8mb4` / `utf8mb4_unicode_ci`.
+- Automated test database: SQLite `:memory:` from `phpunit.xml`.
+- Application runtime: PHP 8.4 locally; Composer permits PHP `^8.2`.
 - Money: recommended `decimal(15,2)` unless the existing schema has an approved alternative.
 - Quantities: integers for indivisible parts, or an approved decimal precision where measured stock is supported.
 
@@ -24,27 +24,42 @@ This document defines database responsibilities and integrity rules for PartFlow
 - Record timestamps and actors where auditability matters.
 - Use soft deletes only when restoration is required and query/uniqueness effects are understood.
 
-## Required data areas
+## Implemented schema map
+
+The repository contains 43 migration files. The main implemented tables are:
+
+| Area | Tables/models | Important relationships and constraints |
+| --- | --- | --- |
+| Identity and access | `users`, `roles`, `user_site_access`, `personal_access_tokens`, `sessions` | Users belong to a role and have many site-access rows with operation flags. Sanctum tokens and browser sessions share the user identity. |
+| Business configuration | `business_settings`, `sites`, `payment_accounts`, `expense_categories` | Operational records reference sites and, where applicable, payment accounts. |
+| Catalogue | `products`, `product_types`, `brands`, `fuel_types`, `tax_profiles`, `product_references` | Product codes are unique; products relate to type/brand/fuel/tax and may have many references. |
+| Vehicle compatibility | `car_makes`, `vehicle_models`, `car_models`, `product_compatibilities` | Vehicle-model reference data belongs to makes; product-facing car models and compatibility rows preserve make/model/year/engine/variant details. |
+| Contacts | `contacts` | One table represents customers and suppliers through flags. |
+| Transactions | `inventory_documents`, `inventory_document_items` | Purchases, sales, transfers, adjustments, stock takes, and returns use `document_type`; items preserve quantity, cost, price, discount, tax, and totals. |
+| Stock | `site_stocks`, `stock_movements` | Site stock is unique per site/product. Movements reference site, product, optional document/item, actor, before/after balance, and signed change. |
+| Money and audit | `payments`, `expenses`, `audit_logs` | Payments belong to inventory documents and optional accounts; expenses may reference a site/account/category; API audit middleware writes logs. |
+
+## Implemented data areas and limitations
 
 ### Users, roles, and sites
 
-Store users, account status, roles/permissions, sites or branches, and explicit user-site access where users can access more than one location. Session authentication and Sanctum may share the same users table. Sanctum personal access token tables must be retained if token authentication is used. Verify whether roles use custom tables or a package.
+The application uses custom `roles` with JSON permissions, `users.role_id`, and unique `user_site_access` rows containing operation flags. The users table is shared by browser sessions and Sanctum tokens.
 
 ### Vehicle references and compatibility
 
-Store makes, models, year or year ranges, engines, fuel types, and structured many-to-many compatibility between parts and vehicle configurations. Do not rely only on free-text compatibility when users need reliable search and filtering.
+The schema contains `car_makes`/`vehicle_models` reference data, product-facing `car_models`, a primary product model foreign key, and additional `product_compatibilities`. Compatibility includes structured year, engine, variant, and fuel information alongside descriptive fields.
 
 ### Part catalogue
 
-Store part code, name, description, brand, category, unit/packaging where used, purchase price, selling price, VAT/exemption, low-stock threshold, and active status. Part codes require a unique index. Index fields used by actual search and compatibility queries.
+`products` stores a unique code, name/description, product type, brand, fuel type, origin, units/pack size, default purchase/selling price, tax profile, low-stock threshold, active state, and optional primary car model. References and compatibility are separate related tables.
 
 ### Suppliers and purchases
 
-Store suppliers, purchase headers, purchase line items, supplier reference, receiving site, statuses, quantities, actual unit cost, tax, discount, totals, actors, and timestamps. Receiving must create stock movements within the same database transaction as the approved state change.
+Suppliers use `contacts`; purchases use `inventory_documents` and `inventory_document_items`. Completed creation records costs/totals and creates `purchase_in` movements transactionally. A separate draft-to-received transition is planned and does not exist.
 
 ### Site stock and movements
 
-Store current quantity per site and part, plus traceable stock movements and adjustments. A stock record should have a unique site/part constraint. Concurrent stock writes require row locking or another approved strategy.
+`site_stocks` stores current and reserved quantity plus thresholds per site/product, with a unique site/product constraint. `StockMovementService` locks balance rows and records movements for domain workflows. However, the public SiteStock CRUD service can directly create, update, or delete quantity rows without movements. Removing quantity mutation from that CRUD surface is confirmed planned work; only threshold editing may remain direct.
 
 Recommended movement information:
 
@@ -56,15 +71,15 @@ Recommended movement information:
 
 ### Stock transfers
 
-Store source/destination, line items, requested/dispatched/received quantities as required, status, and actors/timestamps. Source and destination must differ. Dispatch and receipt must not be applied twice.
+Transfers use generic inventory documents with source/destination and items. A completed transfer immediately creates balanced `transfer_out` and `transfer_in` movements. Requested/dispatched/received quantities and explicit dispatch/receipt transitions are not implemented and require business rules.
 
 ### Sales and POS
 
-Store sale header/items, site, cashier, customer where applicable, reference, quantity, unit selling price, cost snapshot, discount, VAT, totals, payment status, and completion state. Server-derived totals and stock deduction must be committed atomically.
+Sales use inventory-document headers/items and preserve site, cashier, optional customer, quantity, selling price, cost snapshot, discount, VAT, totals, payment status, and completion state. Completed sale creation and its stock/payment effects are transactional.
 
 ### Customers, debtors, and payments
 
-Store customers, credit obligations, outstanding balances or derived balance sources, immutable payment/allocation history, payment method, approved bank/mobile destination, amount, reference, actor, and timestamp.
+Sales store `paid_amount`, `balance_amount`, and `payment_status`, and related `payments` preserve payment history and destination. `contacts.credit_limit` exists but is not enforced by a documented credit-authorization workflow. Dedicated obligations, due dates, aging, allocations, statements, and a debtor ledger are not implemented.
 
 Never replace cumulative paid with the latest payment. Add payments to history, calculate cumulative paid, and derive the remaining balance and status.
 
@@ -77,17 +92,14 @@ Reports derive from trusted transactions. Repositories/query objects may support
 
 ## Core relationships
 
-| Parent | Related record | Expected relationship |
+| Parent | Related record | Verified relationship |
 | --- | --- | --- |
-| Site | Stock | One site has many stock records. |
-| Part | Stock | One part has stock at one or more sites. |
-| Part | Vehicle configuration | Many-to-many through compatibility records. |
-| Supplier | Purchase | One supplier has many purchases. |
-| Purchase | Purchase item | One purchase has many line items. |
-| Sale | Sale item | One sale has many line items. |
-| Customer | Sale/debtor transaction | One customer may have many credit transactions. |
-| Debtor/sale | Payment allocation | One obligation may have many payments. |
-| Stock transfer | Transfer item | One transfer has many lines. |
+| `User` | `Role`, `UserSiteAccess` | A user belongs to an optional role and has many unique site assignments. |
+| `Site` | `SiteStock`, `InventoryDocument`, `StockMovement`, `Expense` | Site-scoped records use source, destination, or direct site foreign keys as appropriate. |
+| `Product` | `SiteStock`, `ProductCompatibility`, `InventoryDocumentItem`, `StockMovement` | A product has per-site balances, compatibility rows, transaction lines, and movement history. |
+| `Contact` | `InventoryDocument` | Customer and supplier documents reference the shared contact table. |
+| `InventoryDocument` | `InventoryDocumentItem`, `Payment`, `StockMovement` | A generic transaction header has lines, payment history, and movement history. |
+| `PaymentAccount` | `Payment`, `Expense` | Recorded payments and expenses may identify the receiving/paying account. |
 
 ## Status and transition rules
 
@@ -110,7 +122,7 @@ Document actual values and allowed transitions for purchases, transfers, sales, 
 - Correct transactions through approved void, cancellation, return, reversal, or adjustment workflows.
 - Review cascade deletes deliberately.
 
-<!-- INACTIVE: Returns/refunds have dedicated tables and reversal rules. Activate only when implemented and tested. -->
+Sale and purchase returns use the generic inventory-document tables and create stock movements. They are partial: no original-document link, eligibility rules, refund allocation, VAT reversal, or approved reversal workflow exists.
 
 ## Index and constraint review
 
@@ -124,6 +136,15 @@ At minimum, verify:
 - Indexes for status, date, site, customer, supplier, part, and compatibility filters.
 - Positive quantities and valid source/destination relationships.
 
+## Verified integrity risks and planned corrections
+
+- **Planned:** eliminate direct `quantity_on_hand`/`reserved_quantity` SiteStock writes and deletes; route all changes through an adjustment or stock take with a movement.
+- **Planned:** add controlled purchase receiving and transfer dispatch/receipt state transitions with duplicate-processing protection.
+- **Planned:** replace payment hard deletion with the approved immutable reversal method.
+- **Partial:** returns affect stock but are not tied to the original transaction or its payment/tax effects.
+- **Partial:** debtor balances are document-level fields rather than a reconciled ledger with due dates and aging.
+- **Needs clarification:** costing method, decimal rounding stage, reservation lifecycle, supplier-invoice uniqueness, global expenses, and completed-document correction rules.
+
 ## Repository reconciliation
 
-The first review must inventory migrations/tables, compare them with these data areas, identify missing constraints/indexes, document statuses/relationships, and separate genuine defects from future features.
+Future reviews must compare migrations and models with this map, identify new constraints and indexes, and keep implemented, partial, planned, inactive optional, and unclear rules distinct.

@@ -6,7 +6,13 @@ PartFlow Auto tests must protect inventory quantities, financial totals, authori
 
 Before changing tests, inspect `phpunit.xml`, `composer.json`, `package.json`, the existing test folders, and the configured test database.
 
-The confirmed runtime is PHP 8.4 and the production database engine is MySQL. Tests must use an isolated test database or the repository's configured safe test driver; never point automated tests at production data.
+The local runtime is PHP 8.4. Composer locks PHPUnit 11.5.55 and Laravel Pint 1.29.3. `phpunit.xml` forces SQLite `:memory:`, array cache/session, and the synchronous queue driver; tests must never be pointed at production data. The application target is MySQL, so SQLite-only success does not prove MySQL-specific concurrency or constraint behavior.
+
+## Verified suite status
+
+As of 2026-08-16, the current working tree has 30 passing tests with 276 assertions. Coverage includes API/session authentication, core Blade pages, catalogue operations, stock takes, purchases, POS server-price and stock guards, catalogue import/replacement commands, and cross-cutting user-site access.
+
+This is functional coverage, not complete business-flow coverage. No browser suite, JavaScript unit runner, static-analysis tool, or code-coverage threshold is configured.
 
 ## Test levels
 
@@ -42,7 +48,16 @@ npm run build
 
 <!-- INACTIVE: Parallel tests are supported with `php artisan test --parallel`. Activate after confirming database isolation. -->
 <!-- INACTIVE: Static analysis is configured. Record the PHPStan or Larastan command here. -->
-<!-- INACTIVE: Laravel Pint is configured. Record the exact formatting command here. -->
+
+Laravel Pint is configured:
+
+```bash
+vendor/bin/pint --test
+vendor/bin/pint
+```
+
+The repository-wide `pint --test` baseline is currently not clean. Do not broadly format unrelated files as part of a focused change.
+
 <!-- INACTIVE: JavaScript linting and tests are configured. Record the package scripts here. -->
 
 ## Baseline feature-test checklist
@@ -126,6 +141,20 @@ Cover:
 ## Bug-fix rule
 
 Every business-impacting bug fix must include a regression test that fails before the fix and passes afterward. This is mandatory for bugs affecting stock, transfers, prices, VAT, discounts, debts, payments, authorization, and site isolation.
+
+## Verified coverage gaps
+
+The following capabilities are partial, planned, or unclear and do not yet have complete tests:
+
+- Concurrent sale/transfer/stock writes using the deployed MySQL behavior.
+- Preventing every direct stock quantity change outside movement-backed workflows.
+- Purchase draft-to-receive and transfer dispatch/receipt transitions, which are not implemented.
+- Duplicate checkout/action idempotency.
+- Return eligibility, original-sale/purchase linkage, refund allocation, and VAT reversal.
+- Debtor due dates, aging, statements, credit limits, and collection workflow.
+- Immutable payment and completed-transaction reversal behavior.
+- Fuel-suffix part-code rules.
+- Browser behavior, accessibility, report CSV authentication, and JavaScript interactions.
 
 ## Test report for AI work
 

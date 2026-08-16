@@ -2,40 +2,72 @@
 
 ## Purpose
 
-This document is the checklist for reviewing what PartFlow Auto already implements and what remains necessary. It is requirements-based because the Laravel source repository was not available during this documentation pass.
+This document is the verified feature inventory for PartFlow Auto. It was reconciled against the Laravel routes, migrations, models, Form Requests, services, controllers, API Resources, middleware, Blade views, configuration, and tests in the current repository working tree on 2026-08-16.
 
-When the repository is available, assign each feature one status:
+The status describes the complete business capability, not merely the presence of a route, model, migration, or menu item. Evidence paths identify the primary implementation; related classes may exist elsewhere in the same module.
 
-- **Implemented** — code, database, UI, authorization, and tests are present and working.
-- **Partial** — some required layers or business cases are missing.
-- **Planned** — approved but not implemented.
-- **Not present** — absent and not currently approved.
-- **Needs clarification** — business behaviour must be decided before implementation.
+Use these statuses consistently:
+
+- **Implemented** — the currently supported scope has code, persistence, authorization, and an operational interface. Important limitations may still be recorded.
+- **Partial** — a usable subset exists, but required workflow, integrity, interface, authorization, or test coverage is missing.
+- **Planned** — the capability or correction is an approved target but is not implemented.
+- **Inactive optional** — the capability is neither part of the active system nor approved current work.
+- **Needs clarification** — implementation would require a business decision that the code and documentation do not provide.
 
 Do not label a feature Implemented merely because a menu item, route, model, or migration exists.
 
-## Core feature matrix
+## Verified feature status matrix
 
-| Feature | Business capability | Necessary backend/database parts | Necessary Blade/Tailwind parts | Critical verification |
-| --- | --- | --- | --- | --- |
-| Authentication | Staff securely enter and leave the system through the Blade application or API clients. | Users, session auth, Sanctum, middleware, login/logout actions, CSRF protection, and token handling where used. | Session login form, validation errors, logout action, and expired-session handling. | Web/API guard separation, protected routes, logout invalidation, and disabled/invalid user behaviour. |
-| Roles and permissions | Management and sales staff have appropriate access. | Roles/permissions or policies/gates, user assignments, authorization tests. | Permission-aware navigation and management screens. | Server denial, privilege escalation, and site scope. |
-| Sites/branches | Inventory and operations are separated by location. | Sites, user-site access, site-scoped queries and indexes. | Active-site selector/context and scoped lists. | Cross-site data leakage and unauthorized writes. |
-| Part catalogue | Maintain sellable car parts and pricing information. | Parts, categories, brands, units, prices, VAT state, archive rules. | Search, list, create, edit, view, filters. | Unique identifiers, validation, safe archive behaviour. |
-| Part-code generation | Generate consistent codes including fuel suffixes. | Generator/service, uniqueness constraint, petrol `-I`, diesel `-D`, hybrid `-H`. | Generated-code preview/display and error handling. | Collision handling and unsupported fuel cases. |
-| Vehicle compatibility | Find parts by compatible vehicle specification. | Makes, models, years/ranges, engines, fuel types, pivot/compatibility records. | Compatibility form, filters, and readable badges/details. | Invalid combinations, duplicates, year boundaries. |
-| Suppliers | Maintain purchase sources. | Suppliers, contacts, authorization, relationships. | Supplier list, form, detail/history. | Duplicate/invalid data and delete/archive effects. |
-| Purchases | Record incoming stock and supplier costs. | Purchase headers/items, statuses, totals, receipt transaction, stock movements. | Purchase form, item editor, list/detail, receive action. | Atomic stock increase, repeat receipt, cancellation. |
-| Site inventory | Know stock available at each site. | Inventory balances or derived movement ledger, thresholds, site/part uniqueness. | Site stock table, filters, low-stock indicators. | Balance accuracy and query performance. |
-| Stock adjustments | Correct stock with accountability. | Adjustment record, reason, user, transaction, movement. | Controlled form, confirmation, history. | Permission, reason requirement, negative-stock rule. |
-| Stock transfers | Move parts between company sites. | Transfer headers/items, statuses, source/destination, dispatch/receipt movements. | Create, approve/dispatch/receive screens, status timeline. | Valid transitions, availability, balanced site effects. |
-| Point of sale | Sales staff quickly complete a sale. | Sale/service, lines, server totals, stock transaction, customer/payment links. | Search, cart, customer, totals, checkout, receipt. | Overselling, duplicate checkout, authorization, atomicity. |
-| Discounts and VAT | Apply permitted discounts and tax treatments. | Discount authorization/rules, VAT configuration/exemption, decimal policy. | Transparent line/order totals and restricted controls. | Rounding, limits, inclusive/exclusive/exempt cases. |
-| Customers | Store buyers used for sales and credit. | Customers, contacts, optional credit settings, site/company scope. | List, create, edit, view, sale history. | Duplicate identification and access rules. |
-| Debtors/credit sales | Track amounts customers owe. | Credit sale/balance records or ledger, due data, statuses. | Debtor list, statement, aging/balance views. | Balance reconciliation and credit authorization. |
-| Payments | Record debt settlement and payment destinations. | Payments, allocations, methods, bank/mobile-money destination, audit fields. | Payment form, history, printable acknowledgment. | Overpayment, destination validation, atomic allocation. |
-| Dashboard | Give management and staff useful summaries. | Scoped aggregate queries/query objects and caching only if justified. | KPI cards, alerts, recent activity, site/date filters. | Totals agree with source transactions and permissions. |
-| Reports | Support operational and management decisions. | Dedicated query objects/repositories for complex reports, pagination/export. | Filters, tables, totals, export controls if implemented. | Date/site boundaries, totals, performance, access. |
+| Feature | Status | Verified implementation and limitation | Primary evidence |
+| --- | --- | --- | --- |
+| Authentication | **Partial** | Session login/logout and Sanctum register/login/me/logout exist. Blade login also creates and stores a personal access token for internal API dispatch; password reset, explicit auth throttling, and a complete registration-role policy are absent. | `app/Http/Controllers/Web/AuthSessionController.php`, `app/Services/AuthService.php`, `app/Http/Controllers/Api/AuthController.php`, `routes/web.php`, `routes/api.php` |
+| Roles and permissions | **Implemented** | Custom roles store JSON permissions. `RequirePermission` supports exact and wildcard permission checks, and Blade navigation is permission-aware. No policy classes are currently used. | `app/Models/Role.php`, `app/Models/User.php`, `app/Http/Middleware/RequirePermission.php`, `bootstrap/app.php` |
+| Sites and user-site access | **Implemented** | Active user-site assignments and operation flags are enforced in Form Requests, services, API reads, Blade reads, reports, dashboards, payments, and stock workflows. System administrators with `*` may use all active sites; transfers require access to both sites. | `app/Models/UserSiteAccess.php`, `app/Services/SiteAccessService.php`, `tests/Feature/SiteAccessAuthorizationTest.php` |
+| User administration | **Partial** | Role and user-site assignment APIs plus Blade settings actions exist, but there is no conventional authenticated `/api/users` CRUD resource. Public registration creates users outside a normal administrator-managed user workflow. | `app/Http/Controllers/Api/RoleController.php`, `app/Http/Controllers/Api/UserSiteAccessController.php`, `app/Http/Controllers/Web/AdminSettingsController.php`, `routes/api.php` |
+| Product catalogue | **Implemented** | Products, product types, brands, fuel types, tax profiles, references, active state, pricing fields, API Resources, API CRUD, Blade management, search, and tests exist. | `app/Models/Product.php`, `app/Services/ProductService.php`, `app/Http/Controllers/Api/ProductController.php`, `resources/views/catalog/products`, `tests/Feature/ExampleTest.php` |
+| Part-code generation | **Partial** | The service generates unique compact or generic product codes, but it does not implement the documented petrol `-I`, diesel `-D`, hybrid `-H`, or electric `-E` suffix convention. | `app/Services/ProductService.php` |
+| Vehicle compatibility | **Implemented** | Makes/models, engine and variant data, fuel types, a primary model link, additional compatibility records, API search, Blade forms, and duplicate controls exist. | `app/Models/CarModel.php`, `app/Models/ProductCompatibility.php`, `app/Services/CarModelService.php`, `resources/views/catalog/car-models` |
+| Customers and suppliers | **Implemented — basic** | A shared `contacts` model supports customer/supplier flags, API CRUD, Blade directories, purchase selection, POS selection, and basic tests. Dedicated customer statements and supplier transaction-history pages are not included in this status. | `app/Models/Contact.php`, `app/Services/ContactService.php`, `app/Http/Controllers/Web/ContactDirectoryController.php` |
+| Purchases | **Partial** | Draft and completed purchases, line costs, server totals, optional initial payments, stock receipt movements, API endpoints, Blade create/list/edit, and database transactions exist. A draft cannot later be received through an explicit action endpoint. | `app/Services/InventoryDocumentService.php`, `app/Http/Controllers/Api/PurchaseController.php`, `resources/views/purchases` |
+| Per-site inventory | **Partial** | Site/product balances, reserved quantity, thresholds, uniqueness, filters, low-stock indicators, and movement-backed domain workflows exist. Direct SiteStock create/update/delete endpoints can still change or remove quantities without a stock movement. | `app/Models/SiteStock.php`, `app/Services/SiteStockService.php`, `routes/api.php` |
+| Stock movements | **Implemented** | Movement records preserve type, signed change, before/after balance, document/item references, notes, actor, and timestamp. Row locking and negative/over-reserved stock checks are applied by `StockMovementService`. | `app/Models/StockMovement.php`, `app/Services/StockMovementService.php` |
+| Stock adjustments and stock takes | **Implemented** | Adjustment and count documents run transactionally, require operation permission, create movements on approval, and require a reason when a stock-take variance exists. Blade stock-take flows and regression tests exist. | `app/Http/Requests/InventoryDocument/StoreStockAdjustmentRequest.php`, `app/Http/Requests/InventoryDocument/StoreStockTakeRequest.php`, `tests/Feature/ExampleTest.php` |
+| Stock transfers | **Partial** | Transfer documents and items preserve source/destination and create balanced `transfer_out`/`transfer_in` movements when completed. Drafts exist, but dispatch, receipt, rejection, cancellation, processed quantities, and transition endpoints do not. | `app/Http/Controllers/Api/TransferController.php`, `app/Services/InventoryDocumentService.php`, `resources/views/catalog/sites/transfers` |
+| Sales and POS | **Partial** | POS search, current-site stock, customer/payment selection, server catalogue price, totals, stock deduction, movements, balances, API checkout, Blade checkout, and regression tests exist. Receipt printing, idempotency, void/reversal actions, and complete protection from client-submitted cost data remain absent. | `app/Http/Controllers/Web/PosController.php`, `app/Http/Controllers/Api/SaleController.php`, `app/Services/PosProductSearchService.php`, `tests/Feature/HighestPriorityGuardsTest.php` |
+| Discounts and VAT | **Partial** | Tax profiles and server-side tax/discount allocation exist, and price override uses a permission check. Approved discount thresholds, exemptions, inclusive/exclusive policy, and who may override each value are not fully defined. | `app/Models/TaxProfile.php`, `app/Services/InventoryDocumentService.php`, `app/Http/Controllers/Api/SaleController.php` |
+| Sale and purchase returns | **Partial** | Return document types, API create/list/show endpoints, totals, site authorization, and stock movements exist. Returns are not linked to original transactions and do not implement eligibility, refund, VAT reversal, or approval rules. | `app/Http/Controllers/Api/SaleReturnController.php`, `app/Http/Controllers/Api/PurchaseReturnController.php`, `app/Services/InventoryDocumentService.php` |
+| Debtors and credit sales | **Partial** | Sales retain total, paid, balance, and payment status; contacts have a credit-limit field; reports expose customer balances. The credit limit is not enforced and there is no debtor ledger, due date, aging, credit authorization, or statement workflow. | `app/Models/Contact.php`, `app/Models/InventoryDocument.php`, `app/Services/PaymentService.php`, `app/Repositories/ReportRepository.php` |
+| Payments and payment accounts | **Partial** | Payment-account CRUD, payment history, partial/full balance calculation, overpayment prevention, site access, and row locking in the API create/delete flow exist. Payments are still hard-deleted rather than reversed, and `createForDocument` relies on its caller's transaction for locking. | `app/Models/Payment.php`, `app/Services/PaymentService.php`, `app/Http/Controllers/Api/PaymentAccountController.php` |
+| Expenses | **Implemented — basic** | Expense categories, expense CRUD, optional payment-account/site relationships, permissions, API Resources, and expense reports exist. Accounting-period and reconciliation workflows are not claimed. | `app/Models/Expense.php`, `app/Services/ExpenseService.php`, `app/Http/Controllers/Api/ExpenseController.php` |
+| Dashboard and alerts | **Partial** | Repository-backed sales, profit, stock, debt, recent-activity, branch-performance, and alert queries exist with site scoping. Some Blade presentation remains simplified and has limited filter/date behavior. | `app/Repositories/DashboardRepository.php`, `app/Services/DashboardService.php`, `app/Services/AlertService.php`, `resources/views/dashboard` |
+| Reports and CSV export | **Partial** | Stock, sales, purchase, profit, debtor, payment, movement, transfer, variance, and expense reports plus CSV export exist with site scoping. Most API collections are unpaginated, and the Blade export link does not currently attach the bearer token required by the API route. | `app/Repositories/ReportRepository.php`, `app/Http/Controllers/Api/ReportController.php`, `resources/views/reports/index.blade.php` |
+| Testing | **Partial** | PHPUnit feature tests cover authentication, core Blade pages, catalogue operations, stock takes, purchases, POS price/quantity guards, commands, and site access. Concurrency, state transitions, returns/refunds, debtor aging, reversals, and browser behavior are not covered. | `tests/Feature`, `tests/Unit`, `phpunit.xml` |
+
+## Confirmed planned work
+
+The following changes are active targets but are not implemented:
+
+- Remove direct SiteStock quantity creation, mutation, and deletion from the public API. Quantity changes must go through a stock adjustment or stock take so that every change produces a movement; direct editing may remain only for `low_stock_level`.
+- Add an explicit purchase receiving action and allowed draft-to-received transition.
+- Add transfer request/approval/dispatch/receipt transitions with duplicate-processing protection.
+- Replace destructive payment and completed-transaction correction with approved void or compensating reversal records.
+- Add debtor due dates, aging, statements, credit authorization, and a reconciled history or ledger.
+- Align part-code generation with the final approved fuel-suffix rule without changing existing codes unexpectedly.
+
+## Business rules requiring clarification
+
+Do not implement these areas until the listed behavior is confirmed:
+
+- Which purchase fields remain editable after draft creation, who may receive, and whether partial receiving is supported.
+- The complete transfer state machine, approval thresholds, partial dispatch/receipt rules, rejection, cancellation, and damaged/missing-stock handling.
+- Return eligibility, original-document linkage, return windows, refund destination, payment effect, VAT reversal, and approval.
+- Whether a payment correction uses void plus replacement, a compensating entry, or another immutable reversal model.
+- Credit-sale authorization, limits, due dates, aging bands, collection status, and customer-statement format.
+- Discount limits, whether discounts are fixed or percentage based, and which roles may override price, tax profile, or discount.
+- The exact petrol/diesel/hybrid/electric part-code suffix rule and how existing codes remain stable.
+- The costing method used by stock valuation and profit reporting.
+- Whether reservation documents will become an active stock-hold workflow and how reservations expire or release.
+- Whether expenses may be global/unassigned or must always belong to an active site.
 
 ## Necessary cross-cutting parts
 
@@ -78,9 +110,9 @@ Every implemented feature should include the relevant parts below:
 - Documented environment variables without secrets in source control.
 - Backup, restore, deployment, and monitoring procedures confirmed for production.
 
-## Repository review procedure
+## Future repository review procedure
 
-When the application code is supplied, review it in this order:
+For future reconciliation passes, review in this order:
 
 1. Record the Laravel, MySQL, Sanctum, Tailwind, Vite, and test-framework versions. PHP is confirmed as 8.4.
 2. List web/API routes, middleware, and public endpoint contracts.
@@ -90,7 +122,7 @@ When the application code is supplied, review it in this order:
 6. Run migrations and the existing test suite in a safe test environment.
 7. Trace one purchase, transfer, sale, and debtor payment end to end.
 8. Reconcile stock and financial totals against their source records.
-9. Assign each feature a status from this document.
+9. Reconfirm each feature status from current code and tests.
 10. Produce a prioritized gap list: data-integrity/security first, business-critical gaps second, usability and maintainability afterward.
 
 ## Required repository-review output
@@ -107,19 +139,18 @@ The completed review should report:
 - Security and authorization concerns.
 - Recommended work grouped as critical, high, medium, and optional.
 
-## Optional or unconfirmed capabilities
+## Inactive optional features
 
-Keep these inactive until the business approves them and repository evidence exists.
+These capabilities are not active and are not approved current work. Keep them inactive until the business defines the requirement.
 
-- Customer returns, refunds, and sale reversals. Define stock, payment, VAT, and approval behaviour first
-- Supplier returns and purchase reversals. Define stock and supplier-balance behaviour first.
 - Offline POS. Define synchronization, conflict, security, and duplicate-sale handling before implementation.
-
-<!-- INACTIVE: Quotations, layaway, or sales orders. Define conversion and stock-reservation rules first. -->
-<!-- INACTIVE: Barcode generation and scanning. Confirm hardware, barcode format, and fallback workflow. -->
-<!-- INACTIVE: Part image uploads or object storage. Define storage, limits, privacy, and cleanup. -->
-<!-- INACTIVE: Expenses, cash drawers, and daily reconciliation. Define accounting and permissions first. -->
-<!-- INACTIVE: Approval workflows for discounts, adjustments, purchases, or transfers. Define thresholds and roles. -->
-<!-- INACTIVE: Email, SMS, or in-app notifications. Define events, recipients, retry behaviour, and provider. -->
-<!-- INACTIVE: Online payment gateway. Bank/mobile-money destination recording does not by itself imply gateway processing. -->
-<!-- INACTIVE: Queues, scheduled tasks, Redis, WebSockets, or realtime dashboards. Activate only for a confirmed need. -->
+- Quotations, layaway, sales orders, and quotation-to-sale conversion.
+- Barcode generation and scanner workflows. Existing references and text search are not barcode generation/scanning.
+- Part-image upload, object storage, image transformation, and cleanup workflows.
+- Cash drawers, till opening/closing, and daily cash reconciliation beyond recorded expenses and payment accounts.
+- Email, SMS, or provider-backed notifications.
+- Online payment gateways. Recording bank or mobile-money destinations is not gateway integration.
+- Accounting, ERP, supplier-catalogue, vehicle-data, or other third-party integrations.
+- Redis-backed features, queues, scheduled jobs, WebSockets, and realtime dashboards.
+- Two-factor authentication, named Sanctum token abilities, OpenAPI generation, and API idempotency keys.
+- Browser-test automation and a JavaScript unit-test runner.
