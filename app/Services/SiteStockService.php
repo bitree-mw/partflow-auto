@@ -3,14 +3,23 @@
 namespace App\Services;
 
 use App\Models\SiteStock;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SiteStockService
 {
-    public function list(array $filters = []): Collection
+    public function __construct(
+        private readonly SiteAccessService $siteAccessService
+    ) {}
+
+    public function list(array $filters = [], ?User $user = null): Collection
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
         return SiteStock::query()
             ->with([
                 'product.carModel',
@@ -21,6 +30,7 @@ class SiteStockService
             ])
             ->forProduct(isset($filters['product_id']) ? (int) $filters['product_id'] : null)
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->when(isset($filters['low_stock']), function ($query) use ($filters) {
                 if (filter_var($filters['low_stock'], FILTER_VALIDATE_BOOLEAN)) {
                     $query
@@ -41,8 +51,10 @@ class SiteStockService
             ->get();
     }
 
-    public function create(array $data): SiteStock
+    public function create(array $data, User $user): SiteStock
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['site_id'], SiteAccessService::ADJUST_STOCK);
+
         return DB::transaction(function () use ($data) {
             $quantityOnHand = $data['quantity_on_hand'] ?? 0;
             $reservedQuantity = $data['reserved_quantity'] ?? 0;
@@ -71,8 +83,10 @@ class SiteStockService
         });
     }
 
-    public function update(SiteStock $siteStock, array $data): SiteStock
+    public function update(SiteStock $siteStock, array $data, User $user): SiteStock
     {
+        $this->siteAccessService->authorizeSite($user, $siteStock->site_id, SiteAccessService::ADJUST_STOCK);
+
         return DB::transaction(function () use ($siteStock, $data) {
             $quantityOnHand = $data['quantity_on_hand'] ?? $siteStock->quantity_on_hand;
             $reservedQuantity = $data['reserved_quantity'] ?? $siteStock->reserved_quantity;
@@ -95,8 +109,10 @@ class SiteStockService
         });
     }
 
-    public function delete(SiteStock $siteStock): void
+    public function delete(SiteStock $siteStock, User $user): void
     {
+        $this->siteAccessService->authorizeSite($user, $siteStock->site_id, SiteAccessService::ADJUST_STOCK);
+
         $siteStock->delete();
     }
 }

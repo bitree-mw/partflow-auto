@@ -70,6 +70,11 @@ class StockMovement extends Model
         return $query->when($siteId, fn (Builder $query) => $query->where('site_id', $siteId));
     }
 
+    public function scopeForSites(Builder $query, ?array $siteIds): Builder
+    {
+        return $query->when($siteIds !== null, fn (Builder $query) => $query->whereIn('site_id', $siteIds));
+    }
+
     public function scopeType(Builder $query, ?string $movementType): Builder
     {
         return $query->when($movementType, fn (Builder $query) => $query->where('movement_type', $movementType));

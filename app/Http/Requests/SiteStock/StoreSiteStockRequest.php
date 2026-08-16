@@ -3,10 +3,16 @@
 namespace App\Http\Requests\SiteStock;
 
 use App\Http\Requests\ApiRequest;
+use App\Services\SiteAccessService;
 use Illuminate\Validation\Rule;
 
 class StoreSiteStockRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        return $this->canAccessSiteInput('site_id', SiteAccessService::ADJUST_STOCK);
+    }
+
     public function rules(): array
     {
         return [

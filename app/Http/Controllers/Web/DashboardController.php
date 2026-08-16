@@ -21,7 +21,7 @@ class DashboardController extends Controller
             'title' => now()->format('F j, Y'),
             'description' => null,
             'greetingName' => auth()->user()?->name ?? 'System',
-            ...$this->dashboardService->overview($filters),
+            ...$this->dashboardService->overview($filters, $request->user()),
         ]);
     }
 }

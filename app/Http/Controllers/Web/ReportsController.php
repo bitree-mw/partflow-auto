@@ -4,14 +4,24 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Site;
+use App\Services\SiteAccessService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
+    public function __construct(
+        private readonly SiteAccessService $siteAccessService
+    ) {}
+
     public function index(Request $request): View
     {
         $selectedSiteId = $request->query('site_id');
+
+        if (filled($selectedSiteId)) {
+            $this->siteAccessService->authorizeSite($request->user(), (int) $selectedSiteId);
+        }
+
         $selectedBranchName = filled($selectedSiteId)
             ? Site::query()->whereKey((int) $selectedSiteId)->value('name')
             : null;
@@ -21,7 +31,7 @@ class ReportsController extends Controller
             'description' => 'Filter dates first, then download full transaction reports for sales, stock, payments, and profit and loss.',
             'dateFrom' => '2026-06-01',
             'dateTo' => '2026-06-24',
-            'branchOptions' => $this->branchOptions(),
+            'branchOptions' => $this->branchOptions($request),
             'selectedSiteId' => $selectedSiteId,
             'selectedBranchName' => $selectedBranchName ?? 'All branches',
             'profitLossAccounts' => [
@@ -45,10 +55,13 @@ class ReportsController extends Controller
         ]);
     }
 
-    private function branchOptions(): array
+    private function branchOptions(Request $request): array
     {
+        $siteIds = $this->siteAccessService->allowedSiteIds($request->user());
+
         return Site::query()
             ->active()
+            ->whereIn('id', $siteIds)
             ->orderBy('name')
             ->get()
             ->map(fn (Site $site): array => [

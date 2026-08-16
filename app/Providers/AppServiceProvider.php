@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\AlertService;
 use App\Services\SystemConfigurationService;
+use App\Services\SiteAccessService;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.app', function ($view): void {
             $systemConfiguration = app(SystemConfigurationService::class);
             $alertService = app(AlertService::class);
+            $siteAccessService = app(SiteAccessService::class);
             $user = auth()->user();
             $currentSite = $this->currentSite($user);
             $appSystem = $systemConfiguration->headerContext($user);
@@ -38,8 +40,10 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with([
                 'appSystem' => $appSystem,
-                'notificationSummary' => $alertService->summary(),
-                'globalSiteOptions' => $this->siteOptions(),
+                'notificationSummary' => $user
+                    ? $alertService->summary($siteAccessService->scopeFilters($user))
+                    : $alertService->summary(['site_ids' => []]),
+                'globalSiteOptions' => $this->siteOptions($user),
                 'globalCurrentSiteId' => $currentSite?->id,
                 'globalCanChangeSiteDirectly' => $this->isAdmin($user),
             ]);
@@ -49,7 +53,12 @@ class AppServiceProvider extends ServiceProvider
     private function currentSite(?User $user): ?Site
     {
         $sessionSiteId = request()->session()->get('pos_site_id');
-        $site = $sessionSiteId ? Site::query()->active()->find($sessionSiteId) : null;
+        $allowedSiteIds = $user
+            ? app(SiteAccessService::class)->allowedSiteIds($user, SiteAccessService::MAKE_SALES)
+            : [];
+        $site = $sessionSiteId
+            ? Site::query()->active()->whereIn('id', $allowedSiteIds)->find($sessionSiteId)
+            : null;
 
         if (! $site && $user) {
             $site = $user
@@ -62,13 +71,18 @@ class AppServiceProvider extends ServiceProvider
                 ->first();
         }
 
-        return $site ?? Site::query()->active()->orderBy('name')->first();
+        return $site ?? Site::query()->active()->whereIn('id', $allowedSiteIds)->orderBy('name')->first();
     }
 
-    private function siteOptions(): array
+    private function siteOptions(?User $user): array
     {
+        $siteIds = $user
+            ? app(SiteAccessService::class)->allowedSiteIds($user, SiteAccessService::MAKE_SALES)
+            : [];
+
         return Site::query()
             ->active()
+            ->whereIn('id', $siteIds)
             ->orderBy('name')
             ->get()
             ->map(fn (Site $site): array => [

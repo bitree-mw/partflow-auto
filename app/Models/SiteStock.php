@@ -67,6 +67,11 @@ class SiteStock extends Model
         });
     }
 
+    public function scopeForSites(Builder $query, ?array $siteIds): Builder
+    {
+        return $query->when($siteIds !== null, fn (Builder $query) => $query->whereIn('site_id', $siteIds));
+    }
+
     public function scopeLowStock(Builder $query): Builder
     {
         return $query

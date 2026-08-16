@@ -18,7 +18,7 @@ class StockMovementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $stockMovements = $this->stockMovementService->list($request->query());
+        $stockMovements = $this->stockMovementService->list($request->query(), $request->user());
 
         return ApiResponse::success(
             StockMovementResource::collection($stockMovements),
@@ -26,8 +26,10 @@ class StockMovementController extends Controller
         );
     }
 
-    public function show(StockMovement $stockMovement): JsonResponse
+    public function show(Request $request, StockMovement $stockMovement): JsonResponse
     {
+        app(\App\Services\SiteAccessService::class)->authorizeSite($request->user(), $stockMovement->site_id);
+
         $stockMovement->load([
             'product.carModel',
             'product.productType',

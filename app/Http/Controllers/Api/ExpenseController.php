@@ -20,7 +20,7 @@ class ExpenseController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $expenses = $this->expenseService->list($request->query());
+        $expenses = $this->expenseService->list($request->query(), $request->user());
 
         return ApiResponse::success(ExpenseResource::collection($expenses), 'Expenses retrieved successfully');
     }
@@ -32,8 +32,10 @@ class ExpenseController extends Controller
         return ApiResponse::created(new ExpenseResource($expense), 'Expense created successfully');
     }
 
-    public function show(Expense $expense): JsonResponse
+    public function show(Request $request, Expense $expense): JsonResponse
     {
+        app(\App\Services\SiteAccessService::class)->authorizeOptionalSite($request->user(), $expense->site_id);
+
         $expense->load(['expenseCategory', 'paymentAccount', 'site', 'creator']);
 
         return ApiResponse::success(new ExpenseResource($expense), 'Expense retrieved successfully');
@@ -41,14 +43,14 @@ class ExpenseController extends Controller
 
     public function update(UpdateExpenseRequest $request, Expense $expense): JsonResponse
     {
-        $expense = $this->expenseService->update($expense, $request->validated());
+        $expense = $this->expenseService->update($expense, $request->validated(), $request->user());
 
         return ApiResponse::updated(new ExpenseResource($expense), 'Expense updated successfully');
     }
 
-    public function destroy(Expense $expense): JsonResponse
+    public function destroy(Request $request, Expense $expense): JsonResponse
     {
-        $this->expenseService->delete($expense);
+        $this->expenseService->delete($expense, $request->user());
 
         return ApiResponse::deleted('Expense deleted successfully');
     }

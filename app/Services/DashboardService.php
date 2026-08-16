@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\DashboardRepository;
 use App\Models\InventoryDocument;
 use App\Models\Site;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -12,11 +13,16 @@ class DashboardService
 {
     public function __construct(
         private readonly DashboardRepository $dashboard,
-        private readonly SystemConfigurationService $systemConfiguration
+        private readonly SystemConfigurationService $systemConfiguration,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
-    public function summary(array $filters = []): array
+    public function summary(array $filters = [], ?User $user = null): array
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
         $summary = $this->baseSummary($filters);
 
         $summary['overview'] = $this->overviewFromSummary($summary, $filters);
@@ -24,26 +30,31 @@ class DashboardService
         return $summary;
     }
 
-    public function overview(array $filters = []): array
+    public function overview(array $filters = [], ?User $user = null): array
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
         return $this->overviewFromSummary($this->baseSummary($filters), $filters);
     }
 
     private function baseSummary(array $filters = []): array
     {
         $siteId = $this->siteId($filters);
+        $siteIds = $filters['site_ids'] ?? null;
 
         return [
-            'today_sales' => $this->dashboard->todaySales($siteId),
-            'today_profit' => $this->dashboard->todayProfit($siteId),
-            'total_stock_value' => $this->dashboard->totalStockValue($siteId),
-            'low_stock_count' => $this->dashboard->lowStockCount($siteId),
-            'out_of_stock_count' => $this->dashboard->outOfStockCount($siteId),
-            'outstanding_customer_balances' => $this->dashboard->outstandingCustomerBalances($siteId),
-            'recent_sales' => $this->dashboard->recentDocuments('sale', 5, $siteId),
-            'recent_purchases' => $this->dashboard->recentDocuments('purchase', 5, $siteId),
-            'recent_transfers' => $this->dashboard->recentDocuments('transfer', 5, $siteId),
-            'recent_stock_movements' => $this->dashboard->recentStockMovements(10, $siteId),
+            'today_sales' => $this->dashboard->todaySales($siteId, $siteIds),
+            'today_profit' => $this->dashboard->todayProfit($siteId, $siteIds),
+            'total_stock_value' => $this->dashboard->totalStockValue($siteId, $siteIds),
+            'low_stock_count' => $this->dashboard->lowStockCount($siteId, $siteIds),
+            'out_of_stock_count' => $this->dashboard->outOfStockCount($siteId, $siteIds),
+            'outstanding_customer_balances' => $this->dashboard->outstandingCustomerBalances($siteId, $siteIds),
+            'recent_sales' => $this->dashboard->recentDocuments('sale', 5, $siteId, $siteIds),
+            'recent_purchases' => $this->dashboard->recentDocuments('purchase', 5, $siteId, $siteIds),
+            'recent_transfers' => $this->dashboard->recentDocuments('transfer', 5, $siteId, $siteIds),
+            'recent_stock_movements' => $this->dashboard->recentStockMovements(10, $siteId, $siteIds),
         ];
     }
 
@@ -51,15 +62,16 @@ class DashboardService
     {
         $currency = $this->systemConfiguration->settings()['base_currency'];
         $siteId = $this->siteId($filters);
-        $todaySaleCount = $this->dashboard->todaySaleCount($siteId);
-        $topParts = $this->topParts($currency, $siteId);
-        $salesTrend = $this->salesTrend($currency, $siteId);
-        $branchPerformance = $this->branchPerformance($currency, $siteId);
-        $stockAlerts = $this->stockAlerts($siteId);
+        $siteIds = $filters['site_ids'] ?? null;
+        $todaySaleCount = $this->dashboard->todaySaleCount($siteId, $siteIds);
+        $topParts = $this->topParts($currency, $siteId, $siteIds);
+        $salesTrend = $this->salesTrend($currency, $siteId, $siteIds);
+        $branchPerformance = $this->branchPerformance($currency, $siteId, $siteIds);
+        $stockAlerts = $this->stockAlerts($siteId, $siteIds);
         $selectedSite = $siteId ? Site::query()->find($siteId) : null;
 
         return [
-            'branchOptions' => $this->branchOptions(),
+            'branchOptions' => $this->branchOptions($siteIds),
             'selectedBranchId' => $siteId,
             'selectedBranchName' => $selectedSite?->name ?? 'All branches',
             'metrics' => [
@@ -86,7 +98,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Loss exposure',
-                    'value' => $this->formatCurrency($this->lossExposure($siteId), $currency, true),
+                    'value' => $this->formatCurrency($this->lossExposure($siteId, $siteIds), $currency, true),
                     'change' => $summary['low_stock_count'].' low stock warnings',
                     'tone' => 'risk',
                     'trend' => 'negative',
@@ -97,7 +109,7 @@ class DashboardService
             'salesTrend' => $salesTrend,
             'branchPerformance' => $branchPerformance,
             'branchSalesMix' => $this->branchSalesMix($branchPerformance),
-            'lossRisks' => $this->lossRisks($currency, $siteId),
+            'lossRisks' => $this->lossRisks($currency, $siteId, $siteIds),
             'stockAlerts' => $stockAlerts,
             'averageSale' => $this->formatCurrency(
                 $todaySaleCount > 0 ? (float) $summary['today_sales'] / $todaySaleCount : 0,
@@ -127,12 +139,13 @@ class DashboardService
             ->values();
     }
 
-    private function topParts(string $currency, ?int $siteId = null): Collection
+    private function topParts(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
     {
         $rows = $this->dashboard->topSellingProducts([
             'date_from' => today()->subDays(29)->toDateString(),
             'date_to' => today()->toDateString(),
             ...($siteId ? ['site_id' => $siteId] : []),
+            ...($siteIds !== null ? ['site_ids' => $siteIds] : []),
         ], 5);
         $maxUnits = max((int) $rows->max('quantity_sold'), 1);
 
@@ -148,9 +161,9 @@ class DashboardService
             ->values();
     }
 
-    private function salesTrend(string $currency, ?int $siteId = null): Collection
+    private function salesTrend(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
     {
-        $rows = $this->dashboard->salesTrend(siteId: $siteId);
+        $rows = $this->dashboard->salesTrend(siteId: $siteId, siteIds: $siteIds);
         $maxSales = max((float) $rows->max('sales_amount'), 1);
 
         return $rows
@@ -162,12 +175,13 @@ class DashboardService
             ->values();
     }
 
-    private function branchPerformance(string $currency, ?int $siteId = null): Collection
+    private function branchPerformance(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
     {
         $rows = $this->dashboard->branchPerformance([
             'date_from' => today()->toDateString(),
             'date_to' => today()->toDateString(),
             ...($siteId ? ['site_id' => $siteId] : []),
+            ...($siteIds !== null ? ['site_ids' => $siteIds] : []),
         ]);
         $maxSales = max((float) $rows->max('sales_amount'), 1);
         $maxProfit = max((float) $rows->max('profit_amount'), 1);
@@ -192,9 +206,12 @@ class DashboardService
         })->values();
     }
 
-    private function stockAlerts(?int $siteId = null): Collection
+    private function stockAlerts(?int $siteId = null, ?array $siteIds = null): Collection
     {
-        return $this->dashboard->lowStockAlerts(filters: $siteId ? ['site_id' => $siteId] : [])
+        return $this->dashboard->lowStockAlerts(filters: [
+            ...($siteId ? ['site_id' => $siteId] : []),
+            ...($siteIds !== null ? ['site_ids' => $siteIds] : []),
+        ])
             ->take(5)
             ->map(fn ($row) => [
                 'part' => $row->product_name,
@@ -231,38 +248,39 @@ class DashboardService
             });
     }
 
-    private function lossRisks(string $currency, ?int $siteId = null): Collection
+    private function lossRisks(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
     {
         return collect([
             [
                 'label' => 'Purchase returns',
-                'value' => $this->formatCurrency($this->dashboard->pendingPurchaseReturnTotal($siteId), $currency, true),
+                'value' => $this->formatCurrency($this->dashboard->pendingPurchaseReturnTotal($siteId, $siteIds), $currency, true),
                 'detail' => 'Open supplier return documents awaiting completion',
             ],
             [
                 'label' => 'Stock take variance',
-                'value' => $this->formatCurrency($this->dashboard->stockTakeVarianceTotal($siteId), $currency, true),
+                'value' => $this->formatCurrency($this->dashboard->stockTakeVarianceTotal($siteId, $siteIds), $currency, true),
                 'detail' => 'Recorded variance value from stock counts',
             ],
             [
                 'label' => 'Customer balances',
-                'value' => $this->formatCurrency($this->dashboard->outstandingCustomerBalances($siteId), $currency, true),
+                'value' => $this->formatCurrency($this->dashboard->outstandingCustomerBalances($siteId, $siteIds), $currency, true),
                 'detail' => 'Unpaid or partially paid sales balances',
             ],
         ]);
     }
 
-    private function lossExposure(?int $siteId = null): float
+    private function lossExposure(?int $siteId = null, ?array $siteIds = null): float
     {
-        return $this->dashboard->pendingPurchaseReturnTotal($siteId)
-            + $this->dashboard->stockTakeVarianceTotal($siteId)
-            + $this->dashboard->outstandingCustomerBalances($siteId);
+        return $this->dashboard->pendingPurchaseReturnTotal($siteId, $siteIds)
+            + $this->dashboard->stockTakeVarianceTotal($siteId, $siteIds)
+            + $this->dashboard->outstandingCustomerBalances($siteId, $siteIds);
     }
 
-    private function branchOptions(): Collection
+    private function branchOptions(?array $siteIds = null): Collection
     {
         return Site::query()
             ->active()
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('id', $siteIds))
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Site $site): array => [

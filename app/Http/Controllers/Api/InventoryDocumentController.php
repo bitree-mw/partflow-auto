@@ -18,7 +18,7 @@ class InventoryDocumentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $documents = $this->inventoryDocumentService->list($request->query());
+        $documents = $this->inventoryDocumentService->list($request->query(), $request->user());
 
         return ApiResponse::success(
             data: InventoryDocumentResource::collection($documents),
@@ -26,9 +26,9 @@ class InventoryDocumentController extends Controller
         );
     }
 
-    public function show(InventoryDocument $inventoryDocument): JsonResponse
+    public function show(Request $request, InventoryDocument $inventoryDocument): JsonResponse
     {
-        $inventoryDocument = $this->inventoryDocumentService->show($inventoryDocument);
+        $inventoryDocument = $this->inventoryDocumentService->show($inventoryDocument, $request->user());
 
         return ApiResponse::success(
             data: new InventoryDocumentResource($inventoryDocument),

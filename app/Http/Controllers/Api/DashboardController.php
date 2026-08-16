@@ -18,7 +18,7 @@ class DashboardController extends Controller
 
     public function summary(Request $request): JsonResponse
     {
-        $summary = $this->dashboardService->summary($request->only('site_id'));
+        $summary = $this->dashboardService->summary($request->only('site_id'), $request->user());
         $summary['recent_sales'] = InventoryDocumentResource::collection($summary['recent_sales']);
         $summary['recent_purchases'] = InventoryDocumentResource::collection($summary['recent_purchases']);
         $summary['recent_transfers'] = InventoryDocumentResource::collection($summary['recent_transfers']);

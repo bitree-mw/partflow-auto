@@ -4,13 +4,22 @@ namespace App\Services;
 
 use App\Models\SiteStock;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PosProductSearchService
 {
-    public function search(array $filters = []): Collection
+    public function __construct(
+        private readonly SiteAccessService $siteAccessService
+    ) {}
+
+    public function search(array $filters = [], ?User $user = null): Collection
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters, SiteAccessService::MAKE_SALES);
+        }
+
         return SiteStock::query()
             ->with([
                 'site',
@@ -23,6 +32,7 @@ class PosProductSearchService
                 'product.compatibilities.carModel',
             ])
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->when(isset($filters['compatible_car_model_id']), function ($query) use ($filters) {
                 $query->whereHas('product', function ($query) use ($filters) {
                     $query->where('car_model_id', $filters['compatible_car_model_id'])
@@ -108,8 +118,12 @@ class PosProductSearchService
         });
     }
 
-    public function suggestions(array $filters = []): array
+    public function suggestions(array $filters = [], ?User $user = null): array
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters, SiteAccessService::MAKE_SALES);
+        }
+
         $search = trim((string) ($filters['search'] ?? ''));
 
         if ($search === '') {
@@ -133,6 +147,9 @@ class PosProductSearchService
             ->where('inventory_documents.status', 'completed')
             ->when(isset($filters['site_id']), function ($query) use ($filters) {
                 $query->where('inventory_documents.source_site_id', (int) $filters['site_id']);
+            })
+            ->when(array_key_exists('site_ids', $filters), function ($query) use ($filters) {
+                $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']);
             })
             ->where(function ($query) use ($search) {
                 $query->where('products.product_code', 'like', "%{$search}%")

@@ -3,9 +3,16 @@
 namespace App\Http\Requests\InventoryDocument;
 
 use App\Http\Requests\ApiRequest;
+use App\Services\SiteAccessService;
 
 class StoreTransferRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        return $this->canAccessSiteInput('source_site_id', SiteAccessService::TRANSFER_STOCK)
+            && $this->canAccessSiteInput('destination_site_id', SiteAccessService::TRANSFER_STOCK);
+    }
+
     public function rules(): array
     {
         return [

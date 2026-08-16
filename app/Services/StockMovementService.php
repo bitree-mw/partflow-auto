@@ -5,13 +5,22 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\SiteStock;
 use App\Models\StockMovement;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
 class StockMovementService
 {
-    public function list(array $filters = []): Collection
+    public function __construct(
+        private readonly SiteAccessService $siteAccessService
+    ) {}
+
+    public function list(array $filters = [], ?User $user = null): Collection
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
         return StockMovement::query()
             ->with([
                 'product.carModel',
@@ -26,6 +35,7 @@ class StockMovementService
             ])
             ->forProduct(isset($filters['product_id']) ? (int) $filters['product_id'] : null)
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->type($filters['movement_type'] ?? null)
             ->when(isset($filters['inventory_document_id']), function ($query) use ($filters) {
                 $query->where('inventory_document_id', $filters['inventory_document_id']);

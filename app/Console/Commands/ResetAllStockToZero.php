@@ -123,7 +123,7 @@ class ResetAllStockToZero extends Command
                     'document_date' => now(),
                     'notes' => 'All stock quantities reset to zero by owner request.',
                     'items' => $items,
-                ], $user);
+                ], $user, enforceSiteAccess: false);
                 $documents++;
             });
 

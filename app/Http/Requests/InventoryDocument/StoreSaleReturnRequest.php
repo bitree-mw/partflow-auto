@@ -3,9 +3,15 @@
 namespace App\Http\Requests\InventoryDocument;
 
 use App\Http\Requests\ApiRequest;
+use App\Services\SiteAccessService;
 
 class StoreSaleReturnRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        return $this->canAccessSiteInput('destination_site_id', SiteAccessService::MAKE_SALES);
+    }
+
     public function rules(): array
     {
         return [

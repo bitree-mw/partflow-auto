@@ -18,6 +18,7 @@ class ReportRepository
         return SiteStock::query()
             ->with(['site', 'product.carModel', 'product.productType', 'product.fuelType', 'product.brand'])
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_id', $filters['site_ids']))
             ->when(isset($filters['product_id']), fn ($query) => $query->where('product_id', $filters['product_id']))
             ->orderBy('site_id')
             ->orderBy('product_id')
@@ -59,6 +60,7 @@ class ReportRepository
                 $join->on('latest_purchase_costs.product_id', '=', 'site_stocks.product_id');
             })
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
             ->selectRaw('SUM(site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as stock_value')
             ->selectRaw('SUM(site_stocks.quantity_on_hand) as quantity_on_hand')
@@ -103,6 +105,7 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('SUM(inventory_document_items.quantity) as quantity_sold')
             ->selectRaw('SUM(inventory_document_items.profit_amount) as profit_amount')
@@ -121,6 +124,7 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
             ->selectRaw('SUM(inventory_document_items.profit_amount) as profit_amount')
             ->groupBy('sites.id', 'sites.name')
@@ -136,6 +140,7 @@ class ReportRepository
             ->where('inventory_documents.balance_amount', '>', 0)
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
             ->selectRaw('contacts.id as contact_id, contacts.name as customer_name, contacts.phone')
             ->selectRaw('SUM(inventory_documents.total_amount) as total_sales')
             ->selectRaw('SUM(inventory_documents.paid_amount) as paid_amount')
@@ -159,6 +164,7 @@ class ReportRepository
                         ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
                 });
             })
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $this->constrainInventoryDocumentSites($query, $filters['site_ids']))
             ->selectRaw('payment_accounts.id as payment_account_id, payment_accounts.account_name, payment_accounts.account_type')
             ->selectRaw('COUNT(payments.id) as payment_count')
             ->selectRaw('SUM(payments.amount) as total_amount')
@@ -173,6 +179,7 @@ class ReportRepository
             ->with(['product', 'site', 'inventoryDocument'])
             ->forProduct(isset($filters['product_id']) ? (int) $filters['product_id'] : null)
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->type($filters['movement_type'] ?? null)
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('created_at', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('created_at', '<=', $filters['date_to']))
@@ -192,6 +199,7 @@ class ReportRepository
             ->whereHas('inventoryDocument', function ($query) use ($filters) {
                 $query->where('document_type', 'stock_take')
                     ->when(isset($filters['site_id']), fn ($query) => $query->where('source_site_id', $filters['site_id']))
+                    ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('source_site_id', $filters['site_ids']))
                     ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('document_date', '>=', $filters['date_from']))
                     ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('document_date', '<=', $filters['date_to']));
             })
@@ -218,6 +226,15 @@ class ReportRepository
             ->when(isset($filters['expense_category_id']), fn ($query) => $query->where('expense_category_id', $filters['expense_category_id']))
             ->when(isset($filters['payment_account_id']), fn ($query) => $query->where('payment_account_id', $filters['payment_account_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), function ($query) use ($filters) {
+                if ($filters['include_unassigned_site'] ?? false) {
+                    $query->where(fn ($query) => $query->whereNull('site_id')->orWhereIn('site_id', $filters['site_ids']));
+
+                    return;
+                }
+
+                $query->whereIn('site_id', $filters['site_ids']);
+            })
             ->dateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->latest('expense_date')
             ->get();
@@ -278,6 +295,7 @@ class ReportRepository
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('site_stocks.quantity_on_hand, site_stocks.reserved_quantity')
@@ -297,6 +315,7 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
             ->selectRaw('products.id as product_id, products.product_code, products.product_name')
             ->selectRaw('SUM(inventory_document_items.quantity) as quantity_sold')
             ->selectRaw('SUM(inventory_document_items.line_total) as sales_amount')
@@ -310,6 +329,7 @@ class ReportRepository
             ->where('document_type', $documentType)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->dateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->latest('document_date')
             ->get();
@@ -333,6 +353,7 @@ class ReportRepository
                         ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
                 });
             })
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $this->constrainInventoryDocumentSites($query, $filters['site_ids']))
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->orderBy('inventory_documents.document_date')
@@ -392,6 +413,7 @@ class ReportRepository
                         ->orWhere('inventory_documents.destination_site_id', $filters['site_id']);
                 });
             })
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $this->constrainInventoryDocumentSites($query, $filters['site_ids']))
             ->orderBy('payments.payment_date')
             ->get([
                 'payments.id as payment_id',
@@ -420,6 +442,15 @@ class ReportRepository
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('expenses.expense_date', '<=', $filters['date_to']))
             ->when(isset($filters['expense_category_id']), fn ($query) => $query->where('expenses.expense_category_id', $filters['expense_category_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('expenses.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), function ($query) use ($filters) {
+                if ($filters['include_unassigned_site'] ?? false) {
+                    $query->where(fn ($query) => $query->whereNull('expenses.site_id')->orWhereIn('expenses.site_id', $filters['site_ids']));
+
+                    return;
+                }
+
+                $query->whereIn('expenses.site_id', $filters['site_ids']);
+            })
             ->orderBy('expenses.expense_date')
             ->get([
                 'expenses.id as expense_id',
@@ -487,6 +518,7 @@ class ReportRepository
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('stock_movements.created_at', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('stock_movements.created_at', '<=', $filters['date_to']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('stock_movements.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('stock_movements.site_id', $filters['site_ids']))
             ->when(isset($filters['product_id']), fn ($query) => $query->where('stock_movements.product_id', $filters['product_id']))
             ->orderBy('stock_movements.created_at')
             ->get([
@@ -540,6 +572,7 @@ class ReportRepository
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
             ->orderBy('inventory_documents.document_date')
             ->get([
                 'inventory_documents.document_number',
@@ -553,5 +586,22 @@ class ReportRepository
                 'inventory_documents.payment_status',
                 'inventory_documents.status',
             ]);
+    }
+
+    private function constrainInventoryDocumentSites($query, array $siteIds): void
+    {
+        $query
+            ->where(function ($query) {
+                $query->whereNotNull('inventory_documents.source_site_id')
+                    ->orWhereNotNull('inventory_documents.destination_site_id');
+            })
+            ->where(function ($query) use ($siteIds) {
+                $query->whereNull('inventory_documents.source_site_id')
+                    ->orWhereIn('inventory_documents.source_site_id', $siteIds);
+            })
+            ->where(function ($query) use ($siteIds) {
+                $query->whereNull('inventory_documents.destination_site_id')
+                    ->orWhereIn('inventory_documents.destination_site_id', $siteIds);
+            });
     }
 }

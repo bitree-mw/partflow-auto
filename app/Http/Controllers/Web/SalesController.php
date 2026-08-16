@@ -24,9 +24,9 @@ class SalesController extends Controller
         private readonly PaymentService $paymentService
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $sales = $this->inventoryDocumentService->listByType('sale');
+        $sales = $this->inventoryDocumentService->listByType('sale', [], $request->user());
 
         return view('sales.index', [
             'title' => 'Sales',
@@ -110,7 +110,7 @@ class SalesController extends Controller
 
         abort_unless((int) $payment->inventory_document_id === (int) $sale->id, 404);
 
-        $this->paymentService->delete($payment);
+        $this->paymentService->delete($payment, auth()->user());
 
         return redirect()
             ->route('web.sales.edit', $sale)
@@ -164,7 +164,7 @@ class SalesController extends Controller
     {
         abort_unless($inventoryDocument->document_type === 'sale', 404);
 
-        return $this->inventoryDocumentService->show($inventoryDocument);
+        return $this->inventoryDocumentService->show($inventoryDocument, auth()->user());
     }
 
     private function contactOptions(Collection $contacts): array

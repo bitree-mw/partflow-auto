@@ -118,4 +118,23 @@ class InventoryDocument extends Model
             });
         });
     }
+
+    public function scopeForSites(Builder $query, ?array $siteIds): Builder
+    {
+        return $query->when($siteIds !== null, function (Builder $query) use ($siteIds) {
+            $query
+                ->where(function (Builder $query) {
+                    $query->whereNotNull('source_site_id')
+                        ->orWhereNotNull('destination_site_id');
+                })
+                ->where(function (Builder $query) use ($siteIds) {
+                    $query->whereNull('source_site_id')
+                        ->orWhereIn('source_site_id', $siteIds);
+                })
+                ->where(function (Builder $query) use ($siteIds) {
+                    $query->whereNull('destination_site_id')
+                        ->orWhereIn('destination_site_id', $siteIds);
+                });
+        });
+    }
 }

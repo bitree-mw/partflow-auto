@@ -417,7 +417,7 @@ class ReplaceCatalogFromSourceManifest extends Command
                         'counted_quantity' => $entry['row']['quantity_on_hand'],
                         'notes' => 'Opening quantity imported from '.$entry['row']['source_rows'].'.',
                     ])->values()->all(),
-                ], $user);
+                ], $user, enforceSiteAccess: false);
             }
 
             foreach ($entries as $entry) {

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\InventoryDocumentService;
+use App\Services\SiteAccessService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,8 @@ use Illuminate\Validation\ValidationException;
 class PosController extends Controller
 {
     public function __construct(
-        private readonly InventoryDocumentService $inventoryDocumentService
+        private readonly InventoryDocumentService $inventoryDocumentService,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
     public function index(Request $request): View
@@ -35,7 +37,7 @@ class PosController extends Controller
             'title' => 'Point Of Sale',
             'currentBranch' => $currentBranch,
             'currentSiteId' => $currentSite?->id,
-            'siteOptions' => $this->siteOptions(),
+            'siteOptions' => $this->siteOptions($request->user()),
             'canChangeSiteDirectly' => $this->isAdmin($request->user()),
             'cashier' => auth()->user()?->name ?? 'Cashier',
             'saleNumber' => 'Draft sale',
@@ -129,6 +131,8 @@ class PosController extends Controller
 
         $site = Site::query()->active()->findOrFail($validated['site_id']);
         $user = $request->user();
+
+        $this->siteAccessService->authorizeSite($user, $site->id, SiteAccessService::MAKE_SALES);
 
         if (! $this->isAdmin($user) && ! $this->validAdminPassword($validated['admin_password'] ?? '')) {
             throw ValidationException::withMessages([
@@ -445,7 +449,12 @@ class PosController extends Controller
     private function currentSite(Request $request): ?Site
     {
         $sessionSiteId = $request->session()->get('pos_site_id');
-        $site = $sessionSiteId ? Site::query()->active()->find($sessionSiteId) : null;
+        $allowedSiteIds = $request->user()
+            ? $this->siteAccessService->allowedSiteIds($request->user(), SiteAccessService::MAKE_SALES)
+            : [];
+        $site = $sessionSiteId
+            ? Site::query()->active()->whereIn('id', $allowedSiteIds)->find($sessionSiteId)
+            : null;
 
         if (! $site && $request->user()) {
             $site = $request->user()
@@ -458,7 +467,9 @@ class PosController extends Controller
                 ->first();
         }
 
-        $site ??= Site::query()->active()->orderBy('name')->first();
+        if (! $site && $this->isAdmin($request->user())) {
+            $site = Site::query()->active()->orderBy('name')->first();
+        }
 
         if ($site) {
             $request->session()->put('pos_site_id', $site->id);
@@ -467,10 +478,13 @@ class PosController extends Controller
         return $site;
     }
 
-    private function siteOptions(): array
+    private function siteOptions(User $user): array
     {
+        $siteIds = $this->siteAccessService->allowedSiteIds($user, SiteAccessService::MAKE_SALES);
+
         return Site::query()
             ->active()
+            ->whereIn('id', $siteIds)
             ->orderBy('name')
             ->get()
             ->map(fn (Site $site): array => [

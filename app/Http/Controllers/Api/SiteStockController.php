@@ -20,7 +20,7 @@ class SiteStockController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $siteStocks = $this->siteStockService->list($request->query());
+        $siteStocks = $this->siteStockService->list($request->query(), $request->user());
 
         return ApiResponse::success(
             data: SiteStockResource::collection($siteStocks),
@@ -30,7 +30,7 @@ class SiteStockController extends Controller
 
     public function store(StoreSiteStockRequest $request): JsonResponse
     {
-        $siteStock = $this->siteStockService->create($request->validated());
+        $siteStock = $this->siteStockService->create($request->validated(), $request->user());
 
         return ApiResponse::created(
             data: new SiteStockResource($siteStock),
@@ -38,8 +38,10 @@ class SiteStockController extends Controller
         );
     }
 
-    public function show(SiteStock $siteStock): JsonResponse
+    public function show(Request $request, SiteStock $siteStock): JsonResponse
     {
+        app(\App\Services\SiteAccessService::class)->authorizeSite($request->user(), $siteStock->site_id);
+
         $siteStock->load([
             'product.carModel',
             'product.productType',
@@ -58,7 +60,8 @@ class SiteStockController extends Controller
     {
         $siteStock = $this->siteStockService->update(
             siteStock: $siteStock,
-            data: $request->validated()
+            data: $request->validated(),
+            user: $request->user()
         );
 
         return ApiResponse::updated(
@@ -67,9 +70,9 @@ class SiteStockController extends Controller
         );
     }
 
-    public function destroy(SiteStock $siteStock): JsonResponse
+    public function destroy(Request $request, SiteStock $siteStock): JsonResponse
     {
-        $this->siteStockService->delete($siteStock);
+        $this->siteStockService->delete($siteStock, $request->user());
 
         return ApiResponse::deleted('Site stock deleted successfully');
     }

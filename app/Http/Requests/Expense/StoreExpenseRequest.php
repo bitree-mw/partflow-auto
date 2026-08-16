@@ -3,9 +3,20 @@
 namespace App\Http\Requests\Expense;
 
 use App\Http\Requests\ApiRequest;
+use App\Services\SiteAccessService;
 
 class StoreExpenseRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        if ($this->filled('site_id')) {
+            return $this->canAccessSiteInput('site_id');
+        }
+
+        return $this->user()
+            && app(SiteAccessService::class)->isSystemAdministrator($this->user());
+    }
+
     public function rules(): array
     {
         return [

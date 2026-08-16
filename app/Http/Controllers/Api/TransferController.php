@@ -19,7 +19,7 @@ class TransferController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $transfers = $this->inventoryDocumentService->listByType('transfer', $request->query());
+        $transfers = $this->inventoryDocumentService->listByType('transfer', $request->query(), $request->user());
 
         return ApiResponse::success(InventoryDocumentResource::collection($transfers), 'Transfers retrieved successfully');
     }
@@ -31,10 +31,10 @@ class TransferController extends Controller
         return ApiResponse::created(new InventoryDocumentResource($transfer), 'Transfer created successfully');
     }
 
-    public function show(InventoryDocument $inventoryDocument): JsonResponse
+    public function show(Request $request, InventoryDocument $inventoryDocument): JsonResponse
     {
         return ApiResponse::success(
-            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument)),
+            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument, $request->user())),
             'Transfer retrieved successfully'
         );
     }

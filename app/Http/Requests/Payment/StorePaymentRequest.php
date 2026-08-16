@@ -3,9 +3,32 @@
 namespace App\Http\Requests\Payment;
 
 use App\Http\Requests\ApiRequest;
+use App\Models\InventoryDocument;
+use App\Services\SiteAccessService;
 
 class StorePaymentRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        if (! is_numeric($this->input('inventory_document_id'))) {
+            return true;
+        }
+
+        $document = InventoryDocument::query()->find($this->integer('inventory_document_id'));
+
+        if (! $document || ! $this->user()) {
+            return $document === null;
+        }
+
+        try {
+            app(SiteAccessService::class)->authorizeInventoryDocumentOperation($this->user(), $document);
+
+            return true;
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+            return false;
+        }
+    }
+
     public function rules(): array
     {
         return [

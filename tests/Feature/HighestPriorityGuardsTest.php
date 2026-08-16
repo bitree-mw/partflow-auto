@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Site;
 use App\Models\SiteStock;
 use App\Models\User;
+use App\Models\UserSiteAccess;
 use App\Repositories\DashboardRepository;
 use App\Repositories\ReportRepository;
 use App\Services\AlertService;
@@ -84,6 +85,13 @@ class HighestPriorityGuardsTest extends TestCase
             'quantity_on_hand' => 5,
             'reserved_quantity' => 0,
             'low_stock_level' => 0,
+        ]);
+        UserSiteAccess::query()->create([
+            'user_id' => $cashier->id,
+            'site_id' => $site->id,
+            'access_level' => 'sales',
+            'can_make_sales' => true,
+            'is_active' => true,
         ]);
 
         $this->actingAs($cashier);

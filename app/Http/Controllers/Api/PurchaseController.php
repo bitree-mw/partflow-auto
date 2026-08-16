@@ -19,7 +19,7 @@ class PurchaseController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $purchases = $this->inventoryDocumentService->listByType('purchase', $request->query());
+        $purchases = $this->inventoryDocumentService->listByType('purchase', $request->query(), $request->user());
 
         return ApiResponse::success(InventoryDocumentResource::collection($purchases), 'Purchases retrieved successfully');
     }
@@ -31,10 +31,10 @@ class PurchaseController extends Controller
         return ApiResponse::created(new InventoryDocumentResource($purchase), 'Purchase created successfully');
     }
 
-    public function show(InventoryDocument $inventoryDocument): JsonResponse
+    public function show(Request $request, InventoryDocument $inventoryDocument): JsonResponse
     {
         return ApiResponse::success(
-            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument)),
+            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument, $request->user())),
             'Purchase retrieved successfully'
         );
     }

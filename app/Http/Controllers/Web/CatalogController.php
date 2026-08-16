@@ -21,6 +21,7 @@ use App\Services\InventoryDocumentService;
 use App\Services\ProductTypeService;
 use App\Services\ProductService;
 use App\Services\SiteService;
+use App\Services\SiteAccessService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -38,17 +39,20 @@ class CatalogController extends Controller
         private readonly FuelTypeService $fuelTypeService,
         private readonly BrandService $brandService,
         private readonly SiteService $siteService,
-        private readonly InventoryDocumentService $inventoryDocumentService
+        private readonly InventoryDocumentService $inventoryDocumentService,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
     public function siteManagement(Request $request): View
     {
         $filters = $request->only(['search', 'type', 'is_active']);
+        $siteIds = $this->siteAccessService->allowedSiteIds($request->user());
         $sites = Site::query()
             ->withCount(['siteStocks', 'sourceInventoryDocuments', 'destinationInventoryDocuments'])
             ->withSum('siteStocks as stock_on_hand', 'quantity_on_hand')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
+            ->whereIn('id', $siteIds)
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -67,7 +71,7 @@ class CatalogController extends Controller
                 'status' => $site->is_active ? 'Active' : 'Inactive',
             ]);
 
-        $siteOptions = $this->siteOptions($this->siteService->list(['is_active' => true]));
+        $siteOptions = $this->siteOptions($this->siteService->list(['is_active' => true], $request->user()));
         $productOptions = $this->productOptions($this->productService->list(['is_active' => true]));
 
         return view('catalog.sites.index', [
@@ -76,10 +80,10 @@ class CatalogController extends Controller
             'sites' => $sites,
             'filters' => $filters,
             'summary' => [
-                ['label' => 'Active sites', 'value' => (string) Site::query()->active()->count(), 'detail' => 'Branches, shops, and warehouses'],
-                ['label' => 'Warehouses', 'value' => (string) Site::query()->active()->where('type', 'warehouse')->count(), 'detail' => 'Stock storage locations'],
-                ['label' => 'Transfer docs', 'value' => (string) $this->inventoryDocumentService->listByType('transfer')->count(), 'detail' => 'Stock movement records'],
-                ['label' => 'Stock takes', 'value' => (string) $this->inventoryDocumentService->listByType('stock_take')->count(), 'detail' => 'Count and variance records'],
+                ['label' => 'Active sites', 'value' => (string) Site::query()->active()->whereIn('id', $siteIds)->count(), 'detail' => 'Branches, shops, and warehouses'],
+                ['label' => 'Warehouses', 'value' => (string) Site::query()->active()->whereIn('id', $siteIds)->where('type', 'warehouse')->count(), 'detail' => 'Stock storage locations'],
+                ['label' => 'Transfer docs', 'value' => (string) $this->inventoryDocumentService->listByType('transfer', [], $request->user())->count(), 'detail' => 'Stock movement records'],
+                ['label' => 'Stock takes', 'value' => (string) $this->inventoryDocumentService->listByType('stock_take', [], $request->user())->count(), 'detail' => 'Count and variance records'],
             ],
         ]);
     }
@@ -129,23 +133,40 @@ class CatalogController extends Controller
             'description' => 'View completed stock movement between sites.',
             'documents' => $transfers,
             'filters' => $request->only(['search', 'site_id']),
-            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'siteOptions' => $this->siteOptions($this->siteService->list(
+                ['is_active' => true],
+                $request->user(),
+                SiteAccessService::TRANSFER_STOCK
+            )),
         ]);
     }
 
-    public function createSiteTransfer(): View
+    public function createSiteTransfer(Request $request): View
     {
+        $siteIds = $this->siteAccessService->allowedSiteIds($request->user(), SiteAccessService::TRANSFER_STOCK);
+
         return view('catalog.sites.transfers.create', [
             'title' => 'New Stock Transfer',
             'description' => 'Move multiple parts from one site to another in one transaction.',
-            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'siteOptions' => $this->siteOptions($this->siteService->list(
+                ['is_active' => true],
+                $request->user(),
+                SiteAccessService::TRANSFER_STOCK
+            )),
             'productOptions' => $this->productOptions($this->productService->list(['is_active' => true])),
-            'stockAvailability' => $this->stockAvailabilityMap(),
+            'stockAvailability' => $this->stockAvailabilityMap($siteIds),
         ]);
     }
 
     public function storeSiteTransfer(Request $request): RedirectResponse
     {
+        if ($request->integer('source_site_id') > 0 && $request->integer('destination_site_id') > 0) {
+            $this->siteAccessService->authorizeSites($request->user(), [
+                $request->integer('source_site_id'),
+                $request->integer('destination_site_id'),
+            ], SiteAccessService::TRANSFER_STOCK);
+        }
+
         $validated = Validator::make($request->all(), [
             'source_site_id' => ['required', 'integer', 'exists:sites,id', 'different:destination_site_id'],
             'destination_site_id' => ['required', 'integer', 'exists:sites,id'],
@@ -229,18 +250,28 @@ class CatalogController extends Controller
             'description' => 'Review stock counts, system quantities, and variances.',
             'documents' => $stockTakes,
             'filters' => $request->only(['search', 'site_id']),
-            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'siteOptions' => $this->siteOptions($this->siteService->list(
+                ['is_active' => true],
+                $request->user(),
+                SiteAccessService::ADJUST_STOCK
+            )),
         ]);
     }
 
-    public function createSiteStockTake(): View
+    public function createSiteStockTake(Request $request): View
     {
+        $siteIds = $this->siteAccessService->allowedSiteIds($request->user(), SiteAccessService::ADJUST_STOCK);
+
         return view('catalog.sites.stock-takes.create', [
             'title' => 'New Stock Take',
             'description' => 'Count multiple parts at a site and let the system report any variances.',
-            'siteOptions' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'siteOptions' => $this->siteOptions($this->siteService->list(
+                ['is_active' => true],
+                $request->user(),
+                SiteAccessService::ADJUST_STOCK
+            )),
             'productOptions' => $this->productOptions($this->productService->list(['is_active' => true])),
-            'stockAvailability' => $this->stockAvailabilityMap(),
+            'stockAvailability' => $this->stockAvailabilityMap($siteIds),
         ]);
     }
 
@@ -1192,12 +1223,14 @@ class CatalogController extends Controller
     private function siteDocumentQuery(string $documentType, Request $request)
     {
         $filters = $request->only(['search', 'site_id']);
+        $filters = $this->siteAccessService->scopeFilters($request->user(), $filters);
 
         return InventoryDocument::query()
             ->with(['sourceSite', 'destinationSite', 'items.product'])
             ->withCount('items')
             ->type($documentType)
             ->forSite(filled($filters['site_id'] ?? null) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'])
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('document_number', 'like', "%{$search}%")
@@ -1227,12 +1260,13 @@ class CatalogController extends Controller
     {
         abort_unless($document->document_type === $type, 404);
 
-        return $this->inventoryDocumentService->show($document);
+        return $this->inventoryDocumentService->show($document, auth()->user());
     }
 
-    private function stockAvailabilityMap(): array
+    private function stockAvailabilityMap(array $siteIds): array
     {
         return SiteStock::query()
+            ->whereIn('site_id', $siteIds)
             ->get()
             ->groupBy('site_id')
             ->map(fn (Collection $stocks): array => $stocks

@@ -19,7 +19,7 @@ class PaymentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $payments = $this->paymentService->list($request->query());
+        $payments = $this->paymentService->list($request->query(), $request->user());
 
         return ApiResponse::success(PaymentResource::collection($payments), 'Payments retrieved successfully');
     }
@@ -31,16 +31,18 @@ class PaymentController extends Controller
         return ApiResponse::created(new PaymentResource($payment), 'Payment recorded successfully');
     }
 
-    public function show(Payment $payment): JsonResponse
+    public function show(Request $request, Payment $payment): JsonResponse
     {
+        app(\App\Services\SiteAccessService::class)->authorizeInventoryDocument($request->user(), $payment->inventoryDocument);
+
         $payment->load(['inventoryDocument', 'paymentAccount', 'receiver']);
 
         return ApiResponse::success(new PaymentResource($payment), 'Payment retrieved successfully');
     }
 
-    public function destroy(Payment $payment): JsonResponse
+    public function destroy(Request $request, Payment $payment): JsonResponse
     {
-        $this->paymentService->delete($payment);
+        $this->paymentService->delete($payment, $request->user());
 
         return ApiResponse::deleted('Payment deleted successfully');
     }

@@ -17,7 +17,7 @@ class PosProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $products = $this->posProductSearchService->search($request->query());
+        $products = $this->posProductSearchService->search($request->query(), $request->user());
 
         return ApiResponse::success(
             PosProductResource::collection($products),
@@ -28,7 +28,7 @@ class PosProductController extends Controller
     public function suggestions(Request $request): JsonResponse
     {
         return ApiResponse::success(
-            $this->posProductSearchService->suggestions($request->query()),
+            $this->posProductSearchService->suggestions($request->query(), $request->user()),
             'POS suggestions retrieved successfully'
         );
     }

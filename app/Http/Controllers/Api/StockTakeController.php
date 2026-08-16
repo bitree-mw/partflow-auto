@@ -19,7 +19,7 @@ class StockTakeController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $stockTakes = $this->inventoryDocumentService->listByType('stock_take', $request->query());
+        $stockTakes = $this->inventoryDocumentService->listByType('stock_take', $request->query(), $request->user());
 
         return ApiResponse::success(InventoryDocumentResource::collection($stockTakes), 'Stock takes retrieved successfully');
     }
@@ -31,10 +31,10 @@ class StockTakeController extends Controller
         return ApiResponse::created(new InventoryDocumentResource($stockTake), 'Stock take created successfully');
     }
 
-    public function show(InventoryDocument $inventoryDocument): JsonResponse
+    public function show(Request $request, InventoryDocument $inventoryDocument): JsonResponse
     {
         return ApiResponse::success(
-            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument)),
+            new InventoryDocumentResource($this->inventoryDocumentService->show($inventoryDocument, $request->user())),
             'Stock take retrieved successfully'
         );
     }

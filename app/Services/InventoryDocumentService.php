@@ -15,17 +15,23 @@ class InventoryDocumentService
 {
     public function __construct(
         private readonly StockMovementService $stockMovementService,
-        private readonly PaymentService $paymentService
+        private readonly PaymentService $paymentService,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
-    public function list(array $filters = []): Collection
+    public function list(array $filters = [], ?User $user = null): Collection
     {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
         return InventoryDocument::query()
             ->with($this->summaryRelations())
             ->type($filters['document_type'] ?? null)
             ->status($filters['status'] ?? null)
             ->forContact(isset($filters['contact_id']) ? (int) $filters['contact_id'] : null)
             ->forSite(isset($filters['site_id']) ? (int) $filters['site_id'] : null)
+            ->forSites($filters['site_ids'] ?? null)
             ->dateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->when(isset($filters['payment_status']), function ($query) use ($filters) {
                 $query->where('payment_status', $filters['payment_status']);
@@ -34,20 +40,26 @@ class InventoryDocumentService
             ->get();
     }
 
-    public function listByType(string $documentType, array $filters = []): Collection
+    public function listByType(string $documentType, array $filters = [], ?User $user = null): Collection
     {
         $filters['document_type'] = $documentType;
 
-        return $this->list($filters);
+        return $this->list($filters, $user);
     }
 
-    public function show(InventoryDocument $inventoryDocument): InventoryDocument
+    public function show(InventoryDocument $inventoryDocument, ?User $user = null): InventoryDocument
     {
+        if ($user) {
+            $this->siteAccessService->authorizeInventoryDocument($user, $inventoryDocument);
+        }
+
         return $inventoryDocument->load($this->detailRelations());
     }
 
     public function createPurchase(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['destination_site_id'], SiteAccessService::RECEIVE_STOCK);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('purchase', $data, $user, $status);
@@ -78,6 +90,8 @@ class InventoryDocumentService
 
     public function createSale(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['source_site_id'], SiteAccessService::MAKE_SALES);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('sale', $data, $user, $status);
@@ -110,6 +124,11 @@ class InventoryDocumentService
 
     public function createTransfer(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSites($user, [
+            $data['source_site_id'],
+            $data['destination_site_id'],
+        ], SiteAccessService::TRANSFER_STOCK);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('transfer', $data, $user, $status);
@@ -145,6 +164,8 @@ class InventoryDocumentService
 
     public function createStockAdjustment(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['site_id'], SiteAccessService::ADJUST_STOCK);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'approved';
             $data['source_site_id'] = $data['site_id'];
@@ -202,8 +223,12 @@ class InventoryDocumentService
         });
     }
 
-    public function createStockTake(array $data, User $user): InventoryDocument
+    public function createStockTake(array $data, User $user, bool $enforceSiteAccess = true): InventoryDocument
     {
+        if ($enforceSiteAccess) {
+            $this->siteAccessService->authorizeSite($user, (int) $data['site_id'], SiteAccessService::ADJUST_STOCK);
+        }
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'approved';
             $data['source_site_id'] = $data['site_id'];
@@ -261,6 +286,8 @@ class InventoryDocumentService
 
     public function createSaleReturn(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['destination_site_id'], SiteAccessService::MAKE_SALES);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('sale_return', $data, $user, $status);
@@ -293,6 +320,8 @@ class InventoryDocumentService
 
     public function createPurchaseReturn(array $data, User $user): InventoryDocument
     {
+        $this->siteAccessService->authorizeSite($user, (int) $data['source_site_id'], SiteAccessService::RECEIVE_STOCK);
+
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('purchase_return', $data, $user, $status);

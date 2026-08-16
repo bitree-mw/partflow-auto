@@ -28,9 +28,9 @@ class PurchasesController extends Controller
         private readonly PaymentService $paymentService
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $purchases = $this->inventoryDocumentService->listByType('purchase');
+        $purchases = $this->inventoryDocumentService->listByType('purchase', [], $request->user());
 
         return view('purchases.index', [
             'title' => 'Purchases',
@@ -56,7 +56,11 @@ class PurchasesController extends Controller
             'title' => 'Add Purchase',
             'description' => 'Record parts bought from a supplier and receive stock into the selected site.',
             'suppliers' => $this->contactOptions($this->contactService->list()->filter->isSupplier()->values()),
-            'sites' => $this->siteOptions($this->siteService->list(['is_active' => true])),
+            'sites' => $this->siteOptions($this->siteService->list(
+                ['is_active' => true],
+                $request->user(),
+                \App\Services\SiteAccessService::RECEIVE_STOCK
+            )),
             'parts' => $this->productOptions($this->productService->list(['is_active' => true])),
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
             'documentStatuses' => ['draft' => 'Draft', 'completed' => 'Completed and received'],
@@ -208,7 +212,7 @@ class PurchasesController extends Controller
 
         abort_unless((int) $payment->inventory_document_id === (int) $purchase->id, 404);
 
-        $this->paymentService->delete($payment);
+        $this->paymentService->delete($payment, auth()->user());
 
         return redirect()
             ->route('web.purchases.edit', $purchase)
@@ -256,7 +260,7 @@ class PurchasesController extends Controller
     {
         abort_unless($inventoryDocument->document_type === 'purchase', 404);
 
-        return $this->inventoryDocumentService->show($inventoryDocument);
+        return $this->inventoryDocumentService->show($inventoryDocument, auth()->user());
     }
 
     private function contactOptions(Collection $contacts): array

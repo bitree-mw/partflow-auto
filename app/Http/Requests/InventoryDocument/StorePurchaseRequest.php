@@ -3,9 +3,15 @@
 namespace App\Http\Requests\InventoryDocument;
 
 use App\Http\Requests\ApiRequest;
+use App\Services\SiteAccessService;
 
 class StorePurchaseRequest extends ApiRequest
 {
+    public function authorize(): bool
+    {
+        return $this->canAccessSiteInput('destination_site_id', SiteAccessService::RECEIVE_STOCK);
+    }
+
     public function rules(): array
     {
         return [
