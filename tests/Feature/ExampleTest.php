@@ -143,6 +143,11 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('API Till');
 
+        $this->get(route('web.payment-accounts.edit', $paymentAccount))
+            ->assertOk()
+            ->assertSee('data-confirm-title="Save account changes?"', false)
+            ->assertSee('data-confirm-label="Save changes"', false);
+
         $this->put(route('web.payment-accounts.update', $paymentAccount), [
             'account_name' => 'API Till Updated',
             'account_type' => 'mobile_money',
@@ -169,6 +174,11 @@ class ExampleTest extends TestCase
     public function test_admin_settings_persist_and_add_entities_from_dialog_actions(): void
     {
         $this->actingAs($this->adminUser());
+
+        $this->get(route('web.settings.index'))
+            ->assertOk()
+            ->assertSee('data-confirm-title="Save car make changes?"', false)
+            ->assertSee('data-confirm-title="Save settings changes?"', false);
 
         $this->post(route('web.settings.update'), [
             'settings_action' => 'save_settings',
@@ -340,7 +350,7 @@ class ExampleTest extends TestCase
         $this->assertSame(0, $product->compatibilities()->count());
     }
 
-    public function test_product_forms_fill_the_product_type_column_and_deactivation_requires_confirmation(): void
+    public function test_product_forms_use_confirmation_for_edits_and_deactivation(): void
     {
         $this->actingAs($this->adminUser());
 
@@ -349,7 +359,7 @@ class ExampleTest extends TestCase
             'code' => 'BP',
             'is_active' => true,
         ]);
-        Product::create([
+        $product = Product::create([
             'product_code' => 'BP-UNKN-UNK-001',
             'product_name' => 'Brake Pad',
             'product_type_id' => $productType->id,
@@ -361,6 +371,11 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('class="form-field product-type-field"', false)
             ->assertSee('data-product-type-picker', false);
+
+        $this->get(route('web.catalog.products.edit', $product))
+            ->assertOk()
+            ->assertSee('data-confirm-title="Save product changes?"', false)
+            ->assertSee('data-confirm-label="Save changes"', false);
 
         $this->get(route('web.catalog.products.index'))
             ->assertOk()

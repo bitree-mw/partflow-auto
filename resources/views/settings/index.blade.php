@@ -282,7 +282,15 @@
                         </div>
                         <div class="settings-dialog-actions">
                             <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
-                            <button class="btn" type="submit" name="settings_action" value="update_car_make">Update make</button>
+                            <button
+                                class="btn"
+                                type="submit"
+                                name="settings_action"
+                                value="update_car_make"
+                                data-confirm-title="Save car make changes?"
+                                data-confirm="Save the changes made to this car make?"
+                                data-confirm-label="Save changes"
+                            >Update make</button>
                         </div>
                     </div>
                 </dialog>
@@ -457,7 +465,15 @@
                 <button class="btn-secondary" type="button" data-settings-prev>Previous</button>
                 <span data-settings-progress>Step 1</span>
                 <button class="btn-secondary" type="button" data-settings-next>Next</button>
-                <button class="btn" type="submit" name="settings_action" value="save_settings">Save settings</button>
+                <button
+                    class="btn"
+                    type="submit"
+                    name="settings_action"
+                    value="save_settings"
+                    data-confirm-title="Save settings changes?"
+                    data-confirm="Save the changes made to these settings?"
+                    data-confirm-label="Save changes"
+                >Save settings</button>
             </div>
         </form>
     </section>

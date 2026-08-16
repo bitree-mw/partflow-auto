@@ -32,7 +32,14 @@
 
     <x-country-datalist id="part-origin-countries" :countries="$countries" />
 
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.products.update', $product) }}">
+    <form
+        class="form-panel catalog-form"
+        method="POST"
+        action="{{ route('web.catalog.products.update', $product) }}"
+        data-confirm-title="Save product changes?"
+        data-confirm="Save the changes made to this product?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
 

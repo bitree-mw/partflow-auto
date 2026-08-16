@@ -14,7 +14,14 @@
 @section('content')
     <x-country-datalist id="brand-countries" :countries="$countries" />
 
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.brands.update', $brand) }}">
+    <form
+        class="form-panel catalog-form"
+        method="POST"
+        action="{{ route('web.catalog.brands.update', $brand) }}"
+        data-confirm-title="Save brand changes?"
+        data-confirm="Save the changes made to this brand?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
 

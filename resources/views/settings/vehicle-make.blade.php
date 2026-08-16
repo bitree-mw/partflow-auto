@@ -175,7 +175,15 @@
         @csrf
     </form>
 
-    <form id="edit-model-form" method="POST" action="#" data-dynamic-action>
+    <form
+        id="edit-model-form"
+        method="POST"
+        action="#"
+        data-dynamic-action
+        data-confirm-title="Save vehicle model changes?"
+        data-confirm="Save the changes made to this vehicle model?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
     </form>

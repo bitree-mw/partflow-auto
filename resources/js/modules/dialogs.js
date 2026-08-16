@@ -10,10 +10,17 @@ function dismissDialog(dialog) {
 
 let confirmationListenerBound = false;
 
+function isEditForm(form) {
+    const method = form.querySelector('input[name="_method"]')?.value?.toUpperCase();
+
+    return method === 'PUT' || method === 'PATCH';
+}
+
 function requestConfirmation({
     title = 'Confirm action',
     message,
     confirmLabel = 'Confirm',
+    confirmButtonClass = 'btn-danger',
 }) {
     return new Promise((resolve) => {
         const dialog = document.createElement('dialog');
@@ -37,7 +44,7 @@ function requestConfirmation({
         cancelButton.className = 'btn-secondary';
         cancelButton.type = 'button';
         cancelButton.textContent = 'Cancel';
-        confirmButton.className = 'btn-danger';
+        confirmButton.className = confirmButtonClass;
         confirmButton.type = 'button';
         confirmButton.textContent = confirmLabel;
 
@@ -115,7 +122,13 @@ export function initAppDialogs() {
     document.addEventListener('submit', (event) => {
         const form = event.target;
         const submitter = event.submitter;
-        const message = submitter?.dataset.confirm || form.dataset.confirm;
+        const editForm = isEditForm(form);
+        const message = submitter?.dataset.confirm
+            || form.dataset.confirm
+            || (editForm ? 'Save the changes you made?' : '');
+        const confirmLabel = submitter?.dataset.confirmLabel
+            || form.dataset.confirmLabel
+            || (editForm ? 'Save changes' : 'Confirm');
 
         if (!message || form.dataset.confirmBypass === 'true') {
             return;
@@ -124,9 +137,12 @@ export function initAppDialogs() {
         event.preventDefault();
 
         requestConfirmation({
-            title: submitter?.dataset.confirmTitle || form.dataset.confirmTitle || 'Confirm action',
+            title: submitter?.dataset.confirmTitle
+                || form.dataset.confirmTitle
+                || (editForm ? 'Save changes?' : 'Confirm action'),
             message,
-            confirmLabel: submitter?.dataset.confirmLabel || form.dataset.confirmLabel || 'Confirm',
+            confirmLabel,
+            confirmButtonClass: editForm || confirmLabel === 'Save changes' ? 'btn' : 'btn-danger',
         }).then((confirmed) => {
             if (!confirmed) {
                 submitter?.focus();

@@ -816,12 +816,19 @@
     }
 
     .app-confirm-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
         width: min(92vw, 480px);
+        max-height: calc(100vh - 32px);
+        margin: 0;
         padding: 0;
         border: 0;
         border-radius: 20px;
+        overflow: auto;
         background: transparent;
         box-shadow: 0 28px 70px rgb(17 24 39 / 28%);
+        transform: translate(-50%, -50%);
     }
 
     .app-confirm-dialog::backdrop {

@@ -12,7 +12,14 @@
 @endsection
 
 @section('content')
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.fuel-types.update', $fuelType) }}">
+    <form
+        class="form-panel catalog-form"
+        method="POST"
+        action="{{ route('web.catalog.fuel-types.update', $fuelType) }}"
+        data-confirm-title="Save fuel type changes?"
+        data-confirm="Save the changes made to this fuel type?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
 

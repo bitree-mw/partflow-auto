@@ -12,7 +12,14 @@
 @endsection
 
 @section('content')
-    <form class="form-panel purchase-entry-form" method="POST" action="{{ route('web.purchases.update', $purchase) }}">
+    <form
+        class="form-panel purchase-entry-form"
+        method="POST"
+        action="{{ route('web.purchases.update', $purchase) }}"
+        data-confirm-title="Save purchase changes?"
+        data-confirm="Save the changes made to this purchase?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
 

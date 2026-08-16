@@ -25,7 +25,14 @@
             : $engineSizeValue;
     @endphp
 
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.car-models.update', $carModel) }}">
+    <form
+        class="form-panel catalog-form"
+        method="POST"
+        action="{{ route('web.catalog.car-models.update', $carModel) }}"
+        data-confirm-title="Save car model changes?"
+        data-confirm="Save the changes made to this car model?"
+        data-confirm-label="Save changes"
+    >
         @csrf
         @method('PUT')
 

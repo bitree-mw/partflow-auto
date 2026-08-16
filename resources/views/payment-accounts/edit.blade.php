@@ -16,7 +16,14 @@
 @endsection
 
 @section('content')
-    <form class="form-panel" method="POST" action="{{ route('web.payment-accounts.update', $paymentAccount) }}">
+    <form
+        class="form-panel"
+        method="POST"
+        action="{{ route('web.payment-accounts.update', $paymentAccount) }}"
+        data-confirm-title="Save account changes?"
+        data-confirm="Save the changes made to this payment account?"
+        data-confirm-label="Save changes"
+    >
         @method('PUT')
         @include('payment-accounts._form', [
             'paymentAccount' => $paymentAccount,

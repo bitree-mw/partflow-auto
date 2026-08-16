@@ -1,59 +1,101 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PARTFLOW-AUTO
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Description
 
-## About Laravel
+This system is to be used as an inventory management system and also a POS for companies that are selling and buying car parts.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This repository contains a Laravel backend, REST API, and Blade frontend.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Main features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- inventory Management for car parts. Car parts will be linked to tpes, brands and vehicle models
+- Low stock levels notification
+- Reporting features. Sales, purchases inventory, creditors, debtors.
+- Point of sale for selling the car parts
+- Dashboard Analytics. For the business performance
+- Warehouse and manual stock taking
+- Multi-branch control
+- Customer and supplier management
+- Sales analysis
 
-## Learning Laravel
+## Technology
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP `8.4`
+- Laravel
+- MySql Database
+- Node.js `[VERSION]`
+- Blade front end
+- `[CSS OR COMPONENT FRAMEWORK]`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Requirements
 
-## Laravel Sponsors
+- PHP and the extensions required by `composer.json`
+- Composer
+- Node.js and npm
+- Supported database server
+- Git
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Local installation
 
-### Premium Partners
+1. Clone the repository.
+2. Install PHP dependencies:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+   `composer install`
 
-## Contributing
+3. Install frontend dependencies:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+   `npm install`
 
-## Code of Conduct
+4. Copy `.env.example` to `.env` and set local values.
+5. Generate the application key:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+   `php artisan key:generate`
 
-## Security Vulnerabilities
+6. Create a local database and configure the database variables.
+7. Run migrations:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+   `php artisan migrate`
 
-## License
+8. Build or start the frontend:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+   `npm run dev`
+
+9. Start Laravel using the approved local environment.
+
+<!-- INACTIVE: Run `php artisan db:seed` only if the seeders are safe and required for local setup. -->
+<!-- INACTIVE: Run `php artisan storage:link` only if the application serves public files from Laravel storage. -->
+
+## Development commands
+
+| Task | Command |
+| --- | --- |
+| Run tests | `php artisan test` |
+| Check PHP formatting | `vendor/bin/pint --test` |
+| Apply PHP formatting | `vendor/bin/pint` |
+| Frontend development | `npm run dev` |
+| Production frontend build | `npm run build` |
+
+<!-- INACTIVE: Frontend lint: `npm run lint`. Activate only if available. -->
+<!-- INACTIVE: Static analysis: `vendor/bin/phpstan analyse`. Activate only if installed. -->
+
+## Project documentation
+
+- AI working instructions: `AGENTS.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- Database: `docs/DATABASE.md`
+- API conventions: `docs/API_CONVENTIONS.md`
+- Frontend conventions: `docs/FRONTEND.md`
+- Testing: `docs/TESTING.md`
+- Security: `SECURITY.md`
+- Architectural decisions: `docs/DECISIONS/`
+
+## Deployment
+
+`[Describe the approved deployment process without including credentials, private hostnames, or secret values.]`
+
+<!-- INACTIVE: Deployment is automated through CI/CD. Activate only after documenting the actual workflow. -->
+
+## Support and ownership
+
+- Product owner: `Ronald Fred Sikwese`
+- Technical owner: `Bitree`
