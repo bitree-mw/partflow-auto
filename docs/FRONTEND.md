@@ -141,6 +141,7 @@ The browser may show estimates for responsiveness, but the backend result is aut
 - Build authorization rules into CSS visibility.
 - duplicate long class strings across many views when a component would improve consistency.
 - Modify Tailwind or Vite configuration without checking the installed versions and build process.
+- Do not hard code colours in view files.
 
 ## Responsive design and accessibility
 
