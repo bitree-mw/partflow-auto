@@ -57,7 +57,7 @@ Do not reorganize working views merely to match this example. Record and follow 
 | Transfers | **Partial** | List/create/show screens exist; approve, dispatch, receive, reject, and cancel screens do not. |
 | POS and sales | **Partial** | Search/cart/customer/payment checkout and sale list/edit exist; printable receipt, idempotent checkout, and void/reversal UI do not. |
 | Customers and debtors | **Partial** | Customer records, a credit-limit field, and sale balances exist; limit enforcement, due dates, aging, statements, and collection workflow do not. |
-| Users and access | **Partial** | Settings manage roles and site assignments; a conventional user CRUD interface does not exist. |
+| Users and access | **Partial** | Settings can create, edit, deactivate/reactivate, reset passwords, assign roles, and select a user's primary site. A full multi-site capability editor and conventional `/api/users` CRUD resource do not exist. |
 | Reports | **Partial** | Report filters and export link exist; the export link does not currently attach the bearer token required by the API route. |
 | Payment accounts | **Implemented — basic** | List/create/show/edit screens exist. Payment reversal/reconciliation UI is not claimed. |
 

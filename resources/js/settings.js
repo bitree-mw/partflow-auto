@@ -9,8 +9,8 @@ const activePanelInput = document.querySelector('[data-settings-active-panel]');
 const dialogButtons = Array.from(document.querySelectorAll('[data-open-settings-dialog]'));
 const dialogs = Array.from(document.querySelectorAll('[data-settings-dialog]'));
 const errorDialogMap = {
-    create_document_series: 'series',
     create_user: 'user',
+    update_user: 'edit-user',
     create_car_make: 'car-make',
     create_vehicle_model: 'vehicle-model',
     update_car_make: 'edit-car-make',
@@ -93,7 +93,11 @@ dialogButtons.forEach((button) => {
                 const field = document.querySelector(`[data-settings-field="${key}"]`);
 
                 if (field) {
-                    field.value = value;
+                    if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+                        field.checked = value === '1' || value === 'true';
+                    } else {
+                        field.value = value;
+                    }
                 }
             });
 

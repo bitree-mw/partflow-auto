@@ -416,7 +416,8 @@ class ExampleTest extends TestCase
 
     public function test_admin_settings_persist_and_add_entities_from_dialog_actions(): void
     {
-        $this->actingAs($this->adminUser());
+        $admin = $this->adminUser();
+        $this->actingAs($admin);
 
         $this->get(route('web.settings.index'))
             ->assertOk()
@@ -453,18 +454,11 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('Settings Branch');
 
-        $this->post(route('web.settings.update'), [
-            'settings_action' => 'create_document_series',
-            'settings_panel' => 'document-numbering',
-            'series_name' => 'Supplier returns',
-            'series_prefix' => 'SRN',
-            'series_next_number' => 1001,
-        ])->assertRedirect(route('web.settings.index').'#document-numbering');
-
-        $this->get(route('web.settings.index').'#document-numbering')
-            ->assertOk()
-            ->assertSee('Supplier returns')
-            ->assertSee('SRN');
+        $role = Role::query()->create([
+            'name' => 'Settings Role',
+            'permissions' => [],
+            'is_active' => true,
+        ]);
 
         $this->post(route('web.settings.update'), [
             'settings_action' => 'create_user',
@@ -476,7 +470,6 @@ class ExampleTest extends TestCase
             'user_password' => 'password123',
         ])->assertRedirect(route('web.settings.index').'#user-management');
 
-        $role = Role::where('name', 'Settings Role')->firstOrFail();
         $user = User::where('email', 'settings-manager@example.test')->firstOrFail();
 
         $this->assertSame($role->id, $user->role_id);
@@ -485,6 +478,51 @@ class ExampleTest extends TestCase
             'site_id' => $site->id,
             'is_default' => true,
         ]);
+
+        $this->get(route('web.settings.index').'#user-management')
+            ->assertOk()
+            ->assertSee('data-open-settings-dialog="edit-user"', false)
+            ->assertSee('data-edit-user-id="'.$user->id.'"', false)
+            ->assertSee('<select class="form-control" id="user_role" name="user_role">', false)
+            ->assertSee('<select class="form-control" id="edit_user_site" name="edit_user_site"', false)
+            ->assertDontSee('id="user_role" name="user_role" list=', false)
+            ->assertSee('data-confirm-title="Deactivate user?"', false);
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'update_user',
+            'settings_panel' => 'user-management',
+            'edit_user_id' => $user->id,
+            'edit_user_name' => 'Updated Settings Manager',
+            'edit_user_email' => 'updated-settings-manager@example.test',
+            'edit_user_role' => $role->name,
+            'edit_user_site' => $site->name,
+            'edit_user_password' => 'new-password-123',
+            'edit_user_is_active' => 1,
+        ])->assertRedirect(route('web.settings.index').'#user-management');
+
+        $user->refresh();
+        $this->assertSame('Updated Settings Manager', $user->name);
+        $this->assertSame('updated-settings-manager@example.test', $user->email);
+        $this->assertTrue(Hash::check('new-password-123', $user->password));
+
+        $user->createToken('settings-test');
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'deactivate_user',
+            'user_id' => $user->id,
+        ])->assertRedirect(route('web.settings.index').'#user-management');
+
+        $this->assertFalse($user->fresh()->is_active);
+        $this->assertSame(0, $user->tokens()->count());
+
+        $this->post(route('web.settings.update'), [
+            'settings_action' => 'deactivate_user',
+            'user_id' => $admin->id,
+        ])
+            ->assertRedirect(route('web.settings.index').'#user-management')
+            ->assertSessionHas('error', 'You cannot deactivate your own account.');
+
+        $this->assertTrue($admin->fresh()->is_active);
     }
 
     public function test_catalogue_can_create_brand_product_type_and_product(): void
@@ -866,6 +904,7 @@ class ExampleTest extends TestCase
 
         $purchase = InventoryDocument::where('document_type', 'purchase')->firstOrFail();
 
+        $this->assertStringStartsWith('PUR-', $purchase->document_number);
         $this->assertSame('partial', $purchase->payment_status);
         $this->assertEquals(44000, (float) $purchase->total_amount);
         $this->assertEquals(4, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
@@ -916,6 +955,7 @@ class ExampleTest extends TestCase
 
         $sale = InventoryDocument::where('document_type', 'sale')->latest('id')->firstOrFail();
 
+        $this->assertStringStartsWith('SAL-', $sale->document_number);
         $this->assertSame('paid', $sale->payment_status);
         $this->assertEquals(15000, (float) $sale->total_amount);
         $this->assertEquals(3, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));

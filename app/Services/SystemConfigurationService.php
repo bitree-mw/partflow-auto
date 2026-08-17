@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\InventoryDocument;
 use App\Models\BusinessSetting;
 use App\Models\Role;
 use App\Models\Site;
@@ -74,39 +73,21 @@ class SystemConfigurationService
             ->with(['role', 'siteAccesses.site'])
             ->orderBy('name')
             ->get()
-            ->map(fn (User $user) => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role?->name ?? 'User',
-                'site' => $user->siteAccesses->firstWhere('is_default', true)?->site?->name
-                    ?? $user->siteAccesses->first()?->site?->name
-                    ?? 'All sites',
-                'status' => $user->is_active ? 'Active' : 'Inactive',
-            ]);
-    }
+            ->map(function (User $user): array {
+                $activeSiteAccesses = $user->siteAccesses->where('is_active', true);
 
-    public function documentSeries(): Collection
-    {
-        $defaultSeries = collect([
-            ['document' => 'POS Sales', 'type' => 'sale', 'prefix' => 'POS'],
-            ['document' => 'Purchases', 'type' => 'purchase', 'prefix' => 'PUR'],
-            ['document' => 'Transfers', 'type' => 'transfer', 'prefix' => 'TRF'],
-            ['document' => 'Stock Takes', 'type' => 'stock_take', 'prefix' => 'STK'],
-        ]);
-
-        return $defaultSeries
-            ->merge(collect($this->setting('document_series', [])))
-            ->map(function (array $series) {
-            $count = InventoryDocument::query()
-                ->where('document_type', $series['type'] ?? str($series['document'])->slug('_')->toString())
-                ->count();
-
-            return [
-                'document' => $series['document'],
-                'prefix' => $series['prefix'],
-                'next_number' => (string) ($series['next_number'] ?? ($count + 1)),
-            ];
-        });
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role?->name ?? '',
+                    'site' => $activeSiteAccesses->firstWhere('is_default', true)?->site?->name
+                        ?? $activeSiteAccesses->first()?->site?->name
+                        ?? 'All sites',
+                    'is_active' => (bool) $user->is_active,
+                    'status' => $user->is_active ? 'Active' : 'Inactive',
+                ];
+            });
     }
 
     public function settingGroups(): Collection

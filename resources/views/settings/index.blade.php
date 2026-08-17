@@ -30,11 +30,6 @@
             <option value="{{ $site['name'] }}"></option>
         @endforeach
     </datalist>
-    <datalist id="role-options">
-        @foreach ($roles as $role)
-            <option value="{{ $role }}"></option>
-        @endforeach
-    </datalist>
     <datalist id="vehicle-make-options">
         @foreach ($carMakeOptions as $make)
             <option value="{{ $make['name'] }}"></option>
@@ -59,10 +54,6 @@
             <button type="button" data-settings-tab="payment-accounts">
                 <strong>Payment accounts</strong>
                 <small>Cash, bank, and mobile money</small>
-            </button>
-            <button type="button" data-settings-tab="document-numbering">
-                <strong>Document numbering</strong>
-                <small>Sales, purchases, transfers, stock counts</small>
             </button>
             <button type="button" data-settings-tab="user-management">
                 <strong>User management</strong>
@@ -338,60 +329,6 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="document-numbering" data-settings-panel="document-numbering" hidden>
-                <header class="settings-header">
-                    <span class="eyebrow">Document numbering</span>
-                    <h2>Operational document series</h2>
-                    <p>Prepare the numbering prefixes used by POS sales, purchases, transfers, and stock documents.</p>
-                </header>
-
-                <div class="document-series-list">
-                    @foreach ($documentSeries as $series)
-                        <article>
-                            <div>
-                                <strong>{{ $series['document'] }}</strong>
-                                <span>Prefix {{ $series['prefix'] }}</span>
-                            </div>
-                            <em>Next {{ $series['next_number'] }}</em>
-                        </article>
-                    @endforeach
-                </div>
-
-                <div class="settings-add-row">
-                    <button class="btn-secondary" type="button" data-open-settings-dialog="series">Add document series</button>
-                </div>
-
-                <dialog class="settings-dialog" data-settings-dialog="series" aria-labelledby="settings-series-title">
-                    <div class="settings-dialog-card">
-                        <header>
-                            <span class="eyebrow">New series</span>
-                            <h3 id="settings-series-title">Add document numbering</h3>
-                        </header>
-                        <div class="form-grid">
-                            <div class="form-field">
-                                <label for="series_name">Document name</label>
-                                <input class="form-control" id="series_name" name="series_name" value="{{ old('series_name') }}" placeholder="Supplier returns">
-                                <x-form-error name="series_name" />
-                            </div>
-                            <div class="form-field">
-                                <label for="series_prefix">Prefix</label>
-                                <input class="form-control" id="series_prefix" name="series_prefix" value="{{ old('series_prefix') }}" placeholder="SRN">
-                                <x-form-error name="series_prefix" />
-                            </div>
-                            <div class="form-field full">
-                                <label for="series_next_number">Next number</label>
-                                <input class="form-control" id="series_next_number" name="series_next_number" value="{{ old('series_next_number', 1001) }}" inputmode="numeric" placeholder="1001">
-                                <x-form-error name="series_next_number" />
-                            </div>
-                        </div>
-                        <div class="settings-dialog-actions">
-                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
-                            <button class="btn" type="submit" name="settings_action" value="create_document_series">Save series</button>
-                        </div>
-                    </div>
-                </dialog>
-            </section>
-
             <section class="settings-panel" id="user-management" data-settings-panel="user-management" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">User management</span>
@@ -402,14 +339,48 @@
                 <div class="user-management-grid">
                     <section class="user-list" aria-label="Current users">
                         @foreach ($users as $user)
-                            <article>
+                            <article @class(['inactive' => ! $user['is_active']])>
                                 <div>
                                     <strong>{{ $user['name'] }}</strong>
                                     <span>{{ $user['email'] }}</span>
                                 </div>
-                                <div>
-                                    <span>{{ $user['role'] }}</span>
+                                <div class="user-status">
+                                    <span>{{ $user['role'] ?: 'User' }}</span>
                                     <em>{{ $user['site'] }} - {{ $user['status'] }}</em>
+                                </div>
+                                <div class="settings-row-actions">
+                                    <button
+                                        class="icon-action icon-edit"
+                                        type="button"
+                                        title="Edit user"
+                                        aria-label="Edit {{ $user['name'] }}"
+                                        data-open-settings-dialog="edit-user"
+                                        data-settings-fill
+                                        data-edit-user-id="{{ $user['id'] }}"
+                                        data-edit-user-name="{{ $user['name'] }}"
+                                        data-edit-user-email="{{ $user['email'] }}"
+                                        data-edit-user-role="{{ $user['role'] }}"
+                                        data-edit-user-site="{{ $user['site'] }}"
+                                        data-edit-user-is-active="{{ $user['is_active'] ? '1' : '0' }}"
+                                    >
+                                        <x-icons.pencil />
+                                    </button>
+                                    @if ($user['is_active'] && (int) $user['id'] !== (int) auth()->id())
+                                        <button
+                                            class="icon-action icon-danger"
+                                            type="submit"
+                                            name="settings_action"
+                                            value="deactivate_user"
+                                            formaction="{{ route('web.settings.update', ['user_id' => $user['id']]) }}"
+                                            title="Deactivate user"
+                                            aria-label="Deactivate {{ $user['name'] }}"
+                                            data-confirm-title="Deactivate user?"
+                                            data-confirm="Deactivate &quot;{{ $user['name'] }}&quot; and revoke their API access?"
+                                            data-confirm-label="Deactivate"
+                                        >
+                                            <x-icons.trash />
+                                        </button>
+                                    @endif
                                 </div>
                             </article>
                         @endforeach
@@ -439,12 +410,22 @@
                             </div>
                             <div class="form-field">
                                 <label for="user_role">Role</label>
-                                <input class="form-control searchable-input" id="user_role" name="user_role" value="{{ old('user_role') }}" list="role-options" placeholder="Search role">
+                                <select class="form-control" id="user_role" name="user_role">
+                                    <option value="">No role selected</option>
+                                    @foreach ($roles as $role)
+                                        <option value="{{ $role }}" @selected(old('user_role') === $role)>{{ $role }}</option>
+                                    @endforeach
+                                </select>
                                 <x-form-error name="user_role" />
                             </div>
                             <div class="form-field">
                                 <label for="user_site">Site access</label>
-                                <input class="form-control searchable-input" id="user_site" name="user_site" value="{{ old('user_site') }}" list="branch-options" placeholder="Search site">
+                                <select class="form-control" id="user_site" name="user_site">
+                                    <option value="All sites" @selected(old('user_site', 'All sites') === 'All sites')>All sites</option>
+                                    @foreach ($sites as $site)
+                                        <option value="{{ $site['name'] }}" @selected(old('user_site') === $site['name'])>{{ $site['name'] }}</option>
+                                    @endforeach
+                                </select>
                                 <x-form-error name="user_site" />
                             </div>
                             <div class="form-field full">
@@ -456,6 +437,69 @@
                         <div class="settings-dialog-actions">
                             <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
                             <button class="btn" type="submit" name="settings_action" value="create_user">Save user</button>
+                        </div>
+                    </div>
+                </dialog>
+
+                <dialog class="settings-dialog" data-settings-dialog="edit-user" aria-labelledby="settings-edit-user-title">
+                    <div class="settings-dialog-card">
+                        <header>
+                            <span class="eyebrow">Edit user</span>
+                            <h3 id="settings-edit-user-title">Update team member</h3>
+                        </header>
+                        <input type="hidden" name="edit_user_id" value="{{ old('edit_user_id') }}" data-settings-field="editUserId">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="edit_user_name">Full name</label>
+                                <input class="form-control" id="edit_user_name" name="edit_user_name" value="{{ old('edit_user_name') }}" data-settings-field="editUserName">
+                                <x-form-error name="edit_user_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_user_email">Email</label>
+                                <input class="form-control" id="edit_user_email" name="edit_user_email" type="email" value="{{ old('edit_user_email') }}" data-settings-field="editUserEmail">
+                                <x-form-error name="edit_user_email" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_user_role">Role</label>
+                                <select class="form-control" id="edit_user_role" name="edit_user_role" data-settings-field="editUserRole">
+                                    <option value="">No role selected</option>
+                                    @foreach ($roles as $role)
+                                        <option value="{{ $role }}" @selected(old('edit_user_role') === $role)>{{ $role }}</option>
+                                    @endforeach
+                                </select>
+                                <x-form-error name="edit_user_role" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_user_site">Site access</label>
+                                <select class="form-control" id="edit_user_site" name="edit_user_site" data-settings-field="editUserSite">
+                                    <option value="All sites" @selected(old('edit_user_site', 'All sites') === 'All sites')>All sites</option>
+                                    @foreach ($sites as $site)
+                                        <option value="{{ $site['name'] }}" @selected(old('edit_user_site') === $site['name'])>{{ $site['name'] }}</option>
+                                    @endforeach
+                                </select>
+                                <x-form-error name="edit_user_site" />
+                            </div>
+                            <div class="form-field full">
+                                <label for="edit_user_password">New password optional</label>
+                                <input class="form-control" id="edit_user_password" name="edit_user_password" type="password" autocomplete="new-password" placeholder="Leave blank to keep the current password">
+                                <x-form-error name="edit_user_password" />
+                            </div>
+                            <label class="checkbox-row form-field full" for="edit_user_is_active">
+                                <input id="edit_user_is_active" type="checkbox" name="edit_user_is_active" value="1" @checked(old('edit_user_is_active')) data-settings-field="editUserIsActive">
+                                <span>Active account</span>
+                            </label>
+                        </div>
+                        <div class="settings-dialog-actions">
+                            <button class="btn-secondary" type="button" data-close-settings-dialog>Cancel</button>
+                            <button
+                                class="btn"
+                                type="submit"
+                                name="settings_action"
+                                value="update_user"
+                                data-confirm-title="Save user changes?"
+                                data-confirm="Save this user's role, site access, account status, and profile changes?"
+                                data-confirm-label="Save changes"
+                            >Update user</button>
                         </div>
                     </div>
                 </dialog>

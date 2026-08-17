@@ -567,7 +567,6 @@
     .site-list article,
     .settings-groups article,
     .user-list article,
-    .document-series-list article,
     .profit-loss-account-list article,
     .top-parts-grid article,
     .risk-item,
@@ -843,8 +842,40 @@
         background: var(--pf-surface);
     }
 
-    .remember-option input {
-        accent-color: var(--pf-orange-500);
+    input[type='checkbox'] {
+        width: 24px;
+        min-width: 24px;
+        height: 24px;
+        margin: 0;
+        border: 2px solid var(--pf-orange-500);
+        border-radius: 5px;
+        appearance: none;
+        background-color: var(--pf-surface);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 15px 15px;
+        cursor: pointer;
+        vertical-align: middle;
+        transition:
+            border-color 150ms ease,
+            background-color 150ms ease,
+            box-shadow 150ms ease;
+    }
+
+    input[type='checkbox']:checked {
+        border-color: var(--pf-orange-500);
+        background-color: var(--pf-orange-500);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='m3 8 3 3 7-7'/%3E%3C/svg%3E");
+    }
+
+    input[type='checkbox']:hover:not(:disabled) {
+        border-color: var(--pf-orange-600);
+        box-shadow: 0 0 0 4px rgb(244 122 42 / 12%);
+    }
+
+    input[type='checkbox']:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
     }
 
     /* Prototype typography: Inter, regular body copy, emphasis only where information is important. */
