@@ -32,6 +32,28 @@ class DashboardRepository
             ->count();
     }
 
+    public function salesTotalBetween(string $dateFrom, string $dateTo, ?int $siteId = null, ?array $siteIds = null): float
+    {
+        return (float) InventoryDocument::query()
+            ->where('document_type', 'sale')
+            ->whereIn('status', ['completed', 'approved'])
+            ->whereDate('document_date', '>=', $dateFrom)
+            ->whereDate('document_date', '<=', $dateTo)
+            ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('source_site_id', $siteIds))
+            ->sum('total_amount');
+    }
+
+    public function pendingPurchaseOrderCount(?int $siteId = null, ?array $siteIds = null): int
+    {
+        return (int) InventoryDocument::query()
+            ->where('document_type', 'purchase')
+            ->whereIn('status', ['draft', 'pending'])
+            ->when($siteId, fn ($query) => $query->forSite($siteId))
+            ->forSites($siteIds)
+            ->count();
+    }
+
     public function todayProfit(?int $siteId = null, ?array $siteIds = null): float
     {
         return (float) DB::table('inventory_document_items')

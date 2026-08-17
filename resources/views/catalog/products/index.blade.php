@@ -121,13 +121,13 @@
                         <th><x-sort-link field="compatibility" label="Compatible" /></th>
                         <th><x-sort-link field="price" label="Price" /></th>
                         <th><x-sort-link field="stock" label="Stock" /></th>
-                        <th><x-sort-link field="status" label="Status" /></th>
+                        <th>Status</th>
                         <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($products as $product)
-                        <tr class="product-row-main">
+                        <tr @class(['product-row-main', 'product-row-inactive' => ! $product['is_active']])>
                             <td>
                                 <strong class="catalogue-part-title">
                                     {{ $product['name'] }}
@@ -142,7 +142,7 @@
                             <td>{{ $product['price'] }}</td>
                             <td>{{ $product['stock'] }}</td>
                             <td>
-                                <span @class(['status-pill', 'inactive' => ! $product['is_active']])>
+                                <span @class(['status-pill', $product['status_tone']])>
                                     {{ $product['status'] }}
                                 </span>
                             </td>
@@ -173,7 +173,7 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr class="product-row-stock">
+                        <tr @class(['product-row-stock', 'product-row-inactive' => ! $product['is_active']])>
                             <td colspan="8">
                                 <span class="branch-stock-pills branch-stock-full">
                                     @foreach ($product['branch_stock'] as $branch)

@@ -58,6 +58,16 @@
     </a>
 
     <button
+        class="sidebar-collapse"
+        type="button"
+        aria-label="Collapse navigation"
+        aria-pressed="false"
+        data-sidebar-collapse
+    >
+        <span aria-hidden="true">‹</span>
+    </button>
+
+    <button
         class="sidebar-toggle"
         type="button"
         aria-expanded="false"
@@ -84,11 +94,12 @@
                     @foreach ($visibleItems as $item)
                         <a
                             href="{{ $item['href'] }}"
+                            title="{{ $item['label'] }}"
                             @class(['active' => $item['active'], 'disabled' => $item['href'] === '#'])
                             @if ($item['href'] === '#') aria-disabled="true" tabindex="-1" @endif
                         >
                             <span class="nav-icon" aria-hidden="true">{!! $icons[$item['icon']] !!}</span>
-                            <span>{{ $item['label'] }}</span>
+                            <span class="nav-label">{{ $item['label'] }}</span>
 
                             @if (! empty($item['badge']))
                                 <em>{{ $item['badge'] }}</em>
@@ -105,7 +116,7 @@
         <span>{{ $initials ?: 'U' }}</span>
         <div>
             <strong>{{ $signedInUser?->name ?? 'Signed in user' }}</strong>
-            <small>{{ $signedInRole ?? 'User' }} - Active</small>
+            <small>{{ $signedInRole ?? 'User' }} · Active</small>
         </div>
         <button type="submit" aria-label="Log out">-&gt;</button>
     </form>

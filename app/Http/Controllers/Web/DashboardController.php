@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\DashboardRequest;
 use App\Services\DashboardService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -13,9 +13,9 @@ class DashboardController extends Controller
         private readonly DashboardService $dashboardService
     ) {}
 
-    public function index(Request $request): View
+    public function index(DashboardRequest $request): View
     {
-        $filters = $request->only('site_id');
+        $filters = $request->validated();
 
         return view('dashboard.index', [
             'title' => now()->format('F j, Y'),

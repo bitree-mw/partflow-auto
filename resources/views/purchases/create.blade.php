@@ -33,7 +33,7 @@
                 <p>Record who supplied the parts, where stock is being received, and whether payment is complete or still payable.</p>
             </div>
 
-            <div class="form-grid">
+            <div class="form-grid purchase-header-grid">
                 <div class="form-field">
                     <label for="contact_id">Supplier</label>
                     <select class="form-control" id="contact_id" name="contact_id">
@@ -62,46 +62,6 @@
                     <label for="purchase_date">Purchase date and time</label>
                     <input class="form-control" id="purchase_date" name="document_date" type="datetime-local" value="{{ old('document_date') }}">
                     <x-form-error name="document_date" />
-                </div>
-                <div class="form-field">
-                    <label for="status">Document status</label>
-                    <select class="form-control" id="status" name="status">
-                        @foreach ($documentStatuses as $value => $label)
-                            <option value="{{ $value }}" @selected(old('status', 'completed') === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="status" />
-                </div>
-                <div class="form-field">
-                    <label for="amount_paid">Amount paid</label>
-                    <input class="form-control" id="amount_paid" name="amount_paid" inputmode="decimal" value="{{ old('amount_paid') }}" placeholder="0" data-purchase-amount-paid>
-                    <x-form-error name="amount_paid" />
-                </div>
-                <div class="form-field">
-                    <label for="payment_account_id">Payment account</label>
-                    <select class="form-control" id="payment_account_id" name="payment_account_id">
-                        <option value="">No payment account</option>
-                        @foreach ($paymentAccounts as $account)
-                            <option value="{{ $account['id'] }}" @selected((string) old('payment_account_id') === (string) $account['id'])>
-                                {{ $account['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="payment_account_id" />
-                </div>
-                <div class="form-field">
-                    <label for="payment_method">Payment method</label>
-                    <select class="form-control" id="payment_method" name="payment_method">
-                        @foreach ($paymentMethods as $value => $label)
-                            <option value="{{ $value }}" @selected(old('payment_method', 'cash') === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <x-form-error name="payment_method" />
-                </div>
-                <div class="form-field">
-                    <label for="transaction_reference">Payment reference</label>
-                    <input class="form-control" id="transaction_reference" name="transaction_reference" value="{{ old('transaction_reference') }}" placeholder="Receipt or transfer ref">
-                    <x-form-error name="transaction_reference" />
                 </div>
             </div>
         </section>
@@ -148,8 +108,8 @@
                                     <input class="form-control" id="cost_{{ $lineIndex }}" name="items[{{ $lineIndex }}][unit_cost]" inputmode="decimal" value="{{ old("items.{$lineIndex}.unit_cost", $lineItem['unit_cost'] ?? '') }}" placeholder="0" data-purchase-unit-cost>
                                     <x-form-error name="items.{{ $lineIndex }}.unit_cost" />
                                 </div>
-                                <div class="form-field purchase-line-total">
-                                    <span>Line total</span>
+                                <div class="purchase-line-total">
+                                    <span class="purchase-line-label">Line total</span>
                                     <strong data-purchase-line-total>{{ $purchaseCurrency }} 0</strong>
                                 </div>
                             </div>
@@ -184,8 +144,8 @@
                                 <label for="cost___INDEX__">Unit cost</label>
                                 <input class="form-control" id="cost___INDEX__" name="items[__INDEX__][unit_cost]" inputmode="decimal" placeholder="0" data-purchase-unit-cost>
                             </div>
-                            <div class="form-field purchase-line-total">
-                                <span>Line total</span>
+                            <div class="purchase-line-total">
+                                <span class="purchase-line-label">Line total</span>
                                 <strong data-purchase-line-total>{{ $purchaseCurrency }} 0</strong>
                             </div>
                         </div>
@@ -196,6 +156,48 @@
             <div class="purchase-line-actions">
                 <button class="btn-secondary" type="button" data-add-purchase-line>Add line item</button>
             </div>
+
+            <section class="purchase-payment-entry" aria-labelledby="purchase-payment-heading">
+                <div>
+                    <span class="eyebrow">Payment details</span>
+                    <h3 id="purchase-payment-heading">Record payment</h3>
+                    <p>Capture what was paid and the account that received the transaction before reviewing the balance.</p>
+                </div>
+
+                <div class="purchase-payment-grid">
+                    <div class="form-field">
+                        <label for="amount_paid">Amount paid</label>
+                        <input class="form-control" id="amount_paid" name="amount_paid" inputmode="decimal" value="{{ old('amount_paid') }}" placeholder="0" data-purchase-amount-paid>
+                        <x-form-error name="amount_paid" />
+                    </div>
+                    <div class="form-field">
+                        <label for="payment_account_id">Payment account</label>
+                        <select class="form-control" id="payment_account_id" name="payment_account_id">
+                            <option value="">No payment account</option>
+                            @foreach ($paymentAccounts as $account)
+                                <option value="{{ $account['id'] }}" @selected((string) old('payment_account_id') === (string) $account['id'])>
+                                    {{ $account['label'] }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <x-form-error name="payment_account_id" />
+                    </div>
+                    <div class="form-field">
+                        <label for="payment_method">Payment method</label>
+                        <select class="form-control" id="payment_method" name="payment_method">
+                            @foreach ($paymentMethods as $value => $label)
+                                <option value="{{ $value }}" @selected(old('payment_method', 'cash') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <x-form-error name="payment_method" />
+                    </div>
+                    <div class="form-field">
+                        <label for="transaction_reference">Payment reference</label>
+                        <input class="form-control" id="transaction_reference" name="transaction_reference" value="{{ old('transaction_reference') }}" placeholder="Receipt or transfer ref">
+                        <x-form-error name="transaction_reference" />
+                    </div>
+                </div>
+            </section>
 
             <div class="purchase-totals">
                 <div>
@@ -227,9 +229,20 @@
             </div>
         </section>
 
-        <div class="form-actions">
-            <a class="btn-secondary" href="{{ route('web.purchases.index') }}">Cancel</a>
-            <button class="btn" type="submit">Save purchase</button>
+        <div class="form-actions purchase-submit-bar">
+            <div class="form-field purchase-status-field">
+                <label for="status">Document status</label>
+                <select class="form-control" id="status" name="status">
+                    @foreach ($documentStatuses as $value => $label)
+                        <option value="{{ $value }}" @selected(old('status', 'completed') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <x-form-error name="status" />
+            </div>
+            <div class="purchase-submit-actions">
+                <a class="btn-secondary" href="{{ route('web.purchases.index') }}">Cancel</a>
+                <button class="btn" type="submit">Save purchase</button>
+            </div>
         </div>
     </form>
 @endsection

@@ -1420,6 +1420,7 @@ class CatalogController extends Controller
     private function productRow(Product $product): array
     {
         $stockRows = $product->siteStocks;
+        $stockStatus = $this->productStockStatus($product, $stockRows);
         $branchStock = $product->siteStocks
             ->sortBy('site.name')
             ->map(fn ($stock): array => [
@@ -1443,8 +1444,47 @@ class CatalogController extends Controller
             'branch_stock' => $branchStock,
             'has_stock' => $stockRows->contains(fn ($stock): bool => $stock->quantity_on_hand > 0 || $stock->reserved_quantity > 0),
             'is_active' => (bool) $product->is_active,
-            'status' => $product->is_active ? 'Active' : 'Inactive',
+            'status' => $stockStatus['label'],
+            'status_tone' => $stockStatus['tone'],
         ];
+    }
+
+    private function productStockStatus(Product $product, Collection $stockRows): array
+    {
+        if (! $product->is_active) {
+            return ['label' => 'Inactive', 'tone' => 'inactive'];
+        }
+
+        if ($stockRows->isEmpty()) {
+            return ['label' => 'Critical', 'tone' => 'danger'];
+        }
+
+        $branchStates = $stockRows->map(function (SiteStock $stock) use ($product): string {
+            $available = (int) $stock->available_quantity;
+            $lowStockLevel = (int) ($stock->low_stock_level ?? $product->default_low_stock_level ?? 0);
+
+            if ($available <= 0) {
+                return 'critical';
+            }
+
+            if ($lowStockLevel <= 0 || $available > $lowStockLevel) {
+                return 'in_stock';
+            }
+
+            return $available <= max(1, (int) floor($lowStockLevel / 2))
+                ? 'critical'
+                : 'low_stock';
+        });
+
+        if ($branchStates->contains('critical')) {
+            return ['label' => 'Critical', 'tone' => 'danger'];
+        }
+
+        if ($branchStates->contains('low_stock')) {
+            return ['label' => 'Low stock', 'tone' => 'warning'];
+        }
+
+        return ['label' => 'In stock', 'tone' => 'success'];
     }
 
     private function productHasStock(Product $product): bool

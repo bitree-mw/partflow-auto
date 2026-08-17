@@ -65,10 +65,27 @@ class DashboardService
         $siteIds = $filters['site_ids'] ?? null;
         $todaySaleCount = $this->dashboard->todaySaleCount($siteId, $siteIds);
         $topParts = $this->topParts($currency, $siteId, $siteIds);
-        $salesTrend = $this->salesTrend($currency, $siteId, $siteIds);
+        $revenuePeriod = (int) ($filters['revenue_period'] ?? 7);
+        $salesTrend = $this->salesTrend($currency, $revenuePeriod, $siteId, $siteIds);
         $branchPerformance = $this->branchPerformance($currency, $siteId, $siteIds);
         $stockAlerts = $this->stockAlerts($siteId, $siteIds);
         $selectedSite = $siteId ? Site::query()->find($siteId) : null;
+        $currentMonthSales = $this->dashboard->salesTotalBetween(
+            today()->startOfMonth()->toDateString(),
+            today()->endOfMonth()->toDateString(),
+            $siteId,
+            $siteIds
+        );
+        $previousMonthSales = $this->dashboard->salesTotalBetween(
+            today()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+            today()->subMonthNoOverflow()->toDateString(),
+            $siteId,
+            $siteIds
+        );
+        $salesComparison = $this->salesComparison($currentMonthSales, $previousMonthSales);
+        $pendingOrderCount = $this->dashboard->pendingPurchaseOrderCount($siteId, $siteIds);
+        $activeSiteCount = $branchPerformance->count();
+        $lowStockCount = (int) $summary['low_stock_count'];
 
         return [
             'branchOptions' => $this->branchOptions($siteIds),
@@ -76,34 +93,71 @@ class DashboardService
             'selectedBranchName' => $selectedSite?->name ?? 'All branches',
             'metrics' => [
                 [
+                    'label' => 'Inventory value',
+                    'value' => $this->formatCurrency((float) $summary['total_stock_value'], $currency, true),
+                    'change' => $activeSiteCount.' active '.str('site')->plural($activeSiteCount),
+                    'tone' => 'neutral',
+                    'trend' => 'positive',
+                    'direction' => 'up',
+                ],
+                [
+                    'label' => 'Low stock items',
+                    'value' => number_format($lowStockCount),
+                    'change' => $lowStockCount.' '.str('item')->plural($lowStockCount).' need attention',
+                    'tone' => 'risk',
+                    'trend' => $lowStockCount > 0 ? 'negative' : 'positive',
+                    'direction' => $lowStockCount > 0 ? 'up' : 'flat',
+                ],
+                [
+                    'label' => 'Sales this month',
+                    'value' => $this->formatCurrency($currentMonthSales, $currency, true),
+                    'change' => $salesComparison['label'],
+                    'tone' => 'good',
+                    'trend' => $salesComparison['trend'],
+                    'direction' => $salesComparison['direction'],
+                ],
+                [
+                    'label' => 'Pending orders',
+                    'value' => number_format($pendingOrderCount),
+                    'change' => $pendingOrderCount.' '.str('order')->plural($pendingOrderCount).' awaiting action',
+                    'tone' => 'risk',
+                    'trend' => $pendingOrderCount > 0 ? 'negative' : 'positive',
+                    'direction' => $pendingOrderCount > 0 ? 'up' : 'flat',
+                ],
+                [
                     'label' => 'Today sales',
                     'value' => $this->formatCurrency((float) $summary['today_sales'], $currency, true),
-                    'change' => "{$todaySaleCount} sales today",
+                    'change' => $todaySaleCount.' '.str('sale')->plural($todaySaleCount).' completed today',
                     'tone' => 'good',
-                    'trend' => 'positive',
+                    'trend' => $todaySaleCount > 0 ? 'positive' : 'neutral',
+                    'direction' => $todaySaleCount > 0 ? 'up' : 'flat',
                 ],
                 [
                     'label' => 'Today profit',
                     'value' => $this->formatCurrency((float) $summary['today_profit'], $currency, true),
                     'change' => $this->marginLabel((float) $summary['today_profit'], (float) $summary['today_sales']),
                     'tone' => 'good',
-                    'trend' => 'positive',
+                    'trend' => (float) $summary['today_profit'] > 0 ? 'positive' : ((float) $summary['today_profit'] < 0 ? 'negative' : 'neutral'),
+                    'direction' => (float) $summary['today_profit'] > 0 ? 'up' : ((float) $summary['today_profit'] < 0 ? 'down' : 'flat'),
                 ],
                 [
-                    'label' => 'Stock value',
-                    'value' => $this->formatCurrency((float) $summary['total_stock_value'], $currency, true),
-                    'change' => $branchPerformance->count().' active sites',
-                    'tone' => 'neutral',
-                    'trend' => 'neutral',
-                ],
-                [
-                    'label' => 'Loss exposure',
-                    'value' => $this->formatCurrency($this->lossExposure($siteId, $siteIds), $currency, true),
-                    'change' => $summary['low_stock_count'].' low stock warnings',
+                    'label' => 'Outstanding debt',
+                    'value' => $this->formatCurrency((float) $summary['outstanding_customer_balances'], $currency, true),
+                    'change' => 'Customer balances to collect',
                     'tone' => 'risk',
-                    'trend' => 'negative',
+                    'trend' => (float) $summary['outstanding_customer_balances'] > 0 ? 'negative' : 'positive',
+                    'direction' => (float) $summary['outstanding_customer_balances'] > 0 ? 'up' : 'flat',
+                ],
+                [
+                    'label' => 'Out of stock',
+                    'value' => number_format((int) $summary['out_of_stock_count']),
+                    'change' => (int) $summary['out_of_stock_count'].' '.str('item')->plural((int) $summary['out_of_stock_count']).' unavailable for sale',
+                    'tone' => 'risk',
+                    'trend' => (int) $summary['out_of_stock_count'] > 0 ? 'negative' : 'positive',
+                    'direction' => (int) $summary['out_of_stock_count'] > 0 ? 'up' : 'flat',
                 ],
             ],
+            'revenuePeriod' => $revenuePeriod,
             'currentSales' => $this->currentSales($summary['recent_sales'], $currency),
             'mostSoldParts' => $topParts,
             'salesTrend' => $salesTrend,
@@ -161,14 +215,14 @@ class DashboardService
             ->values();
     }
 
-    private function salesTrend(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
+    private function salesTrend(string $currency, int $days = 7, ?int $siteId = null, ?array $siteIds = null): Collection
     {
-        $rows = $this->dashboard->salesTrend(siteId: $siteId, siteIds: $siteIds);
+        $rows = $this->dashboard->salesTrend(days: $days, siteId: $siteId, siteIds: $siteIds);
         $maxSales = max((float) $rows->max('sales_amount'), 1);
 
         return $rows
             ->map(fn (array $row) => [
-                'label' => Carbon::parse($row['date'])->format('D'),
+                'label' => Carbon::parse($row['date'])->format($days > 7 ? 'M j' : 'D'),
                 'value' => $this->formatCurrency((float) $row['sales_amount'], $currency, true),
                 'height' => max(8, (int) round(((float) $row['sales_amount'] / $maxSales) * 100)),
             ])
@@ -314,6 +368,27 @@ class DashboardService
     private function marginLabel(float $profit, float $sales): string
     {
         return number_format($this->marginPercent($profit, $sales), 1).'% margin';
+    }
+
+    private function salesComparison(float $currentMonthSales, float $previousMonthSales): array
+    {
+        if ($previousMonthSales <= 0) {
+            return $currentMonthSales > 0
+                ? ['label' => 'Sales recorded this month', 'trend' => 'positive', 'direction' => 'up']
+                : ['label' => 'No completed sales this month', 'trend' => 'neutral', 'direction' => 'flat'];
+        }
+
+        $change = (($currentMonthSales - $previousMonthSales) / $previousMonthSales) * 100;
+
+        if (abs($change) < 0.05) {
+            return ['label' => 'Unchanged from last month', 'trend' => 'neutral', 'direction' => 'flat'];
+        }
+
+        return [
+            'label' => number_format(abs($change), 1).'% '.($change > 0 ? 'increase' : 'decrease').' from last month',
+            'trend' => $change > 0 ? 'positive' : 'negative',
+            'direction' => $change > 0 ? 'up' : 'down',
+        ];
     }
 
     private function marginPercent(float $profit, float $sales): float

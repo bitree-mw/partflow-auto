@@ -19,6 +19,8 @@ export default defineConfig({
                 'resources/css/alerts.css',
                 'resources/css/payment-accounts.css',
                 'resources/css/pos.css',
+                'resources/css/theme.css',
+                'resources/css/responsive.css',
                 'resources/js/app.js',
                 'resources/js/auth.js',
                 'resources/js/pos.js',

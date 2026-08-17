@@ -6,8 +6,53 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', 'Aptos', 'Segoe UI', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root {
+    --pf-navy-950: #0a1630;
+    --pf-navy-900: #101f3f;
+    --pf-navy-800: #172a4d;
+    --pf-orange-600: #d9651f;
+    --pf-orange-500: #f47a2a;
+    --pf-orange-100: #ffeadb;
+    --pf-orange-text: #b94f13;
+    --pf-canvas: #f5f6f8;
+    --pf-surface: #ffffff;
+    --pf-surface-muted: #fafbfc;
+    --pf-text: #17223a;
+    --pf-text-muted: #68758b;
+    --pf-text-subtle: #59677d;
+    --pf-nav-muted: #91a0ba;
+    --pf-nav-section: #7183a3;
+    --pf-on-color: #ffffff;
+    --pf-on-accent: #0a1630;
+    --pf-on-dark-muted: #c8d2e2;
+    --pf-border: #e7eaf0;
+    --pf-border-strong: #d7dce5;
+    --pf-success: #138a62;
+    --pf-success-soft: #e7f7f1;
+    --pf-warning: #b86616;
+    --pf-warning-soft: #fff3df;
+    --pf-danger: #c23b45;
+    --pf-danger-soft: #fff0f1;
+    --pf-info: #3867b1;
+    --pf-info-soft: #eef4ff;
+    --pf-success-border: #bfe8d9;
+    --pf-warning-border: #f1d3a7;
+    --pf-danger-border: #f0c4c8;
+    --pf-orange-border: #f5b486;
+    --pf-orange-hover: #fffaf6;
+    --pf-metric-positive: #66e0ac;
+    --pf-metric-negative: #ff8e88;
+    --pf-metric-warning: #ffc77f;
+    --pf-radius-sm: 8px;
+    --pf-radius-md: 10px;
+    --pf-radius-lg: 14px;
+    --pf-shadow-panel: 0 8px 24px rgb(15 31 46 / 6%);
+    --pf-shadow-raised: 0 12px 30px rgb(15 31 46 / 12%);
+    --pf-focus: 0 0 0 3px rgb(244 122 42 / 24%);
 }
 
 @layer base {
@@ -20,6 +65,23 @@
     select,
     textarea {
         font: inherit;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--pf-orange-500);
+        outline-offset: 3px;
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 }
 
@@ -142,7 +204,7 @@
     .app-combobox-input {
         width: 100%;
         min-height: 46px;
-        padding: 0 38px 0 14px;
+        padding: 0 46px 0 14px;
         border: 1px solid #d1d5db;
         border-radius: 14px;
         color: #20261f;
@@ -150,7 +212,7 @@
             linear-gradient(45deg, transparent 50%, #6b7280 50%),
             linear-gradient(135deg, #6b7280 50%, transparent 50%),
             #fff;
-        background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%, 0 0;
+        background-position: calc(100% - 25px) 50%, calc(100% - 19px) 50%, 0 0;
         background-repeat: no-repeat;
         background-size: 6px 6px, 6px 6px, auto;
         font-size: 13px;

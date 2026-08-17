@@ -14,7 +14,7 @@
     .pos-hero h2 {
         margin: 12px 0 8px;
         color: #20261f;
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: var(--font-sans);
         font-size: clamp(32px, 3.8vw, 48px);
         line-height: 0.98;
         letter-spacing: -0.03em;
@@ -352,7 +352,7 @@
 
     .order-header h2 {
         margin: 8px 0 0;
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: var(--font-sans);
         font-size: 23px;
         line-height: 1;
     }
@@ -631,7 +631,7 @@
 
     .pos-dialog-card h2 {
         margin: 0;
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: var(--font-sans);
         font-size: 25px;
         line-height: 1.05;
     }

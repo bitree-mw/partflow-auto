@@ -107,17 +107,20 @@
         font-weight: 800;
     }
 
-    .product-row-main td {
+    .data-table .product-row-main td {
+        padding-bottom: 4px;
         border-bottom: 0;
         vertical-align: top;
     }
 
-    .product-row-stock td {
+    .data-table .product-row-stock td {
         padding-top: 0;
+        padding-bottom: 10px;
     }
 
     .branch-stock-full {
         flex-wrap: nowrap;
+        gap: 4px;
         width: 100%;
         margin-top: 0;
         padding: 0 0 2px;
@@ -126,6 +129,27 @@
 
     .branch-stock-full .branch-stock-pill {
         flex: 0 0 auto;
+    }
+
+    .data-table .product-row-inactive td,
+    .data-table .product-row-inactive:hover td {
+        color: #7a8496;
+        background: #f1f3f6;
+    }
+
+    .data-table .product-row-inactive .catalogue-part-title,
+    .data-table .product-row-inactive .catalogue-part-title span {
+        color: #6f7888;
+    }
+
+    .data-table .product-row-inactive .branch-stock-pill {
+        border-color: #d7dce5;
+        color: #7a8496;
+        background: #e9ecf1;
+    }
+
+    .data-table .product-row-inactive .branch-stock-pill strong {
+        color: #687386;
     }
 
     .catalogue-row-actions {
@@ -229,12 +253,21 @@
         align-items: start;
     }
 
+    .site-document-line-grid > .form-field {
+        min-width: 0;
+    }
+
+    .site-document-line-grid > .form-field > :is(.form-control, .app-combobox) {
+        width: 100%;
+        min-width: 0;
+    }
+
     .site-line-remove {
         align-self: start;
         width: 42px;
         min-width: 42px;
-        height: 42px;
-        margin-top: 24px;
+        height: 46px;
+        margin-top: 26px;
         padding: 0;
     }
 

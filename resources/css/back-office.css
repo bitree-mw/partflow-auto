@@ -60,7 +60,7 @@
     .brand-mark strong {
         display: block;
         grid-column: 2;
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: var(--font-sans);
         font-size: 18px;
         line-height: 1;
     }

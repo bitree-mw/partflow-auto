@@ -1,4 +1,17 @@
 <header class="app-header">
+    <button
+        class="mobile-nav-toggle"
+        type="button"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="app-sidebar-navigation"
+        data-mobile-sidebar-toggle
+    >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+    </button>
+
     <div>
         <p class="eyebrow">{{ $kicker }}</p>
         <h1>{{ $title }}</h1>
@@ -22,6 +35,21 @@
                 'web.reports.*',
             ]);
         @endphp
+
+        @if (auth()->user()?->hasPermission('catalogue.view'))
+            <form class="header-search" method="GET" action="{{ route('web.catalog.products.index') }}" role="search">
+                <label class="sr-only" for="global_catalogue_search">Search parts catalogue</label>
+                <span aria-hidden="true">⌕</span>
+                <input
+                    id="global_catalogue_search"
+                    type="search"
+                    name="search"
+                    value="{{ request()->routeIs('web.catalog.products.index') ? request()->string('search') : '' }}"
+                    placeholder="Search part, code or vehicle..."
+                >
+                <kbd>Enter</kbd>
+            </form>
+        @endif
 
         @if (! $hideGlobalSiteSwitcher && ! empty($globalSiteOptions ?? []) && auth()->user()?->hasAnyPermission(['sales.view', 'sales.create', 'purchases.view', 'customers.view', 'suppliers.view']))
             <form

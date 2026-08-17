@@ -76,6 +76,97 @@ class ExampleTest extends TestCase
         }
     }
 
+    public function test_dashboard_uses_the_prototype_metric_summary_and_selected_sections(): void
+    {
+        $user = $this->adminUser();
+        $site = Site::create([
+            'name' => 'Dashboard Branch',
+            'code' => 'DSH',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+
+        InventoryDocument::create([
+            'document_number' => 'SALE-DASHBOARD-CURRENT',
+            'document_type' => 'sale',
+            'source_site_id' => $site->id,
+            'document_date' => today(),
+            'status' => 'completed',
+            'subtotal_amount' => 2000,
+            'total_amount' => 2000,
+            'paid_amount' => 2000,
+            'balance_amount' => 0,
+            'payment_status' => 'paid',
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'SALE-DASHBOARD-PREVIOUS',
+            'document_type' => 'sale',
+            'source_site_id' => $site->id,
+            'document_date' => today()->subMonthNoOverflow(),
+            'status' => 'completed',
+            'subtotal_amount' => 1000,
+            'total_amount' => 1000,
+            'paid_amount' => 1000,
+            'balance_amount' => 0,
+            'payment_status' => 'paid',
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'PURCHASE-DASHBOARD-PENDING',
+            'document_type' => 'purchase',
+            'destination_site_id' => $site->id,
+            'document_date' => today(),
+            'status' => 'pending',
+            'subtotal_amount' => 5000,
+            'total_amount' => 5000,
+            'paid_amount' => 0,
+            'balance_amount' => 5000,
+            'payment_status' => 'unpaid',
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('web.dashboard'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Inventory value',
+                'Low stock items',
+                'Sales this month',
+                'Pending orders',
+                'Today sales',
+                'Today profit',
+                'Outstanding debt',
+                'Out of stock',
+            ])
+            ->assertSee('100.0% increase from last month')
+            ->assertSee('1 order awaiting action')
+            ->assertDontSee('Fast-moving parts')
+            ->assertDontSee('Recent activity');
+
+        $this->actingAs($user)
+            ->get(route('web.dashboard', ['site_id' => $site->id, 'revenue_period' => 30]))
+            ->assertOk()
+            ->assertSee('data-revenue-days="30"', false)
+            ->assertSee('value="30" selected', false);
+    }
+
+    public function test_purchase_form_orders_lines_payment_totals_and_status_by_workflow(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->get(route('web.purchases.create'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'data-purchase-lines',
+                'id="amount_paid"',
+                'data-purchase-subtotal',
+                'id="status"',
+                'Save purchase',
+            ], false)
+            ->assertSee('purchase-line-label', false)
+            ->assertSee('purchase-submit-bar', false);
+    }
+
     public function test_user_can_login_and_logout_with_session_api_token(): void
     {
         $user = User::factory()->create([
@@ -381,6 +472,62 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('data-confirm-title="Deactivate product?"', false)
             ->assertSee('data-confirm-label="Deactivate"', false);
+    }
+
+    public function test_catalogue_shows_prototype_stock_statuses_and_tints_inactive_products(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $site = Site::create([
+            'name' => 'Catalogue Warehouse',
+            'code' => 'CAT',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+        $productType = ProductType::create([
+            'name' => 'Catalogue Status Part',
+            'code' => 'CSP',
+            'is_active' => true,
+        ]);
+
+        $products = collect([
+            ['code' => 'CSP-001', 'name' => 'A In Stock Part', 'quantity' => 20, 'active' => true],
+            ['code' => 'CSP-002', 'name' => 'B Low Stock Part', 'quantity' => 7, 'active' => true],
+            ['code' => 'CSP-003', 'name' => 'C Critical Part', 'quantity' => 4, 'active' => true],
+            ['code' => 'CSP-004', 'name' => 'D Inactive Part', 'quantity' => 20, 'active' => false],
+        ])->map(function (array $row) use ($productType, $site): Product {
+            $product = Product::create([
+                'product_code' => $row['code'],
+                'product_name' => $row['name'],
+                'product_type_id' => $productType->id,
+                'default_selling_price' => 10000,
+                'default_low_stock_level' => 10,
+                'is_active' => $row['active'],
+            ]);
+
+            SiteStock::create([
+                'site_id' => $site->id,
+                'product_id' => $product->id,
+                'quantity_on_hand' => $row['quantity'],
+                'reserved_quantity' => 0,
+                'low_stock_level' => 10,
+            ]);
+
+            return $product;
+        });
+
+        $response = $this->get(route('web.catalog.products.index'));
+
+        $response
+            ->assertOk()
+            ->assertSeeInOrder(['In stock', 'Low stock', 'Critical', 'Inactive'])
+            ->assertSee('product-row-inactive', false)
+            ->assertSee('status-pill success', false)
+            ->assertSee('status-pill warning', false)
+            ->assertSee('status-pill danger', false)
+            ->assertSee('status-pill inactive', false);
+
+        $this->assertCount(4, $products);
     }
 
     public function test_stock_take_requires_and_records_a_reason_for_stock_adjustments(): void
