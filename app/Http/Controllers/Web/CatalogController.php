@@ -1426,14 +1426,10 @@ class CatalogController extends Controller
             ->map(fn ($stock): array => [
                 'site' => $stock->site?->name ?? 'Unassigned',
                 'qty' => $stock->available_quantity,
-                'minimum' => (int) ($stock->low_stock_level ?? $product->default_low_stock_level ?? 0),
             ])
             ->values()
             ->all();
         $compatibilityCount = (int) ($product->compatibilities_count ?? $product->compatibilities()->count());
-        $minimumStock = $stockRows->isEmpty()
-            ? (int) ($product->default_low_stock_level ?? 0)
-            : collect($branchStock)->sum('minimum');
 
         return [
             'id' => $product->id,
@@ -1445,7 +1441,7 @@ class CatalogController extends Controller
             'compatible_label' => $compatibilityCount.' other '.($compatibilityCount === 1 ? 'car' : 'cars'),
             'price' => $this->money((float) $product->default_selling_price),
             'stock' => collect($branchStock)->sum('qty'),
-            'minimum_stock' => $minimumStock,
+            'low_stock_level' => (int) ($product->default_low_stock_level ?? 0),
             'branch_stock' => $branchStock,
             'has_stock' => $stockRows->contains(fn ($stock): bool => $stock->quantity_on_hand > 0 || $stock->reserved_quantity > 0),
             'is_active' => (bool) $product->is_active,

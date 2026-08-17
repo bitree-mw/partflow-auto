@@ -706,7 +706,7 @@ class ExampleTest extends TestCase
             ->assertSee('status-pill warning', false)
             ->assertSee('status-pill danger', false)
             ->assertSee('status-pill inactive', false)
-            ->assertSee('Minimum 10');
+            ->assertSee('Low stock level: 10');
 
         $this->assertCount(4, $products);
     }

@@ -151,7 +151,7 @@ class HighestPriorityGuardsTest extends TestCase
         $stock = SiteStock::query()->create([
             'product_id' => $product->id,
             'site_id' => $site->id,
-            'quantity_on_hand' => 0,
+            'quantity_on_hand' => 10,
             'reserved_quantity' => 0,
             'low_stock_level' => 0,
         ]);
@@ -160,9 +160,9 @@ class HighestPriorityGuardsTest extends TestCase
         $this->assertSame(0, app(DashboardRepository::class)->lowStockCount());
         $this->assertCount(0, app(ReportRepository::class)->lowStockBySite());
 
-        app(ProductService::class)->update($product, ['default_low_stock_level' => 2]);
+        app(ProductService::class)->update($product, ['default_low_stock_level' => 13]);
 
-        $this->assertSame(2, $stock->fresh()->low_stock_level);
+        $this->assertSame(13, $stock->fresh()->low_stock_level);
         $this->assertSame(1, app(AlertService::class)->summary()['count']);
         $this->assertSame(1, app(DashboardRepository::class)->lowStockCount());
         $this->assertCount(1, app(ReportRepository::class)->lowStockBySite());

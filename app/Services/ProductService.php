@@ -118,8 +118,6 @@ class ProductService
                 );
             }
 
-            $previousLowStockLevel = (int) ($product->default_low_stock_level ?? 0);
-
             $shouldRegenerateCode =
                 empty($data['product_code']) &&
                 (
@@ -173,15 +171,8 @@ class ProductService
 
             $product->update($data);
 
-            if (
-                array_key_exists('default_low_stock_level', $data)
-                && (int) ($data['default_low_stock_level'] ?? 0) !== $previousLowStockLevel
-            ) {
+            if (array_key_exists('default_low_stock_level', $data)) {
                 $product->siteStocks()
-                    ->where(function ($query) use ($previousLowStockLevel): void {
-                        $query->whereNull('low_stock_level')
-                            ->orWhere('low_stock_level', $previousLowStockLevel);
-                    })
                     ->update([
                         'low_stock_level' => (int) ($data['default_low_stock_level'] ?? 0),
                     ]);

@@ -143,7 +143,7 @@
                             <td>
                                 <span class="catalogue-stock-amount">
                                     <strong>{{ $product['stock'] }}</strong>
-                                    <small>Minimum {{ $product['minimum_stock'] }}</small>
+                                    <small>Low stock level: {{ $product['low_stock_level'] }}</small>
                                 </span>
                             </td>
                             <td>
