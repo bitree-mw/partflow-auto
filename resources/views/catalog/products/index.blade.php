@@ -140,7 +140,12 @@
                             <td>{{ $product['brand'] }}</td>
                             <td>{{ $product['compatible_label'] }}</td>
                             <td>{{ $product['price'] }}</td>
-                            <td>{{ $product['stock'] }}</td>
+                            <td>
+                                <span class="catalogue-stock-amount">
+                                    <strong>{{ $product['stock'] }}</strong>
+                                    <small>Minimum {{ $product['minimum_stock'] }}</small>
+                                </span>
+                            </td>
                             <td>
                                 <span @class(['status-pill', $product['status_tone']])>
                                     {{ $product['status'] }}

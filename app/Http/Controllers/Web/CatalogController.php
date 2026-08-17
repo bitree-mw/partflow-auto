@@ -8,8 +8,8 @@ use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\FuelType;
 use App\Models\InventoryDocument;
-use App\Models\ProductType;
 use App\Models\Product;
+use App\Models\ProductType;
 use App\Models\Site;
 use App\Models\SiteStock;
 use App\Models\TaxProfile;
@@ -18,10 +18,10 @@ use App\Services\BrandService;
 use App\Services\CarModelService;
 use App\Services\FuelTypeService;
 use App\Services\InventoryDocumentService;
-use App\Services\ProductTypeService;
 use App\Services\ProductService;
-use App\Services\SiteService;
+use App\Services\ProductTypeService;
 use App\Services\SiteAccessService;
+use App\Services\SiteService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -1426,10 +1426,14 @@ class CatalogController extends Controller
             ->map(fn ($stock): array => [
                 'site' => $stock->site?->name ?? 'Unassigned',
                 'qty' => $stock->available_quantity,
+                'minimum' => (int) ($stock->low_stock_level ?? $product->default_low_stock_level ?? 0),
             ])
             ->values()
             ->all();
         $compatibilityCount = (int) ($product->compatibilities_count ?? $product->compatibilities()->count());
+        $minimumStock = $stockRows->isEmpty()
+            ? (int) ($product->default_low_stock_level ?? 0)
+            : collect($branchStock)->sum('minimum');
 
         return [
             'id' => $product->id,
@@ -1441,6 +1445,7 @@ class CatalogController extends Controller
             'compatible_label' => $compatibilityCount.' other '.($compatibilityCount === 1 ? 'car' : 'cars'),
             'price' => $this->money((float) $product->default_selling_price),
             'stock' => collect($branchStock)->sum('qty'),
+            'minimum_stock' => $minimumStock,
             'branch_stock' => $branchStock,
             'has_stock' => $stockRows->contains(fn ($stock): bool => $stock->quantity_on_hand > 0 || $stock->reserved_quantity > 0),
             'is_active' => (bool) $product->is_active,
@@ -1600,6 +1605,8 @@ class CatalogController extends Controller
             ->map(fn (Brand $brand): array => [
                 'id' => $brand->id,
                 'label' => $brand->country ? "{$brand->name} - {$brand->country}" : $brand->name,
+                'country' => $brand->country,
+                'is_unknown' => strtoupper((string) $brand->code) === 'UNKN',
             ])
             ->all();
     }

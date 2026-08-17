@@ -12,6 +12,7 @@ use App\Models\UserSiteAccess;
 use App\Repositories\DashboardRepository;
 use App\Repositories\ReportRepository;
 use App\Services\AlertService;
+use App\Services\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -159,8 +160,9 @@ class HighestPriorityGuardsTest extends TestCase
         $this->assertSame(0, app(DashboardRepository::class)->lowStockCount());
         $this->assertCount(0, app(ReportRepository::class)->lowStockBySite());
 
-        $stock->update(['low_stock_level' => 2]);
+        app(ProductService::class)->update($product, ['default_low_stock_level' => 2]);
 
+        $this->assertSame(2, $stock->fresh()->low_stock_level);
         $this->assertSame(1, app(AlertService::class)->summary()['count']);
         $this->assertSame(1, app(DashboardRepository::class)->lowStockCount());
         $this->assertCount(1, app(ReportRepository::class)->lowStockBySite());

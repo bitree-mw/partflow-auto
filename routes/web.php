@@ -59,6 +59,7 @@ Route::prefix('back-office')
         Route::post('suppliers', [ContactDirectoryController::class, 'storeSupplier'])->middleware('permission:suppliers.manage')->name('suppliers.store');
         Route::delete('suppliers/{contact}', [ContactDirectoryController::class, 'destroySupplier'])->middleware('permission:suppliers.manage')->name('suppliers.destroy');
         Route::get('reports', [ReportsController::class, 'index'])->middleware('permission:reports.view')->name('reports.index');
+        Route::get('reports/export', [ReportsController::class, 'export'])->middleware('permission:reports.view')->name('reports.export');
         Route::get('alerts', [AlertsController::class, 'index'])->name('alerts.index');
 
         Route::prefix('catalog')->name('catalog.')->controller(CatalogController::class)->group(function () {

@@ -580,9 +580,13 @@
 
     .checkout-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr 1.4fr;
+        grid-template-columns: 1fr;
         gap: 9px;
         padding: 0 18px 18px;
+    }
+
+    .checkout-actions .pay-button {
+        width: 100%;
     }
 
     .pos-dialog-open {

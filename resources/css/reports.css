@@ -1,13 +1,14 @@
 @layer components {
     .report-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 16px;
     }
 
     .report-filter-panel,
     .profit-loss-panel,
     .report-card {
+        min-width: 0;
         border: 1px solid #d1d5db;
         border-radius: 18px;
         background: #fff;
@@ -16,10 +17,16 @@
 
     .report-filter-panel form {
         display: grid;
-        grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 190px)) auto;
-        gap: 14px;
+        grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(120px, 160px)) auto;
+        gap: 18px;
         align-items: end;
         padding: 18px;
+    }
+
+    .report-filter-panel .btn {
+        min-height: 46px;
+        padding-inline: 22px;
+        white-space: nowrap;
     }
 
     .report-filter-panel h2,
@@ -43,7 +50,7 @@
         gap: 7px;
         color: #374151;
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 600;
     }
 
     .profit-loss-panel {
@@ -98,10 +105,12 @@
     }
 
     .report-card {
+        position: relative;
         display: grid;
         gap: 18px;
         min-height: 190px;
         padding: 18px;
+        overflow: hidden;
     }
 
     .report-card h2 {
@@ -121,6 +130,18 @@
     .report-card .btn-secondary {
         align-self: end;
         justify-self: start;
+        padding-inline: 20px;
+        white-space: nowrap;
+    }
+
+    .report-card-number {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        color: #e0e5ec;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1;
     }
 
     @media (max-width: 1100px) {
@@ -146,6 +167,11 @@
         .profit-loss-grid article {
             border-right: 0;
             border-bottom: 1px solid #e5e7eb;
+        }
+
+        .report-filter-panel .btn,
+        .report-card .btn-secondary {
+            width: 100%;
         }
     }
 }

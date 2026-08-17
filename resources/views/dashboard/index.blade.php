@@ -17,6 +17,8 @@
         $salesTrend = collect($salesTrend);
         $branchPerformance = collect($branchPerformance);
         $branchSalesMix = collect($branchSalesMix);
+        $inventoryValueComparison = collect($inventoryValueComparison);
+        $balanceExposureComparison = collect($balanceExposureComparison);
         $branchOptions = collect($branchOptions);
         $stockAlerts = collect($stockAlerts);
         $pieStops = [];
@@ -101,12 +103,17 @@
             </header>
 
             <div class="revenue-chart-scroll">
-                <div class="bar-chart revenue-period-{{ $revenuePeriod }}" aria-label="Revenue movement bar chart" data-revenue-days="{{ $salesTrend->count() }}">
+                <div
+                    class="bar-chart revenue-period-{{ $revenuePeriod }}"
+                    style="--chart-columns: {{ max($salesTrend->count(), 1) }};"
+                    aria-label="Revenue movement bar chart"
+                    data-revenue-days="{{ $salesTrend->count() }}"
+                >
                     @foreach ($salesTrend as $point)
-                        <div class="bar-column">
-                            <strong>{{ $point['value'] }}</strong>
+                        <div class="bar-column" aria-label="{{ $point['label'] }} revenue {{ $point['value'] }}">
+                            <strong @class(['chart-detail-muted' => ! $point['show_detail']])>{{ $point['value'] }}</strong>
                             <span style="--bar-height: {{ $point['height'] }}%;"></span>
-                            <em>{{ $point['label'] }}</em>
+                            <em @class(['chart-detail-muted' => ! $point['show_detail']])>{{ $point['label'] }}</em>
                         </div>
                     @endforeach
                 </div>
@@ -144,30 +151,93 @@
         </article>
     </section>
 
-    <section class="insight-panel distribution-panel">
-        <header class="insight-header">
+    <section class="dashboard-distribution-grid">
+        <article class="insight-panel dashboard-side-metric">
             <div>
-                <h2>Sales distribution</h2>
-                <p>Share of today’s sales for {{ $selectedBranchName }}.</p>
+                <span class="eyebrow">Today’s sales</span>
+                <h2>Average sale value</h2>
+                <strong>{{ $averageSale }}</strong>
             </div>
-        </header>
+            <p>Average value per completed sale for {{ $selectedBranchName }} today.</p>
+        </article>
 
-        <div class="branch-pie-panel">
-            <div class="branch-pie" style="background: {{ $pieGradient }};">
-                <span>{{ $branchSalesMix->isEmpty() ? 'No sales' : 'Sales' }}</span>
+        <article class="insight-panel distribution-panel">
+            <header class="insight-header">
+                <div>
+                    <h2>Sales distribution</h2>
+                    <p>Share of today’s sales for {{ $selectedBranchName }}.</p>
+                </div>
+            </header>
+
+            <div class="branch-pie-panel">
+                <div class="branch-pie" style="background: {{ $pieGradient }};">
+                    <span>{{ $branchSalesMix->isEmpty() ? 'No sales' : 'Sales' }}</span>
+                </div>
+                <div class="branch-pie-legend">
+                    @forelse ($branchSalesMix as $slice)
+                        <div @class(['selected' => $slice['selected']])>
+                            <i style="background: {{ $slice['color'] }};"></i>
+                            <span>{{ $slice['branch'] }}</span>
+                            <strong>{{ $slice['share'] }}%</strong>
+                        </div>
+                    @empty
+                        <p>No branch sales recorded for the selected view.</p>
+                    @endforelse
+                </div>
             </div>
-            <div class="branch-pie-legend">
-                @forelse ($branchSalesMix as $slice)
-                    <div @class(['selected' => $slice['selected']])>
-                        <i style="background: {{ $slice['color'] }};"></i>
-                        <span>{{ $slice['branch'] }}</span>
-                        <strong>{{ $slice['share'] }}%</strong>
-                    </div>
-                @empty
-                    <p>No branch sales recorded for the selected view.</p>
-                @endforelse
+        </article>
+    </section>
+
+    <section class="dashboard-analytics-grid" aria-label="Financial and inventory analytics">
+        <article class="insight-panel analytics-comparison-panel">
+            <header class="insight-header">
+                <div>
+                    <h2>Inventory value outlook</h2>
+                    <p>Stock on hand valued at recorded purchase cost and current catalogue selling price.</p>
+                </div>
+            </header>
+
+            <div class="analytics-bar-list">
+                @foreach ($inventoryValueComparison as $row)
+                    <article>
+                        <div>
+                            <span>{{ $row['label'] }}</span>
+                            <strong>{{ $row['value'] }}</strong>
+                        </div>
+                        <div class="analytics-bar-track" aria-hidden="true">
+                            <i class="{{ $row['tone'] }}" style="width: {{ $row['width'] }}%;"></i>
+                        </div>
+                    </article>
+                @endforeach
             </div>
-        </div>
+
+            <footer class="analytics-note">Purchase value uses the latest recorded purchase cost, falling back to the catalogue cost.</footer>
+        </article>
+
+        <article class="insight-panel analytics-comparison-panel">
+            <header class="insight-header">
+                <div>
+                    <h2>Debtors and creditors</h2>
+                    <p>Recorded customer balances compared with unpaid supplier purchases.</p>
+                </div>
+            </header>
+
+            <div class="analytics-bar-list">
+                @foreach ($balanceExposureComparison as $row)
+                    <article>
+                        <div>
+                            <span>{{ $row['label'] }}</span>
+                            <strong>{{ $row['value'] }}</strong>
+                        </div>
+                        <div class="analytics-bar-track" aria-hidden="true">
+                            <i class="{{ $row['tone'] }}" style="width: {{ $row['width'] }}%;"></i>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+
+            <footer class="analytics-note">Open recorded balances only; debtor aging and supplier due dates are not yet captured.</footer>
+        </article>
     </section>
 
     <section class="insight-panel branch-panel">

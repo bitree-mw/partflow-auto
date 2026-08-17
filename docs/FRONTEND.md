@@ -49,7 +49,7 @@ Do not reorganize working views merely to match this example. Record and follow 
 | Area | Status | Verified surface and limitation |
 | --- | --- | --- |
 | Authentication | **Partial** | Login/logout pages exist; password reset and a web registration flow do not. |
-| Dashboard and alerts | **Partial** | Summary and alert pages exist; presentation and date/filter behavior are limited. |
+| Dashboard and alerts | **Partial** | Summary and alert pages exist with branch scoping, responsive 7/14/30-day revenue movement, inventory-value comparison, debtor/creditor comparison, low-stock alerts, sales distribution, and branch performance. Custom dashboard date ranges and debtor aging are not implemented. |
 | Catalogue and compatibility | **Implemented** | Product, brand, type, fuel, car-model, and compatibility management screens exist. |
 | Contacts | **Implemented — basic** | Customer and supplier list/create/delete screens exist; transaction-history/statement pages do not. |
 | Purchases | **Partial** | List/create/edit screens exist; there is no receive action screen. |

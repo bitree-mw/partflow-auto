@@ -9,6 +9,7 @@ use App\Services\ContactService;
 use App\Services\InventoryDocumentService;
 use App\Services\PaymentAccountService;
 use App\Services\PaymentService;
+use App\Services\SiteAccessService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,12 +22,18 @@ class SalesController extends Controller
         private readonly InventoryDocumentService $inventoryDocumentService,
         private readonly ContactService $contactService,
         private readonly PaymentAccountService $paymentAccountService,
-        private readonly PaymentService $paymentService
+        private readonly PaymentService $paymentService,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
     public function index(Request $request): View
     {
-        $sales = $this->inventoryDocumentService->listByType('sale', [], $request->user());
+        $siteId = $this->selectedSiteId($request);
+        $sales = $this->inventoryDocumentService->listByType(
+            'sale',
+            $siteId ? ['site_id' => $siteId] : [],
+            $request->user()
+        );
 
         return view('sales.index', [
             'title' => 'Sales',
@@ -158,6 +165,19 @@ class SalesController extends Controller
     private function money(float $amount): string
     {
         return config('services.partflow.base_currency', 'MWK').' '.number_format($amount, 0);
+    }
+
+    private function selectedSiteId(Request $request): ?int
+    {
+        $siteId = (int) $request->session()->get('pos_site_id', 0);
+
+        if ($siteId <= 0) {
+            return null;
+        }
+
+        return in_array($siteId, $this->siteAccessService->allowedSiteIds($request->user()), true)
+            ? $siteId
+            : null;
     }
 
     private function saleDocument(InventoryDocument $inventoryDocument): InventoryDocument

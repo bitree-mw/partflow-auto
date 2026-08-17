@@ -118,6 +118,30 @@
         padding-bottom: 10px;
     }
 
+    .data-table tbody .product-row-main:hover td,
+    .data-table tbody .product-row-stock:hover td {
+        background: #fff;
+    }
+
+    .catalogue-stock-amount {
+        display: inline-grid;
+        gap: 4px;
+        line-height: 1.15;
+    }
+
+    .catalogue-stock-amount strong {
+        color: #111827;
+        font-size: inherit;
+        font-weight: 600;
+    }
+
+    .catalogue-stock-amount small {
+        color: #7a8496;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
     .branch-stock-full {
         flex-wrap: nowrap;
         gap: 4px;
@@ -386,6 +410,12 @@
         min-width: 0;
     }
 
+    .compatibility-variant-row .async-picker,
+    .compatibility-variant-row [data-car-model-search] {
+        width: 100%;
+        max-width: none;
+    }
+
     .product-type-field,
     .product-type-field .async-picker,
     .product-type-field [data-product-type-search] {
@@ -439,8 +469,8 @@
     .async-picker-more:hover,
     .async-picker-more:focus {
         outline: 0;
-        background: #eef4ff;
-        color: #1f3a5f;
+        background: #1f3a5f;
+        color: #fff;
     }
 
     .async-picker-empty {

@@ -44,10 +44,10 @@
 
                 <div class="form-field">
                     <label for="brand_id">Brand name</label>
-                    <select class="form-control" id="brand_id" name="brand_id" data-searchable-select>
-                        <option value="">Unknown brand</option>
+                    <select class="form-control" id="brand_id" name="brand_id" data-searchable-select data-product-brand>
+                        <option value="" data-unknown="1">Unknown brand</option>
                         @foreach ($brands as $brand)
-                            <option value="{{ $brand['id'] }}" @selected((string) old('brand_id') === (string) $brand['id'])>
+                            <option value="{{ $brand['id'] }}" data-country="{{ $brand['country'] }}" data-unknown="{{ $brand['is_unknown'] ? '1' : '0' }}" @selected((string) old('brand_id') === (string) $brand['id'])>
                                 {{ $brand['label'] }}
                             </option>
                         @endforeach
@@ -57,7 +57,7 @@
 
                 <div class="form-field">
                     <label for="part_country_of_origin">Product origin</label>
-                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin') }}" list="part-origin-countries" placeholder="Search country">
+                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin') }}" list="part-origin-countries" placeholder="Search country" data-product-origin>
                     <x-form-error name="part_country_of_origin" />
                 </div>
 

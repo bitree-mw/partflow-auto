@@ -325,6 +325,40 @@ function initProductTypePickers(root = document) {
 
 initProductTypePickers();
 
+document.querySelectorAll('[data-product-brand]').forEach((brandSelect) => {
+    const form = brandSelect.closest('form');
+    const originInput = form?.querySelector('[data-product-origin]');
+
+    if (!originInput) {
+        return;
+    }
+
+    function syncOrigin(clearUnknownOrigin = false) {
+        const selectedBrand = brandSelect.selectedOptions[0];
+        const isUnknown = !selectedBrand?.value || selectedBrand.dataset.unknown === '1';
+
+        originInput.readOnly = !isUnknown;
+        originInput.setAttribute('aria-readonly', isUnknown ? 'false' : 'true');
+
+        if (isUnknown) {
+            if (clearUnknownOrigin) {
+                originInput.value = '';
+            }
+
+            originInput.placeholder = 'Search country';
+            return;
+        }
+
+        originInput.value = selectedBrand.dataset.country || '';
+        originInput.placeholder = selectedBrand.dataset.country
+            ? 'Derived from selected brand'
+            : 'Brand country is not set';
+    }
+
+    brandSelect.addEventListener('change', () => syncOrigin(true));
+    syncOrigin();
+});
+
 document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
     const addButton = document.querySelector('[data-add-compatibility-variant]');
 

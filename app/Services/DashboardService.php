@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Repositories\DashboardRepository;
 use App\Models\InventoryDocument;
 use App\Models\Site;
 use App\Models\User;
+use App\Repositories\DashboardRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -51,6 +51,7 @@ class DashboardService
             'low_stock_count' => $this->dashboard->lowStockCount($siteId, $siteIds),
             'out_of_stock_count' => $this->dashboard->outOfStockCount($siteId, $siteIds),
             'outstanding_customer_balances' => $this->dashboard->outstandingCustomerBalances($siteId, $siteIds),
+            'outstanding_supplier_balances' => $this->dashboard->outstandingSupplierBalances($siteId, $siteIds),
             'recent_sales' => $this->dashboard->recentDocuments('sale', 5, $siteId, $siteIds),
             'recent_purchases' => $this->dashboard->recentDocuments('purchase', 5, $siteId, $siteIds),
             'recent_transfers' => $this->dashboard->recentDocuments('transfer', 5, $siteId, $siteIds),
@@ -163,6 +164,16 @@ class DashboardService
             'salesTrend' => $salesTrend,
             'branchPerformance' => $branchPerformance,
             'branchSalesMix' => $this->branchSalesMix($branchPerformance),
+            'inventoryValueComparison' => $this->inventoryValueComparison(
+                $currency,
+                (float) $summary['total_stock_value'],
+                $this->dashboard->totalStockRetailValue($siteId, $siteIds)
+            ),
+            'balanceExposureComparison' => $this->balanceExposureComparison(
+                $currency,
+                (float) $summary['outstanding_customer_balances'],
+                (float) $summary['outstanding_supplier_balances']
+            ),
             'lossRisks' => $this->lossRisks($currency, $siteId, $siteIds),
             'stockAlerts' => $stockAlerts,
             'averageSale' => $this->formatCurrency(
@@ -221,12 +232,62 @@ class DashboardService
         $maxSales = max((float) $rows->max('sales_amount'), 1);
 
         return $rows
-            ->map(fn (array $row) => [
+            ->map(fn (array $row, int $index) => [
                 'label' => Carbon::parse($row['date'])->format($days > 7 ? 'M j' : 'D'),
                 'value' => $this->formatCurrency((float) $row['sales_amount'], $currency, true),
-                'height' => max(8, (int) round(((float) $row['sales_amount'] / $maxSales) * 100)),
+                'height' => (float) $row['sales_amount'] > 0
+                    ? max(8, (int) round(((float) $row['sales_amount'] / $maxSales) * 100))
+                    : 2,
+                'show_detail' => $days <= 7
+                    || $index === $days - 1
+                    || $index % ($days <= 14 ? 2 : 5) === 0,
             ])
             ->values();
+    }
+
+    private function inventoryValueComparison(string $currency, float $costValue, float $retailValue): Collection
+    {
+        $maximum = max($costValue, $retailValue, 1);
+
+        return collect([
+            [
+                'label' => 'At purchase cost',
+                'value' => $this->formatCurrency($costValue, $currency, true),
+                'width' => $this->comparisonWidth($costValue, $maximum),
+                'tone' => 'neutral',
+            ],
+            [
+                'label' => 'At selling price',
+                'value' => $this->formatCurrency($retailValue, $currency, true),
+                'width' => $this->comparisonWidth($retailValue, $maximum),
+                'tone' => 'primary',
+            ],
+        ]);
+    }
+
+    private function balanceExposureComparison(string $currency, float $debtorValue, float $creditorValue): Collection
+    {
+        $maximum = max($debtorValue, $creditorValue, 1);
+
+        return collect([
+            [
+                'label' => 'Debtors owe us',
+                'value' => $this->formatCurrency($debtorValue, $currency, true),
+                'width' => $this->comparisonWidth($debtorValue, $maximum),
+                'tone' => 'primary',
+            ],
+            [
+                'label' => 'We owe suppliers',
+                'value' => $this->formatCurrency($creditorValue, $currency, true),
+                'width' => $this->comparisonWidth($creditorValue, $maximum),
+                'tone' => 'neutral',
+            ],
+        ]);
+    }
+
+    private function comparisonWidth(float $value, float $maximum): int
+    {
+        return $value > 0 ? max(3, (int) round(($value / $maximum) * 100)) : 0;
     }
 
     private function branchPerformance(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection

@@ -391,6 +391,7 @@
     .login-submit:hover,
     .pos-dialog-primary:hover {
         border-color: var(--pf-orange-600);
+        color: var(--pf-on-color);
         background: var(--pf-orange-600);
     }
 
@@ -406,7 +407,13 @@
     .icon-action:hover,
     .pos-dialog-secondary:hover {
         border-color: var(--pf-orange-500);
-        color: var(--pf-orange-text);
+        color: var(--pf-on-color);
+        background: var(--pf-orange-500);
+    }
+
+    :is(.btn, .btn-secondary, .btn-danger, .icon-action, .pay-button, .login-submit, .pos-dialog-primary, .pos-dialog-secondary):hover svg {
+        color: var(--pf-on-color);
+        stroke: currentColor;
     }
 
     .btn-danger {
@@ -787,8 +794,14 @@
     }
 
     .settings-nav-panel button:hover {
-        color: var(--pf-orange-text);
-        background: var(--pf-orange-100);
+        color: var(--pf-on-color);
+        background: var(--pf-orange-500);
+    }
+
+    .app-combobox-option:hover,
+    .app-combobox-option.highlighted {
+        color: var(--pf-on-color);
+        background: var(--pf-navy-800);
     }
 
     .settings-save-bar {

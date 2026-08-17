@@ -78,6 +78,15 @@ class DashboardRepository
             ->sum(DB::raw('site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)'));
     }
 
+    public function totalStockRetailValue(?int $siteId = null, ?array $siteIds = null): float
+    {
+        return (float) DB::table('site_stocks')
+            ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('site_stocks.site_id', $siteIds))
+            ->sum(DB::raw('site_stocks.quantity_on_hand * COALESCE(products.default_selling_price, 0)'));
+    }
+
     public function lowStockCount(?int $siteId = null, ?array $siteIds = null): int
     {
         return (int) DB::table('site_stocks')
@@ -105,6 +114,16 @@ class DashboardRepository
             ->where('balance_amount', '>', 0)
             ->when($siteId, fn ($query) => $query->where('source_site_id', $siteId))
             ->when($siteIds !== null, fn ($query) => $query->whereIn('source_site_id', $siteIds))
+            ->sum('balance_amount');
+    }
+
+    public function outstandingSupplierBalances(?int $siteId = null, ?array $siteIds = null): float
+    {
+        return (float) InventoryDocument::query()
+            ->where('document_type', 'purchase')
+            ->where('balance_amount', '>', 0)
+            ->when($siteId, fn ($query) => $query->where('destination_site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('destination_site_id', $siteIds))
             ->sum('balance_amount');
     }
 

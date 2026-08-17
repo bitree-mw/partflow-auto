@@ -8,9 +8,10 @@ use App\Models\CarMake;
 use App\Models\CarModel;
 use App\Models\Contact;
 use App\Models\InventoryDocument;
-use App\Models\ProductType;
+use App\Models\InventoryDocumentItem;
 use App\Models\PaymentAccount;
 use App\Models\Product;
+use App\Models\ProductType;
 use App\Models\Role;
 use App\Models\Site;
 use App\Models\SiteStock;
@@ -141,6 +142,9 @@ class ExampleTest extends TestCase
             ])
             ->assertSee('100.0% increase from last month')
             ->assertSee('1 order awaiting action')
+            ->assertSee('Average sale value')
+            ->assertSee('Inventory value outlook')
+            ->assertSee('Debtors and creditors')
             ->assertDontSee('Fast-moving parts')
             ->assertDontSee('Recent activity');
 
@@ -148,7 +152,155 @@ class ExampleTest extends TestCase
             ->get(route('web.dashboard', ['site_id' => $site->id, 'revenue_period' => 30]))
             ->assertOk()
             ->assertSee('data-revenue-days="30"', false)
+            ->assertSee('--chart-columns: 30', false)
             ->assertSee('value="30" selected', false);
+    }
+
+    public function test_reports_page_and_full_csv_exports_use_the_selected_filters(): void
+    {
+        $user = $this->adminUser();
+        $site = Site::create([
+            'name' => 'Reporting Branch',
+            'code' => 'RPT',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+        $productType = ProductType::create([
+            'name' => 'Reporting Part',
+            'code' => 'RPTP',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'product_code' => 'RPT-001',
+            'product_name' => 'Reporting Test Part',
+            'product_type_id' => $productType->id,
+            'default_purchase_price' => 100,
+            'default_selling_price' => 175,
+            'is_active' => true,
+        ]);
+        $customer = Contact::create([
+            'contact_type' => 'customer',
+            'code' => 'C-RPT',
+            'name' => 'Reporting Customer',
+            'is_active' => true,
+        ]);
+        $supplier = Contact::create([
+            'contact_type' => 'supplier',
+            'code' => 'S-RPT',
+            'name' => 'Reporting Supplier',
+            'is_active' => true,
+        ]);
+
+        SiteStock::create([
+            'site_id' => $site->id,
+            'product_id' => $product->id,
+            'quantity_on_hand' => 4,
+            'reserved_quantity' => 0,
+        ]);
+
+        foreach (['SALE-RPT-001', 'SALE-RPT-002'] as $index => $number) {
+            $sale = InventoryDocument::create([
+                'document_number' => $number,
+                'document_type' => 'sale',
+                'contact_id' => $customer->id,
+                'source_site_id' => $site->id,
+                'document_date' => today()->subDays($index),
+                'status' => 'completed',
+                'subtotal_amount' => 175,
+                'total_amount' => 175,
+                'paid_amount' => $index === 0 ? 75 : 175,
+                'balance_amount' => $index === 0 ? 100 : 0,
+                'payment_status' => $index === 0 ? 'partial' : 'paid',
+                'created_by' => $user->id,
+            ]);
+            InventoryDocumentItem::create([
+                'inventory_document_id' => $sale->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'unit_cost' => 100,
+                'unit_price' => 175,
+                'line_total' => 175,
+                'profit_amount' => 75,
+            ]);
+        }
+
+        InventoryDocument::create([
+            'document_number' => 'SALE-RPT-OUTSIDE',
+            'document_type' => 'sale',
+            'contact_id' => $customer->id,
+            'source_site_id' => $site->id,
+            'document_date' => today()->subDays(20),
+            'status' => 'completed',
+            'subtotal_amount' => 175,
+            'total_amount' => 175,
+            'paid_amount' => 175,
+            'balance_amount' => 0,
+            'payment_status' => 'paid',
+            'created_by' => $user->id,
+        ]);
+
+        $purchase = InventoryDocument::create([
+            'document_number' => 'PURCHASE-RPT-001',
+            'document_type' => 'purchase',
+            'contact_id' => $supplier->id,
+            'destination_site_id' => $site->id,
+            'document_date' => today(),
+            'status' => 'completed',
+            'subtotal_amount' => 400,
+            'total_amount' => 400,
+            'paid_amount' => 100,
+            'balance_amount' => 300,
+            'payment_status' => 'partial',
+            'created_by' => $user->id,
+        ]);
+        InventoryDocumentItem::create([
+            'inventory_document_id' => $purchase->id,
+            'product_id' => $product->id,
+            'quantity' => 4,
+            'unit_cost' => 100,
+            'unit_price' => 175,
+            'line_total' => 400,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('web.reports.index'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Sales report',
+                'Purchase report',
+                'Inventory report',
+                'Creditors report',
+                'Debtors report',
+            ])
+            ->assertDontSee('P&amp;L movement accounts', false)
+            ->assertDontSee('Profit and loss');
+
+        $filters = [
+            'date_from' => today()->subDays(2)->toDateString(),
+            'date_to' => today()->toDateString(),
+            'site_id' => $site->id,
+        ];
+
+        $salesCsv = $this->get(route('web.reports.export', [...$filters, 'report_type' => 'sales']));
+        $salesCsv->assertOk()->assertDownload();
+        $salesContent = $salesCsv->streamedContent();
+        $this->assertStringContainsString('SALE-RPT-001', $salesContent);
+        $this->assertStringContainsString('SALE-RPT-002', $salesContent);
+        $this->assertStringNotContainsString('SALE-RPT-OUTSIDE', $salesContent);
+
+        $inventoryCsv = $this->get(route('web.reports.export', [...$filters, 'report_type' => 'inventory-valuation']));
+        $inventoryContent = $inventoryCsv->streamedContent();
+        $this->assertStringContainsString('unit_purchase_cost', $inventoryContent);
+        $this->assertStringContainsString('potential_sales_value', $inventoryContent);
+        $this->assertStringContainsString('Reporting Test Part', $inventoryContent);
+
+        $creditorContent = $this->get(route('web.reports.export', [...$filters, 'report_type' => 'creditor-balances']))->streamedContent();
+        $this->assertStringContainsString('Reporting Supplier', $creditorContent);
+        $this->assertStringContainsString('PURCHASE-RPT-001', $creditorContent);
+
+        $debtorContent = $this->get(route('web.reports.export', [...$filters, 'report_type' => 'debtor-balances']))->streamedContent();
+        $this->assertStringContainsString('Reporting Customer', $debtorContent);
+        $this->assertStringContainsString('SALE-RPT-001', $debtorContent);
     }
 
     public function test_purchase_form_orders_lines_payment_totals_and_status_by_workflow(): void
@@ -396,6 +548,7 @@ class ExampleTest extends TestCase
 
         $this->assertSame('WPTYCO1616', $product->product_code);
         $this->assertSame('Toyota Corolla 2016 1.6L Sedan Water Pump', $product->product_name);
+        $this->assertSame('Malawi', $product->part_country_of_origin);
 
         $this->delete(route('web.catalog.product-types.destroy', $productType))
             ->assertRedirect(route('web.catalog.product-types.index'))
@@ -416,6 +569,7 @@ class ExampleTest extends TestCase
         $brand = Brand::create([
             'name' => 'Universal Brand',
             'code' => 'UB',
+            'country' => 'Malawi',
             'is_active' => true,
         ]);
         $productType = ProductType::create([
@@ -441,6 +595,30 @@ class ExampleTest extends TestCase
         $this->assertSame(0, $product->compatibilities()->count());
     }
 
+    public function test_unknown_brand_keeps_manually_selected_product_origin(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $productType = ProductType::create([
+            'name' => 'Universal Clip',
+            'code' => 'UC',
+            'is_active' => true,
+        ]);
+
+        $this->post(route('web.catalog.products.store'), [
+            'product_type_id' => $productType->id,
+            'part_country_of_origin' => 'Malawi',
+            'default_selling_price' => 1000,
+            'default_low_stock_level' => 2,
+            'pack_size' => 1,
+        ])->assertRedirect(route('web.catalog.products.index'));
+
+        $product = Product::query()->where('product_type_id', $productType->id)->firstOrFail();
+
+        $this->assertSame('UNKN', $product->brand?->code);
+        $this->assertSame('Malawi', $product->part_country_of_origin);
+    }
+
     public function test_product_forms_use_confirmation_for_edits_and_deactivation(): void
     {
         $this->actingAs($this->adminUser());
@@ -461,7 +639,9 @@ class ExampleTest extends TestCase
         $this->get(route('web.catalog.products.create'))
             ->assertOk()
             ->assertSee('class="form-field product-type-field"', false)
-            ->assertSee('data-product-type-picker', false);
+            ->assertSee('data-product-type-picker', false)
+            ->assertSee('data-product-brand', false)
+            ->assertSee('data-product-origin', false);
 
         $this->get(route('web.catalog.products.edit', $product))
             ->assertOk()
@@ -525,7 +705,8 @@ class ExampleTest extends TestCase
             ->assertSee('status-pill success', false)
             ->assertSee('status-pill warning', false)
             ->assertSee('status-pill danger', false)
-            ->assertSee('status-pill inactive', false);
+            ->assertSee('status-pill inactive', false)
+            ->assertSee('Minimum 10');
 
         $this->assertCount(4, $products);
     }
@@ -738,6 +919,76 @@ class ExampleTest extends TestCase
         $this->assertSame('paid', $sale->payment_status);
         $this->assertEquals(15000, (float) $sale->total_amount);
         $this->assertEquals(3, SiteStock::where('product_id', $product->id)->where('site_id', $site->id)->value('quantity_on_hand'));
+    }
+
+    public function test_transaction_pages_use_the_branch_selected_in_the_session(): void
+    {
+        $user = $this->adminUser();
+        $selectedSite = Site::create([
+            'name' => 'Selected Branch',
+            'code' => 'SEL',
+            'type' => 'branch',
+            'is_active' => true,
+        ]);
+        $otherSite = Site::create([
+            'name' => 'Other Branch',
+            'code' => 'OTH',
+            'type' => 'branch',
+            'is_active' => true,
+        ]);
+
+        InventoryDocument::create([
+            'document_number' => 'SALE-SELECTED-001',
+            'document_type' => 'sale',
+            'source_site_id' => $selectedSite->id,
+            'document_date' => now(),
+            'status' => 'completed',
+            'total_amount' => 12000,
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'SALE-OTHER-001',
+            'document_type' => 'sale',
+            'source_site_id' => $otherSite->id,
+            'document_date' => now(),
+            'status' => 'completed',
+            'total_amount' => 8000,
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'PURCHASE-SELECTED-001',
+            'document_type' => 'purchase',
+            'destination_site_id' => $selectedSite->id,
+            'document_date' => now(),
+            'status' => 'completed',
+            'total_amount' => 16000,
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'PURCHASE-OTHER-001',
+            'document_type' => 'purchase',
+            'destination_site_id' => $otherSite->id,
+            'document_date' => now(),
+            'status' => 'completed',
+            'total_amount' => 6000,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['pos_site_id' => $selectedSite->id])
+            ->get(route('web.sales.index'))
+            ->assertOk()
+            ->assertSee('SALE-SELECTED-001')
+            ->assertDontSee('SALE-OTHER-001');
+
+        $this->get(route('web.purchases.index'))
+            ->assertOk()
+            ->assertSee('PURCHASE-SELECTED-001')
+            ->assertDontSee('PURCHASE-OTHER-001');
+
+        $this->get(route('web.purchases.create'))
+            ->assertOk()
+            ->assertSee('value="'.$selectedSite->id.'" selected', false);
     }
 
     private function adminUser(array $attributes = []): User

@@ -7,9 +7,9 @@ use App\Models\InventoryDocument;
 use App\Models\InventoryDocumentItem;
 use App\Models\SiteStock;
 use App\Models\StockMovement;
-use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class ReportRepository
 {
@@ -267,6 +267,9 @@ class ReportRepository
             'payments-by-account' => $this->paymentRows($filters),
             'expenses' => $this->expenseRows($filters),
             'profit-and-loss' => $this->profitAndLossRows($filters),
+            'inventory',
+            'inventory-report',
+            'inventory-valuation',
             'current-stock',
             'current-stock-by-site',
             'low-stock',
@@ -274,6 +277,12 @@ class ReportRepository
             'out-of-stock',
             'out-of-stock-products',
             'stock-valuation' => $this->stockRows($filters),
+            'creditors',
+            'creditor-report',
+            'creditor-balances' => $this->creditorBalanceRows($filters),
+            'debtors',
+            'debtor-report',
+            'debtor-balances',
             'customer-balances' => $this->customerBalanceRows($filters),
             default => throw new InvalidArgumentException("Unsupported report type [{$reportType}]."),
         };
@@ -541,7 +550,32 @@ class ReportRepository
 
     private function stockRows(array $filters = []): Collection
     {
-        return $this->currentStockBySite($filters);
+        return DB::table('site_stocks')
+            ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
+            ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->leftJoinSub($this->latestPurchaseCostSubquery(), 'latest_purchase_costs', function ($join) {
+                $join->on('latest_purchase_costs.product_id', '=', 'site_stocks.product_id');
+            })
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
+            ->when(isset($filters['product_id']), fn ($query) => $query->where('site_stocks.product_id', $filters['product_id']))
+            ->orderBy('sites.name')
+            ->orderBy('products.product_name')
+            ->get([
+                'sites.id as site_id',
+                'sites.name as site_name',
+                'products.id as product_id',
+                'products.product_code',
+                'products.product_name',
+                'site_stocks.quantity_on_hand',
+                'site_stocks.reserved_quantity',
+                DB::raw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity'),
+                DB::raw('COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0) as unit_purchase_cost'),
+                DB::raw('COALESCE(products.default_selling_price, 0) as unit_selling_price'),
+                DB::raw('site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0) as stock_cost_value'),
+                DB::raw('site_stocks.quantity_on_hand * COALESCE(products.default_selling_price, 0) as potential_sales_value'),
+                DB::raw('site_stocks.quantity_on_hand * (COALESCE(products.default_selling_price, 0) - COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as potential_gross_margin'),
+            ]);
     }
 
     private function latestPurchaseCostSubquery()
@@ -578,6 +612,34 @@ class ReportRepository
                 'inventory_documents.document_number',
                 'inventory_documents.document_date',
                 'contacts.name as customer_name',
+                'contacts.phone',
+                'sites.name as site_name',
+                'inventory_documents.total_amount',
+                'inventory_documents.paid_amount',
+                'inventory_documents.balance_amount',
+                'inventory_documents.payment_status',
+                'inventory_documents.status',
+            ]);
+    }
+
+    private function creditorBalanceRows(array $filters = []): Collection
+    {
+        return DB::table('inventory_documents')
+            ->leftJoin('contacts', 'contacts.id', '=', 'inventory_documents.contact_id')
+            ->leftJoin('sites', 'sites.id', '=', 'inventory_documents.destination_site_id')
+            ->where('inventory_documents.document_type', 'purchase')
+            ->where('inventory_documents.balance_amount', '>', 0)
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
+            ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.destination_site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.destination_site_id', $filters['site_ids']))
+            ->orderBy('inventory_documents.document_date')
+            ->orderBy('inventory_documents.document_number')
+            ->get([
+                'inventory_documents.document_number',
+                'inventory_documents.document_date',
+                'contacts.name as supplier_name',
                 'contacts.phone',
                 'sites.name as site_name',
                 'inventory_documents.total_amount',

@@ -6,8 +6,8 @@ use App\Models\Brand;
 use App\Models\CarModel;
 use App\Models\FuelType;
 use App\Models\Product;
-use App\Models\ProductType;
 use App\Models\ProductReference;
+use App\Models\ProductType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -62,6 +62,10 @@ class ProductService
     {
         return DB::transaction(function () use ($data) {
             $data['brand_id'] = $data['brand_id'] ?? $this->unknownBrandId();
+            $data['part_country_of_origin'] = $this->partCountryOfOrigin(
+                (int) $data['brand_id'],
+                $data['part_country_of_origin'] ?? null
+            );
             $data['car_model_id'] = $data['car_model_id'] ?? $this->primaryCompatibilityId($data['compatibilities'] ?? []);
 
             $productCode = ! empty($data['product_code'])
@@ -103,6 +107,18 @@ class ProductService
             if (array_key_exists('brand_id', $data) && empty($data['brand_id'])) {
                 $data['brand_id'] = $this->unknownBrandId();
             }
+
+            if (array_key_exists('brand_id', $data) || array_key_exists('part_country_of_origin', $data)) {
+                $brandId = (int) ($data['brand_id'] ?? $product->brand_id ?? $this->unknownBrandId());
+                $data['part_country_of_origin'] = $this->partCountryOfOrigin(
+                    $brandId,
+                    array_key_exists('part_country_of_origin', $data)
+                        ? $data['part_country_of_origin']
+                        : $product->part_country_of_origin
+                );
+            }
+
+            $previousLowStockLevel = (int) ($product->default_low_stock_level ?? 0);
 
             $shouldRegenerateCode =
                 empty($data['product_code']) &&
@@ -156,6 +172,20 @@ class ProductService
             unset($data['references'], $data['compatibilities']);
 
             $product->update($data);
+
+            if (
+                array_key_exists('default_low_stock_level', $data)
+                && (int) ($data['default_low_stock_level'] ?? 0) !== $previousLowStockLevel
+            ) {
+                $product->siteStocks()
+                    ->where(function ($query) use ($previousLowStockLevel): void {
+                        $query->whereNull('low_stock_level')
+                            ->orWhere('low_stock_level', $previousLowStockLevel);
+                    })
+                    ->update([
+                        'low_stock_level' => (int) ($data['default_low_stock_level'] ?? 0),
+                    ]);
+            }
 
             if (is_array($references)) {
                 $this->syncReferences($product, $references);
@@ -445,6 +475,17 @@ class ProductService
                 'is_active' => true,
             ]
         )->id;
+    }
+
+    private function partCountryOfOrigin(int $brandId, mixed $providedOrigin): ?string
+    {
+        $brand = Brand::withTrashed()->findOrFail($brandId);
+
+        if (strtoupper((string) $brand->code) !== 'UNKN') {
+            return filled($brand->country) ? trim((string) $brand->country) : null;
+        }
+
+        return filled($providedOrigin) ? trim((string) $providedOrigin) : null;
     }
 
     private function defaultRelations(): array

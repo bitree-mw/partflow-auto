@@ -7,9 +7,10 @@ use App\Models\InventoryDocument;
 use App\Models\Payment;
 use App\Services\ContactService;
 use App\Services\InventoryDocumentService;
-use App\Services\PaymentService;
 use App\Services\PaymentAccountService;
+use App\Services\PaymentService;
 use App\Services\ProductService;
+use App\Services\SiteAccessService;
 use App\Services\SiteService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -25,12 +26,18 @@ class PurchasesController extends Controller
         private readonly SiteService $siteService,
         private readonly ProductService $productService,
         private readonly PaymentAccountService $paymentAccountService,
-        private readonly PaymentService $paymentService
+        private readonly PaymentService $paymentService,
+        private readonly SiteAccessService $siteAccessService
     ) {}
 
     public function index(Request $request): View
     {
-        $purchases = $this->inventoryDocumentService->listByType('purchase', [], $request->user());
+        $siteId = $this->selectedSiteId($request);
+        $purchases = $this->inventoryDocumentService->listByType(
+            'purchase',
+            $siteId ? ['site_id' => $siteId] : [],
+            $request->user()
+        );
 
         return view('purchases.index', [
             'title' => 'Purchases',
@@ -59,15 +66,31 @@ class PurchasesController extends Controller
             'sites' => $this->siteOptions($this->siteService->list(
                 ['is_active' => true],
                 $request->user(),
-                \App\Services\SiteAccessService::RECEIVE_STOCK
+                SiteAccessService::RECEIVE_STOCK
             )),
             'parts' => $this->productOptions($this->productService->list(['is_active' => true])),
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
             'documentStatuses' => ['draft' => 'Draft', 'completed' => 'Completed and received'],
             'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
             'prefillItem' => $prefillItem,
-            'prefillDestinationSiteId' => $request->query('destination_site_id'),
+            'prefillDestinationSiteId' => $request->query(
+                'destination_site_id',
+                $this->selectedSiteId($request, SiteAccessService::RECEIVE_STOCK)
+            ),
         ]);
+    }
+
+    private function selectedSiteId(Request $request, ?string $operation = null): ?int
+    {
+        $siteId = (int) $request->session()->get('pos_site_id', 0);
+
+        if ($siteId <= 0) {
+            return null;
+        }
+
+        return in_array($siteId, $this->siteAccessService->allowedSiteIds($request->user(), $operation), true)
+            ? $siteId
+            : null;
     }
 
     public function store(Request $request): RedirectResponse

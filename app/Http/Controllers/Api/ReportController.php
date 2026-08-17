@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReportExportRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Http\Resources\InventoryDocumentResource;
 use App\Http\Resources\StockMovementResource;
+use App\Services\ReportExportService;
 use App\Services\ReportService;
 use App\Services\SiteAccessService;
 use App\Support\ApiResponse;
@@ -17,6 +19,7 @@ class ReportController extends Controller
 {
     public function __construct(
         private readonly ReportService $reportService,
+        private readonly ReportExportService $reportExportService,
         private readonly SiteAccessService $siteAccessService
     ) {}
 
@@ -100,10 +103,10 @@ class ReportController extends Controller
         return ApiResponse::success(ExpenseResource::collection($this->reportService->expenses($this->filters($request))), 'Expenses report retrieved successfully');
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(ReportExportRequest $request): StreamedResponse
     {
         $reportType = (string) $request->query('report_type', 'sales');
-        $filters = $request->only([
+        $filters = $request->safe()->only([
             'date_from',
             'date_to',
             'site_id',
@@ -117,51 +120,8 @@ class ReportController extends Controller
             $request->user(),
             array_filter($filters, fn ($value) => $value !== null && $value !== '')
         );
-        $rows = $this->reportService->fullFieldReportRows($reportType, $filters);
-        $normalizedType = $this->reportService->normalizeReportType($reportType);
-        $filename = sprintf(
-            '%s_%s_to_%s.csv',
-            $normalizedType,
-            $request->query('date_from', 'start'),
-            $request->query('date_to', 'end')
-        );
 
-        return response()->streamDownload(function () use ($rows, $normalizedType, $filters): void {
-            $handle = fopen('php://output', 'w');
-            $headers = $this->csvHeaders($rows, $normalizedType, $filters);
-
-            fputcsv($handle, $headers);
-
-            if ($rows->isEmpty()) {
-                fputcsv($handle, [
-                    $normalizedType,
-                    $filters['date_from'] ?? null,
-                    $filters['date_to'] ?? null,
-                    'No transactions found for the selected filters.',
-                ]);
-            }
-
-            foreach ($rows as $row) {
-                $row = (array) $row;
-                fputcsv($handle, array_map(fn ($header) => $row[$header] ?? null, $headers));
-            }
-
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv']);
-    }
-
-    private function csvHeaders($rows, string $normalizedType, array $filters): array
-    {
-        if ($rows->isNotEmpty()) {
-            return array_keys((array) $rows->first());
-        }
-
-        return [
-            'report_type',
-            'date_from',
-            'date_to',
-            'message',
-        ];
+        return $this->reportExportService->download($reportType, $filters);
     }
 
     private function filters(Request $request): array

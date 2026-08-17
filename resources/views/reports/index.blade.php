@@ -24,19 +24,30 @@
     <section class="report-filter-panel" data-report-filter-panel>
         <form method="GET" action="{{ route('web.reports.index') }}">
             <div>
-                <span class="eyebrow">Date range first</span>
+                <span class="eyebrow">Complete CSV exports</span>
                 <h2>Choose reporting period</h2>
-                <p>CSV downloads use this date range and {{ $selectedBranchName }} branch filter.</p>
+                <p>Every download includes all matching records for {{ $selectedBranchName }}—not a paginated preview.</p>
             </div>
 
             <label>
+                Period
+                <select class="form-control" name="period" data-report-period>
+                    <option value="today" @selected(request('period') === 'today')>Today</option>
+                    <option value="week" @selected(request('period') === 'week')>This week</option>
+                    <option value="month" @selected(request('period', 'month') === 'month')>This month</option>
+                    <option value="year" @selected(request('period') === 'year')>This year</option>
+                    <option value="custom" @selected(request('period') === 'custom')>Custom range</option>
+                </select>
+            </label>
+
+            <label>
                 From
-                <input class="form-control" type="date" name="date_from" value="{{ request('date_from', $dateFrom) }}">
+                <input class="form-control" type="date" name="date_from" value="{{ request('date_from', $dateFrom) }}" data-report-date-from>
             </label>
 
             <label>
                 To
-                <input class="form-control" type="date" name="date_to" value="{{ request('date_to', $dateTo) }}">
+                <input class="form-control" type="date" name="date_to" value="{{ request('date_to', $dateTo) }}" data-report-date-to>
             </label>
 
             <label>
@@ -51,55 +62,23 @@
                 </select>
             </label>
 
-            <label>
-                Report type
-                <select class="form-control searchable-input" name="report_type">
-                    @foreach ($reportCards as $report)
-                        <option value="{{ $report['type'] }}" @selected(request('report_type') === $report['type'])>{{ $report['name'] }}</option>
-                    @endforeach
-                </select>
-            </label>
-
             <button class="btn" type="submit">Apply filters</button>
         </form>
     </section>
 
-    <section class="profit-loss-panel">
-        <header>
-            <div>
-                <span class="eyebrow">Profit and loss accounts</span>
-                <h2>P&L movement accounts</h2>
-                <p>These accounts shape the profit and loss report before journal/accounting integration is connected.</p>
-            </div>
-            <a
-                class="btn-secondary"
-                href="{{ url('/api/reports/export') }}?{{ http_build_query(array_merge($filteredReportParams, ['report_type' => 'profit-and-loss'])) }}"
-            >Download P&L CSV</a>
-        </header>
-
-        <div class="profit-loss-grid">
-            @foreach ($profitLossAccounts as $account)
-                <article>
-                    <span>{{ $account['type'] }}</span>
-                    <strong>{{ $account['name'] }}</strong>
-                    <em>{{ $account['movement'] }}</em>
-                </article>
-            @endforeach
-        </div>
-    </section>
-
-    <section class="report-grid">
-        @foreach ($reportCards as $report)
+    <section class="report-grid" aria-label="Available reports">
+        @foreach ($reportCards as $index => $report)
             <article class="report-card">
                 <div>
+                    <span class="report-card-number" aria-hidden="true">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
                     <span class="eyebrow">{{ $report['status'] }}</span>
                     <h2>{{ $report['name'] }}</h2>
                     <p>{{ $report['detail'] }}</p>
                 </div>
                 <a
                     class="btn-secondary"
-                    href="{{ url('/api/reports/export') }}?{{ http_build_query(array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
-                >Download CSV</a>
+                    href="{{ route('web.reports.export', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
+                >Download full CSV</a>
             </article>
         @endforeach
     </section>
