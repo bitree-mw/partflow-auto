@@ -45,6 +45,12 @@
         height: 40px;
     }
 
+    .brand-icon {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
     .brand-mark strong {
         font-family: var(--font-sans);
         font-size: 17px;

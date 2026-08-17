@@ -6,7 +6,7 @@
     <main class="login-page">
         <section class="login-brand-panel" aria-label="PartFlow Auto">
             <a class="login-brand" href="{{ route('login') }}">
-                <span>PF</span>
+                <span><x-brand-icon /></span>
                 <div>
                     <strong>PartFlow Auto</strong>
                     <small>Auto parts operations</small>

@@ -43,6 +43,17 @@ class ExampleTest extends TestCase
         $this->get('/pos')->assertRedirect(route('login'));
     }
 
+    public function test_application_brand_icon_is_used_on_the_login_screen_and_browser_tab(): void
+    {
+        $this->assertFileExists(public_path('favicon.svg'));
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('rel="icon" type="image/svg+xml"', false)
+            ->assertSee('href="'.asset('favicon.svg').'"', false)
+            ->assertSee('class="brand-icon"', false);
+    }
+
     public function test_back_office_pages_return_successful_responses(): void
     {
         $this->actingAs($this->adminUser());
