@@ -97,6 +97,50 @@ class ExampleTest extends TestCase
             'type' => 'warehouse',
             'is_active' => true,
         ]);
+        $destinationSite = Site::create([
+            'name' => 'Dashboard Destination',
+            'code' => 'DSD',
+            'type' => 'branch',
+            'is_active' => true,
+        ]);
+        $productType = ProductType::create([
+            'name' => 'Dashboard Parts',
+            'code' => 'DBP',
+            'is_active' => true,
+        ]);
+        $outOfStockProduct = Product::create([
+            'product_code' => 'DBP-OOS',
+            'product_name' => 'Dashboard Out of Stock Part',
+            'product_type_id' => $productType->id,
+            'default_purchase_price' => 1000,
+            'default_selling_price' => 1500,
+            'default_low_stock_level' => 2,
+            'is_active' => true,
+        ]);
+        $lowStockProduct = Product::create([
+            'product_code' => 'DBP-LOW',
+            'product_name' => 'Dashboard Low Stock Part',
+            'product_type_id' => $productType->id,
+            'default_purchase_price' => 2000,
+            'default_selling_price' => 3000,
+            'default_low_stock_level' => 5,
+            'is_active' => true,
+        ]);
+
+        SiteStock::create([
+            'product_id' => $outOfStockProduct->id,
+            'site_id' => $site->id,
+            'quantity_on_hand' => 0,
+            'reserved_quantity' => 0,
+            'low_stock_level' => 2,
+        ]);
+        SiteStock::create([
+            'product_id' => $lowStockProduct->id,
+            'site_id' => $site->id,
+            'quantity_on_hand' => 2,
+            'reserved_quantity' => 0,
+            'low_stock_level' => 5,
+        ]);
 
         InventoryDocument::create([
             'document_number' => 'SALE-DASHBOARD-CURRENT',
@@ -137,6 +181,41 @@ class ExampleTest extends TestCase
             'payment_status' => 'unpaid',
             'created_by' => $user->id,
         ]);
+        InventoryDocument::create([
+            'document_number' => 'TRANSFER-DASHBOARD-PENDING',
+            'document_type' => 'transfer',
+            'source_site_id' => $site->id,
+            'destination_site_id' => $destinationSite->id,
+            'document_date' => today()->subDay(),
+            'status' => 'pending',
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'PURCHASE-DASHBOARD-OUTSTANDING',
+            'document_type' => 'purchase',
+            'destination_site_id' => $site->id,
+            'document_date' => today()->subYear(),
+            'status' => 'completed',
+            'subtotal_amount' => 3000,
+            'total_amount' => 3000,
+            'paid_amount' => 0,
+            'balance_amount' => 3000,
+            'payment_status' => 'unpaid',
+            'created_by' => $user->id,
+        ]);
+        InventoryDocument::create([
+            'document_number' => 'SALE-DASHBOARD-OUTSTANDING',
+            'document_type' => 'sale',
+            'source_site_id' => $site->id,
+            'document_date' => today()->subYear(),
+            'status' => 'completed',
+            'subtotal_amount' => 2500,
+            'total_amount' => 2500,
+            'paid_amount' => 500,
+            'balance_amount' => 2000,
+            'payment_status' => 'partial',
+            'created_by' => $user->id,
+        ]);
 
         $this->actingAs($user)
             ->get(route('web.dashboard'))
@@ -153,6 +232,16 @@ class ExampleTest extends TestCase
             ])
             ->assertSee('100.0% increase from last month')
             ->assertSee('1 order awaiting action')
+            ->assertSee('Priority actions')
+            ->assertSee('6 open')
+            ->assertSee('1 part is out of stock')
+            ->assertSee('1 part is below its reorder level')
+            ->assertSee('1 transfer is awaiting action')
+            ->assertSee('1 purchase order is awaiting completion')
+            ->assertSee('1 supplier invoice has an outstanding balance')
+            ->assertSee('1 customer invoice needs payment follow-up')
+            ->assertSee('data-priority-action-list', false)
+            ->assertDontSee('Low stock level')
             ->assertSee('Average sale value')
             ->assertSee('Inventory value outlook')
             ->assertSee('Debtors and creditors')

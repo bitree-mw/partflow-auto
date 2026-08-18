@@ -20,7 +20,7 @@
         $inventoryValueComparison = collect($inventoryValueComparison);
         $balanceExposureComparison = collect($balanceExposureComparison);
         $branchOptions = collect($branchOptions);
-        $stockAlerts = collect($stockAlerts);
+        $priorityActions = collect($priorityActions);
         $pieStops = [];
         $pieCursor = 0;
         foreach ($branchSalesMix as $index => $slice) {
@@ -128,24 +128,24 @@
         <article class="insight-panel attention-panel">
             <header class="insight-header">
                 <div>
-                    <h2>Low stock level</h2>
-                    <p>Prioritised for attention today.</p>
+                    <h2>Priority actions</h2>
+                    <p>Prioritised for today at {{ $selectedBranchName }}.</p>
                 </div>
-                <a href="{{ route('web.alerts.index') }}">View all <span aria-hidden="true">→</span></a>
+                <span class="attention-total">{{ $priorityActions->count() }} open</span>
             </header>
 
-            <div class="attention-list">
-                @forelse ($stockAlerts->take(5) as $alert)
-                    <article @class(['danger' => ($alert['priority_tone'] ?? '') === 'danger'])>
-                        <span class="attention-mark" aria-hidden="true">!</span>
+            <div class="attention-list" data-priority-action-list tabindex="0" aria-label="Priority actions">
+                @forelse ($priorityActions as $task)
+                    <article class="{{ $task['tone'] }}">
+                        <span class="attention-mark" aria-hidden="true">{{ $task['mark'] }}</span>
                         <div>
-                            <strong>{{ $alert['part'] }}</strong>
-                            <small>{{ $alert['branch'] }} · Recommended {{ $alert['recommended'] }}</small>
+                            <strong>{{ $task['title'] }}</strong>
+                            <small>{{ $task['detail'] }}</small>
                         </div>
-                        <a href="{{ route('web.alerts.index') }}">Review</a>
+                        <a href="{{ route($task['route'], $task['route_parameters']) }}">{{ $task['action'] }}</a>
                     </article>
                 @empty
-                    <div class="dashboard-empty-state">No low-stock items need attention.</div>
+                    <div class="dashboard-empty-state">No priority actions need attention right now.</div>
                 @endforelse
             </div>
         </article>

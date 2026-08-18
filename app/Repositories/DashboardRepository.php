@@ -44,16 +44,6 @@ class DashboardRepository
             ->sum('total_amount');
     }
 
-    public function pendingPurchaseOrderCount(?int $siteId = null, ?array $siteIds = null): int
-    {
-        return (int) InventoryDocument::query()
-            ->where('document_type', 'purchase')
-            ->whereIn('status', ['draft', 'pending'])
-            ->when($siteId, fn ($query) => $query->forSite($siteId))
-            ->forSites($siteIds)
-            ->count();
-    }
-
     public function todayProfit(?int $siteId = null, ?array $siteIds = null): float
     {
         return (float) DB::table('inventory_document_items')
@@ -105,6 +95,63 @@ class DashboardRepository
             ->when($siteIds !== null, fn ($query) => $query->whereIn('site_id', $siteIds))
             ->whereRaw('(quantity_on_hand - reserved_quantity) <= 0')
             ->count();
+    }
+
+    public function priorityActionSummary(?int $siteId = null, ?array $siteIds = null): array
+    {
+        $belowMinimumStock = DB::table('site_stocks')
+            ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('site_stocks.site_id', $siteIds))
+            ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
+            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) > 0')
+            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
+            ->count();
+
+        $documents = InventoryDocument::query()
+            ->when($siteId, fn ($query) => $query->forSite($siteId))
+            ->forSites($siteIds)
+            ->selectRaw("SUM(CASE WHEN document_type = 'transfer' AND status IN ('draft', 'pending') THEN 1 ELSE 0 END) as pending_transfers")
+            ->selectRaw("SUM(CASE WHEN document_type = 'purchase' AND status IN ('draft', 'pending') THEN 1 ELSE 0 END) as pending_purchase_orders")
+            ->selectRaw("SUM(CASE WHEN document_type = 'purchase' AND status IN ('completed', 'approved') AND balance_amount > 0 THEN 1 ELSE 0 END) as supplier_invoices_outstanding")
+            ->selectRaw("SUM(CASE WHEN document_type = 'sale' AND status IN ('completed', 'approved') AND balance_amount > 0 THEN 1 ELSE 0 END) as customer_invoices_outstanding")
+            ->first();
+
+        $stockTakeVariances = DB::table('inventory_document_items')
+            ->join('inventory_documents', 'inventory_documents.id', '=', 'inventory_document_items.inventory_document_id')
+            ->where('inventory_documents.document_type', 'stock_take')
+            ->whereIn('inventory_documents.status', ['completed', 'approved'])
+            ->where('inventory_document_items.variance_quantity', '!=', 0)
+            ->when($siteId, fn ($query) => $query->where('inventory_documents.source_site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('inventory_documents.source_site_id', $siteIds))
+            ->distinct()
+            ->count('inventory_documents.id');
+
+        return [
+            'below_minimum_stock' => (int) $belowMinimumStock,
+            'pending_transfers' => (int) ($documents?->pending_transfers ?? 0),
+            'pending_purchase_orders' => (int) ($documents?->pending_purchase_orders ?? 0),
+            'supplier_invoices_outstanding' => (int) ($documents?->supplier_invoices_outstanding ?? 0),
+            'customer_invoices_outstanding' => (int) ($documents?->customer_invoices_outstanding ?? 0),
+            'stock_take_variances' => (int) $stockTakeVariances,
+        ];
+    }
+
+    public function lowStockAlerts(int $limit = 5, array $filters = []): Collection
+    {
+        return DB::table('site_stocks')
+            ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
+            ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
+            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
+            ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
+            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
+            ->selectRaw('sites.name as site_name, products.product_name')
+            ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')
+            ->selectRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) as low_stock_level')
+            ->orderBy('available_quantity')
+            ->limit($limit)
+            ->get();
     }
 
     public function outstandingCustomerBalances(?int $siteId = null, ?array $siteIds = null): float
@@ -249,23 +296,6 @@ class DashboardRepository
                     'stockout_count' => (int) ($stockouts[$site->id] ?? 0),
                 ];
             });
-    }
-
-    public function lowStockAlerts(int $limit = 5, array $filters = []): Collection
-    {
-        return DB::table('site_stocks')
-            ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
-            ->join('products', 'products.id', '=', 'site_stocks.product_id')
-            ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
-            ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
-            ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
-            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
-            ->selectRaw('sites.name as site_name, products.product_name')
-            ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')
-            ->selectRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) as low_stock_level')
-            ->orderBy('available_quantity')
-            ->limit($limit)
-            ->get();
     }
 
     public function stockTakeVarianceTotal(?int $siteId = null, ?array $siteIds = null): float

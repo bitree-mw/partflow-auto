@@ -25,7 +25,7 @@ class DashboardService
 
         $summary = $this->baseSummary($filters);
 
-        $summary['overview'] = $this->overviewFromSummary($summary, $filters);
+        $summary['overview'] = $this->overviewFromSummary($summary, $filters, $user);
 
         return $summary;
     }
@@ -36,7 +36,7 @@ class DashboardService
             $filters = $this->siteAccessService->scopeFilters($user, $filters);
         }
 
-        return $this->overviewFromSummary($this->baseSummary($filters), $filters);
+        return $this->overviewFromSummary($this->baseSummary($filters), $filters, $user);
     }
 
     private function baseSummary(array $filters = []): array
@@ -59,7 +59,7 @@ class DashboardService
         ];
     }
 
-    private function overviewFromSummary(array $summary, array $filters = []): array
+    private function overviewFromSummary(array $summary, array $filters = [], ?User $user = null): array
     {
         $currency = $this->systemConfiguration->settings()['base_currency'];
         $siteId = $this->siteId($filters);
@@ -69,7 +69,7 @@ class DashboardService
         $revenuePeriod = (int) ($filters['revenue_period'] ?? 7);
         $salesTrend = $this->salesTrend($currency, $revenuePeriod, $siteId, $siteIds);
         $branchPerformance = $this->branchPerformance($currency, $siteId, $siteIds);
-        $stockAlerts = $this->stockAlerts($siteId, $siteIds);
+        $priorityActionSummary = $this->dashboard->priorityActionSummary($siteId, $siteIds);
         $selectedSite = $siteId ? Site::query()->find($siteId) : null;
         $currentMonthSales = $this->dashboard->salesTotalBetween(
             today()->startOfMonth()->toDateString(),
@@ -84,7 +84,7 @@ class DashboardService
             $siteIds
         );
         $salesComparison = $this->salesComparison($currentMonthSales, $previousMonthSales);
-        $pendingOrderCount = $this->dashboard->pendingPurchaseOrderCount($siteId, $siteIds);
+        $pendingOrderCount = $priorityActionSummary['pending_purchase_orders'];
         $activeSiteCount = $branchPerformance->count();
         $lowStockCount = (int) $summary['low_stock_count'];
 
@@ -175,7 +175,14 @@ class DashboardService
                 (float) $summary['outstanding_supplier_balances']
             ),
             'lossRisks' => $this->lossRisks($currency, $siteId, $siteIds),
-            'stockAlerts' => $stockAlerts,
+            'stockAlerts' => $this->stockAlerts($siteId, $siteIds),
+            'priorityActions' => $this->priorityActions(
+                $summary,
+                $priorityActionSummary,
+                $currency,
+                $siteId,
+                $user
+            ),
             'averageSale' => $this->formatCurrency(
                 $todaySaleCount > 0 ? (float) $summary['today_sales'] / $todaySaleCount : 0,
                 $currency,
@@ -321,6 +328,165 @@ class DashboardService
         })->values();
     }
 
+    private function priorityActions(
+        array $summary,
+        array $actionSummary,
+        string $currency,
+        ?int $siteId,
+        ?User $user
+    ): Collection {
+        $tasks = collect();
+        $siteParameters = $siteId ? ['site_id' => $siteId] : [];
+        $can = fn (string $permission): bool => $user === null || $user->hasPermission($permission);
+        $push = function (
+            int $count,
+            string $noun,
+            string $singularAction,
+            string $pluralAction,
+            string $detail,
+            string $tone,
+            string $mark,
+            string $action,
+            string $route,
+            array $routeParameters = []
+        ) use ($tasks): void {
+            if ($count <= 0) {
+                return;
+            }
+
+            $tasks->push([
+                'title' => $this->taskTitle($count, $noun, $singularAction, $pluralAction),
+                'detail' => $detail,
+                'tone' => $tone,
+                'mark' => $mark,
+                'action' => $action,
+                'route' => $route,
+                'route_parameters' => $routeParameters,
+            ]);
+        };
+
+        $push(
+            (int) $summary['out_of_stock_count'],
+            'part',
+            'is out of stock',
+            'are out of stock',
+            'Sales and customer orders may be delayed',
+            'danger',
+            '!',
+            'Review',
+            'web.alerts.index'
+        );
+
+        $canReorder = $can('purchases.create');
+        $push(
+            (int) $actionSummary['below_minimum_stock'],
+            'part',
+            'is below its reorder level',
+            'are below their reorder level',
+            'Replenish stock before the remaining units run out',
+            'warning',
+            '↓',
+            $canReorder ? 'Reorder' : 'Review',
+            $canReorder ? 'web.purchases.create' : 'web.alerts.index'
+        );
+
+        if ($can('stock.view')) {
+            $push(
+                (int) $actionSummary['pending_transfers'],
+                'transfer',
+                'is awaiting action',
+                'are awaiting action',
+                'Draft or pending transfers need operational review',
+                'info',
+                '↔',
+                'Track',
+                'web.catalog.sites.transfers.index',
+                $siteParameters
+            );
+
+            $push(
+                (int) $actionSummary['stock_take_variances'],
+                'stock count',
+                'has a recorded variance',
+                'have recorded variances',
+                'Counted quantities differ from system stock',
+                'info',
+                '±',
+                'Review',
+                'web.catalog.sites.stock-takes.index',
+                $siteParameters
+            );
+        }
+
+        if ($can('purchases.view')) {
+            $push(
+                (int) $actionSummary['pending_purchase_orders'],
+                'purchase order',
+                'is awaiting completion',
+                'are awaiting completion',
+                'Draft or pending purchases have not been received',
+                'warning',
+                '⌛',
+                'Review',
+                'web.purchases.index'
+            );
+
+            $push(
+                (int) $actionSummary['supplier_invoices_outstanding'],
+                'supplier invoice',
+                'has an outstanding balance',
+                'have outstanding balances',
+                $this->formatCurrency((float) $summary['outstanding_supplier_balances'], $currency, true).' remains payable',
+                'finance',
+                '↗',
+                'Review',
+                'web.purchases.index'
+            );
+        } elseif ($can('reports.view')) {
+            $push(
+                (int) $actionSummary['supplier_invoices_outstanding'],
+                'supplier invoice',
+                'has an outstanding balance',
+                'have outstanding balances',
+                $this->formatCurrency((float) $summary['outstanding_supplier_balances'], $currency, true).' remains payable',
+                'finance',
+                '↗',
+                'Review',
+                'web.reports.index',
+                $siteParameters
+            );
+        }
+
+        if ($can('sales.view')) {
+            $push(
+                (int) $actionSummary['customer_invoices_outstanding'],
+                'customer invoice',
+                'needs payment follow-up',
+                'need payment follow-up',
+                $this->formatCurrency((float) $summary['outstanding_customer_balances'], $currency, true).' remains collectible',
+                'finance',
+                '↙',
+                'Collect',
+                'web.sales.index'
+            );
+        } elseif ($can('reports.view')) {
+            $push(
+                (int) $actionSummary['customer_invoices_outstanding'],
+                'customer invoice',
+                'needs payment follow-up',
+                'need payment follow-up',
+                $this->formatCurrency((float) $summary['outstanding_customer_balances'], $currency, true).' remains collectible',
+                'finance',
+                '↙',
+                'Review',
+                'web.reports.index',
+                $siteParameters
+            );
+        }
+
+        return $tasks->values();
+    }
+
     private function stockAlerts(?int $siteId = null, ?array $siteIds = null): Collection
     {
         return $this->dashboard->lowStockAlerts(filters: [
@@ -336,6 +502,15 @@ class DashboardService
                 'priority_tone' => ((int) $row->available_quantity <= 0) ? 'danger' : 'warning',
             ])
             ->values();
+    }
+
+    private function taskTitle(
+        int $count,
+        string $noun,
+        string $singularAction,
+        string $pluralAction
+    ): string {
+        return $count.' '.str($noun)->plural($count).' '.($count === 1 ? $singularAction : $pluralAction);
     }
 
     private function branchSalesMix(Collection $branchPerformance): Collection
