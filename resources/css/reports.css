@@ -134,6 +134,78 @@
         white-space: nowrap;
     }
 
+    .report-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-self: end;
+    }
+
+    .report-preview-panel {
+        margin-top: 18px;
+        scroll-margin-top: 20px;
+    }
+
+    .report-preview-panel .panel-toolbar {
+        align-items: flex-end;
+    }
+
+    .report-preview-panel h2 {
+        margin: 5px 0 0;
+        color: #111827;
+        font-size: 20px;
+    }
+
+    .report-preview-panel p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .report-view-panel {
+        min-width: 0;
+    }
+
+    .report-view-toolbar {
+        align-items: flex-end;
+    }
+
+    .report-view-toolbar h2 {
+        margin: 5px 0 0;
+        color: #111827;
+        font-size: 22px;
+    }
+
+    .report-view-toolbar p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .report-view-actions,
+    .report-page-size {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .report-page-size {
+        justify-content: flex-end;
+        padding: 12px 18px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .report-page-size label {
+        color: #374151;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .report-page-size .form-control {
+        width: 88px;
+    }
+
     .report-card-number {
         position: absolute;
         top: 14px;
@@ -164,13 +236,21 @@
             flex-direction: column;
         }
 
+        .report-view-toolbar,
+        .report-view-actions,
+        .report-page-size {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
         .profit-loss-grid article {
             border-right: 0;
             border-bottom: 1px solid #e5e7eb;
         }
 
         .report-filter-panel .btn,
-        .report-card .btn-secondary {
+        .report-card .btn-secondary,
+        .report-card-actions {
             width: 100%;
         }
     }

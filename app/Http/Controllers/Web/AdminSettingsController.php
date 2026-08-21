@@ -198,8 +198,13 @@ class AdminSettingsController extends Controller
             $request->merge(['user_site' => null]);
         }
 
+        if ($request->filled('user_username')) {
+            $request->merge(['user_username' => Str::lower(trim((string) $request->input('user_username')))]);
+        }
+
         $validated = $request->validate([
             'user_name' => ['required', 'string', 'max:255'],
+            'user_username' => ['nullable', 'string', 'max:255', 'alpha_dash:ascii', 'unique:users,username'],
             'user_email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'user_role' => [
                 'nullable',
@@ -225,7 +230,7 @@ class AdminSettingsController extends Controller
             $user = User::query()->create([
                 'role_id' => $role?->id,
                 'name' => $validated['user_name'],
-                'username' => $this->generateUsername($validated['user_email']),
+                'username' => $validated['user_username'] ?? $this->generateUsername($validated['user_email']),
                 'email' => strtolower($validated['user_email']),
                 'password' => Hash::make($validated['user_password'] ?? Str::random(12)),
                 'is_active' => true,
@@ -243,10 +248,15 @@ class AdminSettingsController extends Controller
             $request->merge(['edit_user_site' => null]);
         }
 
+        if ($request->filled('edit_user_username')) {
+            $request->merge(['edit_user_username' => Str::lower(trim((string) $request->input('edit_user_username')))]);
+        }
+
         $user = User::query()->findOrFail($request->input('edit_user_id'));
         $validated = $request->validate([
             'edit_user_id' => ['required', 'integer', 'exists:users,id'],
             'edit_user_name' => ['required', 'string', 'max:255'],
+            'edit_user_username' => ['nullable', 'string', 'max:255', 'alpha_dash:ascii', Rule::unique('users', 'username')->ignore($user->id)],
             'edit_user_email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'edit_user_role' => [
                 'nullable',
@@ -283,6 +293,7 @@ class AdminSettingsController extends Controller
             $attributes = [
                 'role_id' => $role?->id,
                 'name' => $validated['edit_user_name'],
+                'username' => $validated['edit_user_username'] ?? $user->username,
                 'email' => strtolower($validated['edit_user_email']),
                 'is_active' => $isActive,
             ];

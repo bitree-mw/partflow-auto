@@ -41,7 +41,10 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'appSystem' => $appSystem,
                 'notificationSummary' => $user
-                    ? $alertService->summary($siteAccessService->scopeFilters($user))
+                    ? $alertService->summary($siteAccessService->scopeFilters(
+                        $user,
+                        $currentSite ? ['site_id' => $currentSite->id] : []
+                    ))
                     : $alertService->summary(['site_ids' => []]),
                 'globalSiteOptions' => $this->siteOptions($user),
                 'globalCurrentSiteId' => $currentSite?->id,

@@ -66,6 +66,7 @@
             method="POST"
             action="{{ route('web.settings.update') }}"
             data-settings-content
+            data-track-unsaved-changes
             data-settings-initial-panel="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}"
             data-settings-error-dialog="{{ old('settings_action') }}"
         >
@@ -342,7 +343,7 @@
                             <article @class(['inactive' => ! $user['is_active']])>
                                 <div>
                                     <strong>{{ $user['name'] }}</strong>
-                                    <span>{{ $user['email'] }}</span>
+                                    <span>{{ $user['username'] ? '@'.$user['username'].' · ' : '' }}{{ $user['email'] }}</span>
                                 </div>
                                 <div class="user-status">
                                     <span>{{ $user['role'] ?: 'User' }}</span>
@@ -358,6 +359,7 @@
                                         data-settings-fill
                                         data-edit-user-id="{{ $user['id'] }}"
                                         data-edit-user-name="{{ $user['name'] }}"
+                                        data-edit-user-username="{{ $user['username'] }}"
                                         data-edit-user-email="{{ $user['email'] }}"
                                         data-edit-user-role="{{ $user['role'] }}"
                                         data-edit-user-site="{{ $user['site'] }}"
@@ -402,6 +404,11 @@
                                 <label for="user_name">Full name</label>
                                 <input class="form-control" id="user_name" name="user_name" value="{{ old('user_name') }}" placeholder="Branch Manager">
                                 <x-form-error name="user_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="user_username">Username</label>
+                                <input class="form-control" id="user_username" name="user_username" value="{{ old('user_username') }}" autocomplete="username" placeholder="branchmanager">
+                                <x-form-error name="user_username" />
                             </div>
                             <div class="form-field">
                                 <label for="user_email">Email</label>
@@ -453,6 +460,11 @@
                                 <label for="edit_user_name">Full name</label>
                                 <input class="form-control" id="edit_user_name" name="edit_user_name" value="{{ old('edit_user_name') }}" data-settings-field="editUserName">
                                 <x-form-error name="edit_user_name" />
+                            </div>
+                            <div class="form-field">
+                                <label for="edit_user_username">Username</label>
+                                <input class="form-control" id="edit_user_username" name="edit_user_username" value="{{ old('edit_user_username') }}" autocomplete="username" data-settings-field="editUserUsername">
+                                <x-form-error name="edit_user_username" />
                             </div>
                             <div class="form-field">
                                 <label for="edit_user_email">Email</label>

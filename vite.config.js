@@ -23,6 +23,7 @@ export default defineConfig({
                 'resources/css/responsive.css',
                 'resources/js/app.js',
                 'resources/js/auth.js',
+                'resources/js/dashboard.js',
                 'resources/js/pos.js',
                 'resources/js/settings.js',
                 'resources/js/catalog.js',

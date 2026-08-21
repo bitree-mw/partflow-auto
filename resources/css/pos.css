@@ -1,5 +1,34 @@
 @layer components {
     /* POS-specific layout follows the refined fast-order pattern for auto parts. */
+    @media (min-width: 1381px) {
+        .pos-page .header-actions {
+            max-width: none;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+
+        .pos-page .header-search {
+            flex: 1 1 240px;
+            max-width: 342px;
+        }
+
+        .pos-page .header-branch-switcher {
+            flex: 0 0 auto;
+            flex-wrap: nowrap;
+            max-width: none;
+        }
+
+        .pos-page .header-branch-switcher label {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .pos-page .header-branch-switcher select {
+            width: 262px;
+            max-width: none;
+        }
+    }
+
     .pos-page .content-shell {
         gap: 20px;
     }
@@ -258,6 +287,17 @@
         color: #6d7568;
         font-size: 12px;
         font-weight: 900;
+    }
+
+    .part-name {
+        min-width: 0;
+        overflow: hidden;
+        color: #111827;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .part-code {

@@ -16,7 +16,7 @@
         $reportFilters = [
             'date_from' => request('date_from', $dateFrom),
             'date_to' => request('date_to', $dateTo),
-            'site_id' => request('site_id'),
+            'site_id' => $selectedSiteId,
         ];
         $filteredReportParams = array_filter($reportFilters, fn ($value) => filled($value));
     @endphp
@@ -24,9 +24,9 @@
     <section class="report-filter-panel" data-report-filter-panel>
         <form method="GET" action="{{ route('web.reports.index') }}">
             <div>
-                <span class="eyebrow">Complete CSV exports</span>
+                <span class="eyebrow">Report centre</span>
                 <h2>Choose reporting period</h2>
-                <p>Every download includes all matching records for {{ $selectedBranchName }}—not a paginated preview.</p>
+                <p>Preview records in the system or download every matching row for {{ $selectedBranchName }}.</p>
             </div>
 
             <label>
@@ -55,7 +55,7 @@
                 <select class="form-control searchable-input" name="site_id">
                     <option value="">All branches</option>
                     @foreach ($branchOptions as $branch)
-                        <option value="{{ $branch['id'] }}" @selected((string) request('site_id') === (string) $branch['id'])>
+                        <option value="{{ $branch['id'] }}" @selected((string) $selectedSiteId === (string) $branch['id'])>
                             {{ $branch['name'] }}
                         </option>
                     @endforeach
@@ -75,10 +75,16 @@
                     <h2>{{ $report['name'] }}</h2>
                     <p>{{ $report['detail'] }}</p>
                 </div>
-                <a
-                    class="btn-secondary"
-                    href="{{ route('web.reports.export', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
-                >Download full CSV</a>
+                <div class="report-card-actions">
+                    <a
+                        class="btn-secondary"
+                        href="{{ route('web.reports.view', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
+                    >View report</a>
+                    <a
+                        class="btn-secondary"
+                        href="{{ route('web.reports.export', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
+                    >Download full CSV</a>
+                </div>
             </article>
         @endforeach
     </section>

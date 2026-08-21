@@ -121,5 +121,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination-wrap">
+            {{ $contacts->links() }}
+        </div>
     </section>
 @endsection

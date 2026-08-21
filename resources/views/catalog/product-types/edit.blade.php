@@ -16,6 +16,7 @@
         class="form-panel catalog-form"
         method="POST"
         action="{{ route('web.catalog.product-types.update', $productType) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save product type changes?"
         data-confirm="Save the changes made to this product type?"
         data-confirm-label="Save changes"

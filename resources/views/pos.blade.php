@@ -71,6 +71,7 @@
                             <div class="part-card-heading">
                                 <span class="product-type">{{ $product['product_type'] }}</span>
                                 <span class="part-brand">{{ $product['brand'] }}</span>
+                                <strong class="part-name">{{ $product['product_name'] }}</strong>
                                 <span class="part-code">({{ $product['product_code'] }})</span>
                             </div>
                             <button class="part-add-button" type="button" data-card-add="{{ $index }}" aria-label="Add {{ $product['product_name'] }} to cart">+</button>

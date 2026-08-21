@@ -104,5 +104,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination-wrap">
+            {{ $purchases->links() }}
+        </div>
     </section>
 @endsection

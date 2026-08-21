@@ -39,6 +39,29 @@ class DashboardService
         return $this->overviewFromSummary($this->baseSummary($filters), $filters, $user);
     }
 
+    public function todaySnapshot(array $filters = [], ?User $user = null): array
+    {
+        if ($user) {
+            $filters = $this->siteAccessService->scopeFilters($user, $filters);
+        }
+
+        $siteId = $this->siteId($filters);
+        $siteIds = $filters['site_ids'] ?? null;
+        $currency = $this->systemConfiguration->settings()['base_currency'];
+        $sales = $this->dashboard->todaySales($siteId, $siteIds);
+        $profit = $this->dashboard->todayProfit($siteId, $siteIds);
+        $saleCount = $this->dashboard->todaySaleCount($siteId, $siteIds);
+
+        return [
+            'today_sales' => $this->formatCurrency($sales, $currency, true),
+            'today_sales_change' => $saleCount.' '.str('sale')->plural($saleCount).' completed today',
+            'today_sale_count' => $saleCount,
+            'today_profit' => $this->formatCurrency($profit, $currency, true),
+            'today_profit_change' => $this->marginLabel($profit, $sales),
+            'average_sale' => $this->formatCurrency($saleCount > 0 ? $sales / $saleCount : 0, $currency, true),
+        ];
+    }
+
     private function baseSummary(array $filters = []): array
     {
         $siteId = $this->siteId($filters);
@@ -374,10 +397,10 @@ class DashboardService
             'danger',
             '!',
             'Review',
-            'web.alerts.index'
+            'web.catalog.products.index',
+            [...$siteParameters, 'stock_status' => 'out']
         );
 
-        $canReorder = $can('purchases.create');
         $push(
             (int) $actionSummary['below_minimum_stock'],
             'part',
@@ -386,8 +409,9 @@ class DashboardService
             'Replenish stock before the remaining units run out',
             'warning',
             '↓',
-            $canReorder ? 'Reorder' : 'Review',
-            $canReorder ? 'web.purchases.create' : 'web.alerts.index'
+            'Review',
+            'web.alerts.index',
+            $siteParameters
         );
 
         if ($can('stock.view')) {

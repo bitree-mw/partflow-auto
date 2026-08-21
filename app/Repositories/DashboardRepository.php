@@ -84,6 +84,7 @@ class DashboardRepository
             ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
             ->when($siteIds !== null, fn ($query) => $query->whereIn('site_stocks.site_id', $siteIds))
             ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
+            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) > 0')
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->count();
     }
@@ -145,6 +146,7 @@ class DashboardRepository
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
             ->whereRaw('COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0) > 0')
+            ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) > 0')
             ->whereRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) <= COALESCE(site_stocks.low_stock_level, products.default_low_stock_level, 0)')
             ->selectRaw('sites.name as site_name, products.product_name')
             ->selectRaw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity')

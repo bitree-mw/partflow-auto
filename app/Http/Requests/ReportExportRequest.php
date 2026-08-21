@@ -42,6 +42,8 @@ class ReportExportRequest extends FormRequest
             'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'payment_account_id' => ['nullable', 'integer', 'exists:payment_accounts,id'],
             'expense_category_id' => ['nullable', 'integer', 'exists:expense_categories,id'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', Rule::in([10, 25, 50, 100])],
         ];
     }
 }

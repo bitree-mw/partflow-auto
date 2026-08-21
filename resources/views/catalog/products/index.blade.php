@@ -100,6 +100,20 @@
                     @endforeach
                 </select>
 
+                <select name="site_id" aria-label="Filter stock by branch">
+                    <option value="">Stock across all branches</option>
+                    @foreach ($stockSiteOptions as $site)
+                        <option value="{{ $site->id }}" @selected((string) ($filters['site_id'] ?? '') === (string) $site->id)>
+                            {{ $site->name }} stock
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="stock_status" aria-label="Filter by stock status">
+                    <option value="">All stock levels</option>
+                    <option value="out" @selected(($filters['stock_status'] ?? '') === 'out')>No stock</option>
+                </select>
+
                 <select name="is_active" aria-label="Filter by status">
                     <option value="">All statuses</option>
                     <option value="1" @selected(($filters['is_active'] ?? '') === '1')>Active</option>

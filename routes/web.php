@@ -40,6 +40,7 @@ Route::prefix('back-office')
     ->group(function () {
         Route::get('/', fn () => redirect()->route('web.dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('dashboard/live.json', [DashboardController::class, 'live'])->name('dashboard.live');
         Route::get('sales', [SalesController::class, 'index'])->middleware('permission:sales.view')->name('sales.index');
         Route::get('sales/{inventoryDocument}/edit', [SalesController::class, 'edit'])->middleware('permission:sales.manage')->name('sales.edit');
         Route::put('sales/{inventoryDocument}', [SalesController::class, 'update'])->middleware('permission:sales.manage')->name('sales.update');
@@ -59,6 +60,7 @@ Route::prefix('back-office')
         Route::post('suppliers', [ContactDirectoryController::class, 'storeSupplier'])->middleware('permission:suppliers.manage')->name('suppliers.store');
         Route::delete('suppliers/{contact}', [ContactDirectoryController::class, 'destroySupplier'])->middleware('permission:suppliers.manage')->name('suppliers.destroy');
         Route::get('reports', [ReportsController::class, 'index'])->middleware('permission:reports.view')->name('reports.index');
+        Route::get('reports/view', [ReportsController::class, 'viewReport'])->middleware('permission:reports.view')->name('reports.view');
         Route::get('reports/export', [ReportsController::class, 'export'])->middleware('permission:reports.view')->name('reports.export');
         Route::get('alerts', [AlertsController::class, 'index'])->name('alerts.index');
 

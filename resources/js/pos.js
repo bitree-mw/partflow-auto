@@ -212,6 +212,7 @@ function renderProductCards() {
                 <div class="part-card-heading">
                     <span class="product-type">${escapeHtml(product.product_type)}</span>
                     <span class="part-brand">${escapeHtml(product.brand)}</span>
+                    <strong class="part-name">${escapeHtml(product.product_name)}</strong>
                     <span class="part-code">(${escapeHtml(product.product_code)})</span>
                 </div>
                 <button class="part-add-button" type="button" data-card-add="${index}" aria-label="Add ${escapeHtml(product.product_name)} to cart">+</button>
@@ -250,6 +251,10 @@ async function loadProducts() {
     const search = (searchInput?.value || '').trim();
     const vehicleId = selectedVehicleId();
     const productType = (productTypeFilter?.value || '').trim();
+
+    if (selectedSiteId) {
+        params.set('site_id', selectedSiteId);
+    }
 
     if (search) {
         params.set('search', search);
@@ -306,7 +311,13 @@ async function loadSuggestions() {
     suggestionController = new AbortController();
 
     try {
-        const response = await fetch(`${endpoints.suggestions}?${new URLSearchParams({ search: query })}`, {
+        const params = new URLSearchParams({ search: query });
+
+        if (selectedSiteId) {
+            params.set('site_id', selectedSiteId);
+        }
+
+        const response = await fetch(`${endpoints.suggestions}?${params}`, {
             headers: { Accept: 'application/json' },
             signal: suggestionController.signal,
         });
@@ -537,6 +548,7 @@ function updateCartPayload() {
             quantity: item.quantity,
             unit_price: item.unit_price,
         })));
+        cartPayload.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
@@ -722,6 +734,11 @@ checkoutForm?.addEventListener('submit', async (event) => {
             throw new Error(firstError || payload.message || 'Could not complete sale.');
         }
 
+        try {
+            window.localStorage.setItem('partflow:sale-completed', String(Date.now()));
+        } catch {
+            // The dashboard polling fallback still refreshes sales when storage is unavailable.
+        }
         await showAppAlert(payload.message || 'Sale completed successfully.', {
             title: 'Sale completed',
             tone: 'success',

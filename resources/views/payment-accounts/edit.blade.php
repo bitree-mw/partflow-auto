@@ -20,6 +20,7 @@
         class="form-panel"
         method="POST"
         action="{{ route('web.payment-accounts.update', $paymentAccount) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save account changes?"
         data-confirm="Save the changes made to this payment account?"
         data-confirm-label="Save changes"

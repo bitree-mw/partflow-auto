@@ -18,6 +18,7 @@
         class="form-panel catalog-form"
         method="POST"
         action="{{ route('web.catalog.brands.update', $brand) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save brand changes?"
         data-confirm="Save the changes made to this brand?"
         data-confirm-label="Save changes"

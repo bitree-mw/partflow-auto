@@ -365,9 +365,10 @@ class ReportRepository
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $this->constrainInventoryDocumentSites($query, $filters['site_ids']))
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('inventory_documents.document_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('inventory_documents.document_date', '<=', $filters['date_to']))
-            ->orderBy('inventory_documents.document_date')
-            ->orderBy('inventory_documents.document_number')
+            ->orderByDesc('inventory_documents.document_date')
+            ->orderByDesc('inventory_documents.document_number')
             ->orderBy('inventory_document_items.id')
+            ->when(isset($filters['preview_limit']), fn ($query) => $query->limit((int) $filters['preview_limit']))
             ->get([
                 'inventory_documents.id as document_id',
                 'inventory_documents.document_number',
@@ -423,7 +424,7 @@ class ReportRepository
                 });
             })
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $this->constrainInventoryDocumentSites($query, $filters['site_ids']))
-            ->orderBy('payments.payment_date')
+            ->orderByDesc('payments.payment_date')
             ->get([
                 'payments.id as payment_id',
                 'payments.payment_date',
@@ -460,7 +461,7 @@ class ReportRepository
 
                 $query->whereIn('expenses.site_id', $filters['site_ids']);
             })
-            ->orderBy('expenses.expense_date')
+            ->orderByDesc('expenses.expense_date')
             ->get([
                 'expenses.id as expense_id',
                 'expenses.expense_date',
@@ -513,7 +514,7 @@ class ReportRepository
 
         return $incomeRows
             ->merge($expenseRows)
-            ->sortBy('transaction_date')
+            ->sortByDesc('transaction_date')
             ->values();
     }
 
@@ -529,7 +530,7 @@ class ReportRepository
             ->when(isset($filters['site_id']), fn ($query) => $query->where('stock_movements.site_id', $filters['site_id']))
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('stock_movements.site_id', $filters['site_ids']))
             ->when(isset($filters['product_id']), fn ($query) => $query->where('stock_movements.product_id', $filters['product_id']))
-            ->orderBy('stock_movements.created_at')
+            ->orderByDesc('stock_movements.created_at')
             ->get([
                 'stock_movements.id as stock_movement_id',
                 'stock_movements.created_at as movement_date',
@@ -561,6 +562,7 @@ class ReportRepository
             ->when(isset($filters['product_id']), fn ($query) => $query->where('site_stocks.product_id', $filters['product_id']))
             ->orderBy('sites.name')
             ->orderBy('products.product_name')
+            ->when(isset($filters['preview_limit']), fn ($query) => $query->limit((int) $filters['preview_limit']))
             ->get([
                 'sites.id as site_id',
                 'sites.name as site_name',
@@ -607,7 +609,8 @@ class ReportRepository
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.source_site_id', $filters['site_id']))
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']))
-            ->orderBy('inventory_documents.document_date')
+            ->orderByDesc('inventory_documents.document_date')
+            ->when(isset($filters['preview_limit']), fn ($query) => $query->limit((int) $filters['preview_limit']))
             ->get([
                 'inventory_documents.document_number',
                 'inventory_documents.document_date',
@@ -634,8 +637,9 @@ class ReportRepository
             ->when(isset($filters['contact_id']), fn ($query) => $query->where('contacts.id', $filters['contact_id']))
             ->when(isset($filters['site_id']), fn ($query) => $query->where('inventory_documents.destination_site_id', $filters['site_id']))
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('inventory_documents.destination_site_id', $filters['site_ids']))
-            ->orderBy('inventory_documents.document_date')
-            ->orderBy('inventory_documents.document_number')
+            ->orderByDesc('inventory_documents.document_date')
+            ->orderByDesc('inventory_documents.document_number')
+            ->when(isset($filters['preview_limit']), fn ($query) => $query->limit((int) $filters['preview_limit']))
             ->get([
                 'inventory_documents.document_number',
                 'inventory_documents.document_date',

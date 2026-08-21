@@ -180,6 +180,7 @@
         method="POST"
         action="#"
         data-dynamic-action
+        data-track-unsaved-changes
         data-confirm-title="Save vehicle model changes?"
         data-confirm="Save the changes made to this vehicle model?"
         data-confirm-label="Save changes"

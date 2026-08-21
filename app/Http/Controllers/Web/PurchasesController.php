@@ -12,6 +12,7 @@ use App\Services\PaymentService;
 use App\Services\ProductService;
 use App\Services\SiteAccessService;
 use App\Services\SiteService;
+use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class PurchasesController extends Controller
             'title' => 'Purchases',
             'description' => 'Receive parts from suppliers, track payable balances, and monitor stock that has entered each branch.',
             'summary' => $this->summary($purchases),
-            'purchases' => $this->purchaseRows($purchases),
+            'purchases' => CollectionPaginator::paginate($this->purchaseRows($purchases), $request),
         ]);
     }
 

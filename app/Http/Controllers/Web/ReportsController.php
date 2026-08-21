@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ReportExportRequest;
 use App\Models\Site;
 use App\Services\ReportExportService;
+use App\Services\ReportService;
 use App\Services\SiteAccessService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -15,12 +16,14 @@ class ReportsController extends Controller
 {
     public function __construct(
         private readonly SiteAccessService $siteAccessService,
-        private readonly ReportExportService $reportExportService
+        private readonly ReportExportService $reportExportService,
+        private readonly ReportService $reportService
     ) {}
 
-    public function index(Request $request): View
+    public function index(ReportExportRequest $request): View
     {
-        $selectedSiteId = $request->query('site_id');
+        $validated = $request->validated();
+        $selectedSiteId = $this->selectedSiteId($request, $validated);
 
         if (filled($selectedSiteId)) {
             $this->siteAccessService->authorizeSite($request->user(), (int) $selectedSiteId);
@@ -32,7 +35,7 @@ class ReportsController extends Controller
 
         return view('reports.index', [
             'title' => 'Reports',
-            'description' => 'Download complete sales, purchasing, inventory, creditor, and debtor records for the selected period and branch.',
+            'description' => 'View or download sales, purchasing, inventory, creditor, and debtor records for the selected period and branch.',
             'dateFrom' => today()->startOfMonth()->toDateString(),
             'dateTo' => today()->toDateString(),
             'branchOptions' => $this->branchOptions($request),
@@ -45,6 +48,50 @@ class ReportsController extends Controller
                 ['name' => 'Creditors report', 'type' => 'creditor-balances', 'detail' => 'Every supplier purchase with an outstanding balance in the selected period.', 'status' => 'Outstanding purchases'],
                 ['name' => 'Debtors report', 'type' => 'debtor-balances', 'detail' => 'Every customer sale with an outstanding balance in the selected period.', 'status' => 'Outstanding sales'],
             ],
+        ]);
+    }
+
+    public function viewReport(ReportExportRequest $request): View
+    {
+        $validated = $request->validated();
+        $selectedSiteId = $this->selectedSiteId($request, $validated);
+
+        if (filled($selectedSiteId)) {
+            $this->siteAccessService->authorizeSite($request->user(), (int) $selectedSiteId);
+        }
+
+        $reportType = (string) ($validated['report_type'] ?? 'sales');
+        $perPage = (int) ($validated['per_page'] ?? 25);
+        $page = (int) ($validated['page'] ?? 1);
+        $filters = array_filter([
+            'date_from' => $validated['date_from'] ?? today()->startOfMonth()->toDateString(),
+            'date_to' => $validated['date_to'] ?? today()->toDateString(),
+            'site_id' => $selectedSiteId,
+            'status' => $validated['status'] ?? null,
+            'product_id' => $validated['product_id'] ?? null,
+            'contact_id' => $validated['contact_id'] ?? null,
+            'payment_account_id' => $validated['payment_account_id'] ?? null,
+            'expense_category_id' => $validated['expense_category_id'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
+        $report = $this->reportService->paginated(
+            $reportType,
+            $this->siteAccessService->scopeFilters($request->user(), $filters),
+            $perPage,
+            $page
+        );
+        $report['rows']
+            ->withPath(route('web.reports.view'))
+            ->appends($request->except('page'));
+
+        return view('reports.view', [
+            'title' => $report['title'],
+            'description' => 'Review report records in the system, ordered from newest to oldest where a transaction date is available.',
+            'report' => $report,
+            'reportFilters' => $filters,
+            'selectedBranchName' => filled($selectedSiteId)
+                ? Site::query()->whereKey((int) $selectedSiteId)->value('name')
+                : 'All branches',
+            'perPage' => $perPage,
         ]);
     }
 
@@ -76,5 +123,12 @@ class ReportsController extends Controller
                 'name' => $site->name,
             ])
             ->all();
+    }
+
+    private function selectedSiteId(ReportExportRequest $request, array $validated): mixed
+    {
+        return $request->has('site_id')
+            ? ($validated['site_id'] ?? null)
+            : $request->session()->get('pos_site_id');
     }
 }

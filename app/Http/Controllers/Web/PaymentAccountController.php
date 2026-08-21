@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\PaymentAccount\StorePaymentAccountRequest;
 use App\Http\Requests\Web\PaymentAccount\UpdatePaymentAccountRequest;
 use App\Models\PaymentAccount;
+use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,7 +23,7 @@ class PaymentAccountController extends Controller
         return view('payment-accounts.index', [
             'title' => 'Payment Accounts',
             'description' => 'Manage cash, bank, mobile money, and card accounts used for payments.',
-            'paymentAccounts' => $this->paginateAccounts($accounts, $request),
+            'paymentAccounts' => CollectionPaginator::paginate($accounts, $request),
             'filters' => $request->only(['search', 'account_type', 'is_active']),
             'accountTypes' => $this->accountTypes(),
         ]);
@@ -162,23 +162,6 @@ class PaymentAccountController extends Controller
         $paymentAccount->exists = true;
 
         return $paymentAccount;
-    }
-
-    private function paginateAccounts(Collection $accounts, Request $request): LengthAwarePaginator
-    {
-        $perPage = 15;
-        $page = LengthAwarePaginator::resolveCurrentPage();
-
-        return (new LengthAwarePaginator(
-            $accounts->forPage($page, $perPage)->values(),
-            $accounts->count(),
-            $perPage,
-            $page,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        ));
     }
 
     private function accountTypes(): array

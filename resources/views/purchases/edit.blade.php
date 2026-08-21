@@ -16,6 +16,7 @@
         class="form-panel purchase-entry-form"
         method="POST"
         action="{{ route('web.purchases.update', $purchase) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save purchase changes?"
         data-confirm="Save the changes made to this purchase?"
         data-confirm-label="Save changes"

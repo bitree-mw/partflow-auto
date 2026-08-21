@@ -79,6 +79,7 @@ class SystemConfigurationService
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role?->name ?? '',
                     'site' => $activeSiteAccesses->firstWhere('is_default', true)?->site?->name

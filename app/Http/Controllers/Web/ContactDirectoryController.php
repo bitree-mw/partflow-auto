@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Services\ContactService;
+use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class ContactDirectoryController extends Controller
         private readonly ContactService $contactService
     ) {}
 
-    public function customers(): View
+    public function customers(Request $request): View
     {
         $contacts = $this->contactService->list()->filter->isCustomer()->values();
 
@@ -25,12 +26,12 @@ class ContactDirectoryController extends Controller
             'description' => 'Manage customers, credit sales, balances, and buying performance.',
             'mode' => 'customers',
             'createRoute' => route('web.customers.create'),
-            'contacts' => $this->contactRows($contacts, 'sale'),
+            'contacts' => CollectionPaginator::paginate($this->contactRows($contacts, 'sale'), $request),
             'analytics' => $this->customerAnalytics($contacts),
         ]);
     }
 
-    public function suppliers(): View
+    public function suppliers(Request $request): View
     {
         $contacts = $this->contactService->list()->filter->isSupplier()->values();
 
@@ -39,7 +40,7 @@ class ContactDirectoryController extends Controller
             'description' => 'Manage suppliers, purchase activity, payable balances, and supply performance.',
             'mode' => 'suppliers',
             'createRoute' => route('web.suppliers.create'),
-            'contacts' => $this->contactRows($contacts, 'purchase'),
+            'contacts' => CollectionPaginator::paginate($this->contactRows($contacts, 'purchase'), $request),
             'analytics' => $this->supplierAnalytics($contacts),
         ]);
     }

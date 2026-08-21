@@ -26,16 +26,6 @@
     </div>
 
     <div class="header-actions">
-        @php
-            $hideGlobalSiteSwitcher = request()->routeIs([
-                'web.dashboard',
-                'web.catalog.*',
-                'web.alerts.*',
-                'web.settings.*',
-                'web.reports.*',
-            ]);
-        @endphp
-
         @if (auth()->user()?->hasPermission('catalogue.view'))
             <form class="header-search" method="GET" action="{{ route('web.catalog.products.index') }}" role="search">
                 <label class="sr-only" for="global_catalogue_search">Search parts catalogue</label>
@@ -51,7 +41,7 @@
             </form>
         @endif
 
-        @if (! $hideGlobalSiteSwitcher && ! empty($globalSiteOptions ?? []) && auth()->user()?->hasAnyPermission(['sales.view', 'sales.create', 'purchases.view', 'customers.view', 'suppliers.view']))
+        @if (! empty($globalSiteOptions ?? []) && auth()->user()?->hasAnyPermission(['sales.view', 'sales.create', 'purchases.view', 'customers.view', 'suppliers.view']))
             <form
                 class="header-branch-switcher"
                 method="POST"

@@ -29,6 +29,7 @@
         class="form-panel catalog-form"
         method="POST"
         action="{{ route('web.catalog.car-models.update', $carModel) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save car model changes?"
         data-confirm="Save the changes made to this car model?"
         data-confirm-label="Save changes"

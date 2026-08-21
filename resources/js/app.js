@@ -231,9 +231,79 @@ function initResponsiveTables() {
     });
 }
 
+function initUnsavedChanges() {
+    const trackedForms = Array.from(document.querySelectorAll('form[data-track-unsaved-changes]'))
+        .filter((form) => !form.matches('[data-ignore-unsaved-changes]'));
+
+    if (trackedForms.length === 0) {
+        return;
+    }
+
+    const dirtyForms = new Set();
+    const initialStates = new WeakMap();
+
+    const formState = (form) => JSON.stringify(Array.from(new FormData(form).entries()).map(([key, value]) => [
+        key,
+        value instanceof File ? [value.name, value.size, value.lastModified] : value,
+    ]));
+
+    trackedForms.forEach((form) => initialStates.set(form, formState(form)));
+
+    const refreshDirtyState = (form) => {
+        if (formState(form) === initialStates.get(form)) {
+            dirtyForms.delete(form);
+            return;
+        }
+
+        dirtyForms.add(form);
+    };
+
+    trackedForms.forEach((form) => {
+        form.addEventListener('input', () => refreshDirtyState(form));
+        form.addEventListener('change', () => refreshDirtyState(form));
+    });
+
+    document.addEventListener('submit', (event) => {
+        if (!event.defaultPrevented && trackedForms.includes(event.target)) {
+            dirtyForms.delete(event.target);
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+
+        if (!link || dirtyForms.size === 0 || link.hasAttribute('download') || link.target === '_blank') {
+            return;
+        }
+
+        const destination = new URL(link.href, window.location.href);
+        const current = new URL(window.location.href);
+        const staysOnPage = destination.origin === current.origin
+            && destination.pathname === current.pathname
+            && destination.search === current.search;
+
+        if (staysOnPage || window.confirm('Are you sure you want to leave without saving?')) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }, true);
+
+    window.addEventListener('beforeunload', (event) => {
+        if (dirtyForms.size === 0) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    });
+}
+
 initAppDialogs();
 initSearchableSelects();
 initGlobalSiteSwitcher();
 initMobileSidebar();
 initMobileFilters();
 initResponsiveTables();
+initUnsavedChanges();

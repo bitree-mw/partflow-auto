@@ -88,6 +88,19 @@ class ExampleTest extends TestCase
         }
     }
 
+    public function test_unsaved_changes_warning_is_excluded_from_pos_and_enabled_for_database_updates(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->get(route('web.pos'))
+            ->assertOk()
+            ->assertDontSee('data-track-unsaved-changes', false);
+
+        $this->get(route('web.settings.index'))
+            ->assertOk()
+            ->assertSee('data-track-unsaved-changes', false);
+    }
+
     public function test_dashboard_uses_the_prototype_metric_summary_and_selected_sections(): void
     {
         $user = $this->adminUser();
@@ -141,6 +154,9 @@ class ExampleTest extends TestCase
             'reserved_quantity' => 0,
             'low_stock_level' => 5,
         ]);
+
+        $this->assertSame(1, app(\App\Repositories\DashboardRepository::class)->lowStockCount($site->id));
+        $this->assertSame(1, app(\App\Repositories\DashboardRepository::class)->outOfStockCount($site->id));
 
         InventoryDocument::create([
             'document_number' => 'SALE-DASHBOARD-CURRENT',
@@ -243,17 +259,32 @@ class ExampleTest extends TestCase
             ->assertSee('data-priority-action-list', false)
             ->assertDontSee('Low stock level')
             ->assertSee('Average sale value')
+            ->assertSee('MWK 2K')
             ->assertSee('Inventory value outlook')
             ->assertSee('Debtors and creditors')
             ->assertDontSee('Fast-moving parts')
             ->assertDontSee('Recent activity');
+
+        $outOfStockCatalogue = $this->actingAs($user)
+            ->withSession(['pos_site_id' => $site->id])
+            ->get(route('web.catalog.products.index', ['site_id' => $site->id, 'stock_status' => 'out']))
+            ->assertOk()
+            ->assertSee('Dashboard Out of Stock Part');
+
+        $this->assertSame(
+            1,
+            substr_count($outOfStockCatalogue->getContent(), 'Dashboard Low Stock Part'),
+            'The low-stock product should appear only in the global notification menu, not in the out-of-stock table.'
+        );
 
         $this->actingAs($user)
             ->get(route('web.dashboard', ['site_id' => $site->id, 'revenue_period' => 30]))
             ->assertOk()
             ->assertSee('data-revenue-days="30"', false)
             ->assertSee('--chart-columns: 30', false)
-            ->assertSee('value="30" selected', false);
+            ->assertSee('value="30" selected', false)
+            ->assertSee(route('web.catalog.products.index', ['site_id' => $site->id, 'stock_status' => 'out']))
+            ->assertSee(route('web.alerts.index', ['site_id' => $site->id]));
     }
 
     public function test_reports_page_and_full_csv_exports_use_the_selected_filters(): void
@@ -373,7 +404,10 @@ class ExampleTest extends TestCase
                 'Debtors report',
             ])
             ->assertDontSee('P&amp;L movement accounts', false)
-            ->assertDontSee('Profit and loss');
+            ->assertDontSee('Profit and loss')
+            ->assertSee('View report')
+            ->assertDontSee('target="_blank"', false)
+            ->assertSee(route('web.reports.view'));
 
         $filters = [
             'date_from' => today()->subDays(2)->toDateString(),
@@ -387,6 +421,13 @@ class ExampleTest extends TestCase
         $this->assertStringContainsString('SALE-RPT-001', $salesContent);
         $this->assertStringContainsString('SALE-RPT-002', $salesContent);
         $this->assertStringNotContainsString('SALE-RPT-OUTSIDE', $salesContent);
+
+        $this->get(route('web.reports.view', [...$filters, 'report_type' => 'sales']))
+            ->assertOk()
+            ->assertSee('Report table')
+            ->assertSeeInOrder(['SALE-RPT-001', 'SALE-RPT-002'])
+            ->assertSee('Reporting Test Part')
+            ->assertDontSee('SALE-RPT-OUTSIDE');
 
         $inventoryCsv = $this->get(route('web.reports.export', [...$filters, 'report_type' => 'inventory-valuation']));
         $inventoryContent = $inventoryCsv->streamedContent();
@@ -564,6 +605,7 @@ class ExampleTest extends TestCase
             'settings_action' => 'create_user',
             'settings_panel' => 'user-management',
             'user_name' => 'Settings Manager',
+            'user_username' => 'settings_manager',
             'user_email' => 'settings-manager@example.test',
             'user_role' => 'Settings Role',
             'user_site' => $site->name,
@@ -573,6 +615,7 @@ class ExampleTest extends TestCase
         $user = User::where('email', 'settings-manager@example.test')->firstOrFail();
 
         $this->assertSame($role->id, $user->role_id);
+        $this->assertSame('settings_manager', $user->username);
         $this->assertDatabaseHas(UserSiteAccess::class, [
             'user_id' => $user->id,
             'site_id' => $site->id,
@@ -593,6 +636,7 @@ class ExampleTest extends TestCase
             'settings_panel' => 'user-management',
             'edit_user_id' => $user->id,
             'edit_user_name' => 'Updated Settings Manager',
+            'edit_user_username' => 'updated_manager',
             'edit_user_email' => 'updated-settings-manager@example.test',
             'edit_user_role' => $role->name,
             'edit_user_site' => $site->name,
@@ -602,6 +646,7 @@ class ExampleTest extends TestCase
 
         $user->refresh();
         $this->assertSame('Updated Settings Manager', $user->name);
+        $this->assertSame('updated_manager', $user->username);
         $this->assertSame('updated-settings-manager@example.test', $user->email);
         $this->assertTrue(Hash::check('new-password-123', $user->password));
 
@@ -849,6 +894,60 @@ class ExampleTest extends TestCase
         $this->assertCount(4, $products);
     }
 
+    public function test_catalogue_counts_the_primary_and_additional_compatible_vehicles(): void
+    {
+        $this->actingAs($this->adminUser());
+        $make = CarMake::create([
+            'name' => 'Compatibility Make',
+            'code' => 'CM',
+            'is_active' => true,
+        ]);
+        $vehicleModel = VehicleModel::create([
+            'car_make_id' => $make->id,
+            'name' => 'Compatibility Model',
+            'code' => 'CMD',
+            'is_active' => true,
+        ]);
+        $primaryModel = CarModel::create([
+            'car_make_id' => $make->id,
+            'vehicle_model_id' => $vehicleModel->id,
+            'make' => $make->name,
+            'make_code' => $make->code,
+            'model' => $vehicleModel->name,
+            'model_code' => $vehicleModel->code,
+            'year' => 2018,
+            'is_active' => true,
+        ]);
+        $additionalModel = CarModel::create([
+            'car_make_id' => $make->id,
+            'vehicle_model_id' => $vehicleModel->id,
+            'make' => $make->name,
+            'make_code' => $make->code,
+            'model' => $vehicleModel->name,
+            'model_code' => $vehicleModel->code,
+            'year' => 2020,
+            'is_active' => true,
+        ]);
+        $type = ProductType::create([
+            'name' => 'Compatibility Part',
+            'code' => 'COMP',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'product_code' => 'COMP-001',
+            'product_name' => 'Compatibility Count Part',
+            'car_model_id' => $primaryModel->id,
+            'product_type_id' => $type->id,
+            'is_active' => true,
+        ]);
+        $product->compatibilities()->create(['car_model_id' => $additionalModel->id]);
+
+        $this->get(route('web.catalog.products.index', ['site_id' => '']))
+            ->assertOk()
+            ->assertSee('Compatibility Count Part')
+            ->assertSee('2 vehicles');
+    }
+
     public function test_stock_take_requires_and_records_a_reason_for_stock_adjustments(): void
     {
         $user = $this->adminUser();
@@ -1044,6 +1143,11 @@ class ExampleTest extends TestCase
 
         $this->assertTrue($customer->fresh()->is_active);
 
+        $this->withSession(['pos_site_id' => $site->id])
+            ->get(route('web.pos'))
+            ->assertOk()
+            ->assertSee('<strong class="part-name">Nissan Tiida Oil Filter</strong>', false);
+
         $this->post(route('web.pos.sales'), [
             'source_site_id' => $site->id,
             'cart_payload' => json_encode([
@@ -1129,6 +1233,19 @@ class ExampleTest extends TestCase
         $this->get(route('web.purchases.create'))
             ->assertOk()
             ->assertSee('value="'.$selectedSite->id.'" selected', false);
+
+        $this->get(route('web.dashboard'))
+            ->assertOk()
+            ->assertSee('value="'.$selectedSite->id.'" selected', false)
+            ->assertSee('data-global-site-form', false);
+
+        $this->get(route('web.reports.index'))
+            ->assertOk()
+            ->assertSee('value="'.$selectedSite->id.'" selected', false);
+
+        $this->get(route('web.catalog.products.index'))
+            ->assertOk()
+            ->assertSee($selectedSite->name.' stock');
     }
 
     private function adminUser(array $attributes = []): User

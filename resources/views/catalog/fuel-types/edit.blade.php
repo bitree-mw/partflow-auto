@@ -16,6 +16,7 @@
         class="form-panel catalog-form"
         method="POST"
         action="{{ route('web.catalog.fuel-types.update', $fuelType) }}"
+        data-track-unsaved-changes
         data-confirm-title="Save fuel type changes?"
         data-confirm="Save the changes made to this fuel type?"
         data-confirm-label="Save changes"

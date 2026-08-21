@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\PosLookupRequest;
 use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
@@ -30,7 +31,7 @@ class PosController extends Controller
     {
         $currentSite = $this->currentSite($request);
         $currentBranch = $currentSite?->name ?? 'All sites';
-        $products = $this->products($request, $currentSite?->id);
+        $products = $this->products($request, $currentSite);
         $selectedProduct = $products[0] ?? $this->emptyProduct($currentBranch);
 
         return view('pos', [
@@ -67,29 +68,32 @@ class PosController extends Controller
         ]);
     }
 
-    public function productsJson(Request $request): JsonResponse
+    public function productsJson(PosLookupRequest $request): JsonResponse
     {
-        $currentSite = $this->currentSite($request);
+        $validated = $request->validated();
+        $currentSite = $this->currentSite(
+            $request,
+            filled($validated['site_id'] ?? null) ? (int) $validated['site_id'] : null
+        );
 
         return response()->json([
-            'products' => $this->products($request, $currentSite?->id, $request->only([
-                'search',
-                'compatible_car_model_id',
-                'vehicle_search',
-                'product_type',
-            ])),
+            'products' => $this->products($request, $currentSite, collect($validated)->except('site_id')->all()),
             'site_id' => $currentSite?->id,
             'site_name' => $currentSite?->name,
         ]);
     }
 
-    public function suggestionsJson(Request $request): JsonResponse
+    public function suggestionsJson(PosLookupRequest $request): JsonResponse
     {
-        $currentSite = $this->currentSite($request);
+        $validated = $request->validated();
+        $currentSite = $this->currentSite(
+            $request,
+            filled($validated['site_id'] ?? null) ? (int) $validated['site_id'] : null
+        );
 
         return response()->json([
             'suggestions' => $this->apiCall($request, 'GET', 'pos/suggestions', [
-                'search' => $request->query('search'),
+                'search' => $validated['search'] ?? null,
                 'site_id' => $currentSite?->id,
                 'limit' => 5,
             ])['data'] ?? [],
@@ -272,20 +276,21 @@ class PosController extends Controller
             ->with('success', 'Sale created successfully');
     }
 
-    private function products(Request $request, ?int $currentSiteId, array $filters = []): array
+    private function products(Request $request, ?Site $currentSite, array $filters = []): array
     {
         $response = $this->apiCall($request, 'GET', 'pos/products', array_filter($filters, fn ($value): bool => $value !== null && $value !== ''));
 
         return collect($response['data'] ?? [])
             ->groupBy('product_id')
-            ->map(fn (Collection $stocks): array => $this->productFromApiRows($stocks, $currentSiteId))
+            ->map(fn (Collection $stocks): array => $this->productFromApiRows($stocks, $currentSite))
             ->filter(fn (array $product): bool => (int) data_get($product, 'current_branch_stock.available', 0) > 0)
             ->values()
             ->all();
     }
 
-    private function productFromApiRows(Collection $stocks, ?int $currentSiteId): array
+    private function productFromApiRows(Collection $stocks, ?Site $currentSite): array
     {
+        $currentSiteId = $currentSite?->id;
         $primaryStock = $stocks->firstWhere('site_id', $currentSiteId) ?? $stocks->first();
         $branchStock = $stocks->map(function (array $stock) use ($currentSiteId): array {
             $available = (int) ($stock['available_quantity'] ?? 0);
@@ -306,6 +311,20 @@ class PosController extends Controller
             ])
             ->values()
             ->all();
+
+        if ($currentSite && ! collect($branchStock)->contains(
+            fn (array $branch): bool => (int) ($branch['site_id'] ?? 0) === $currentSite->id
+        )) {
+            array_unshift($branchStock, [
+                'site_id' => $currentSite->id,
+                'branch' => $currentSite->name,
+                'on_hand' => 0,
+                'reserved' => 0,
+                'available' => 0,
+                'status' => 'out',
+                'current' => true,
+            ]);
+        }
 
         $totalAvailable = collect($branchStock)->sum('available');
         $bestBranch = collect($branchStock)->sortByDesc('available')->first();
@@ -446,17 +465,24 @@ class PosController extends Controller
             ->all();
     }
 
-    private function currentSite(Request $request): ?Site
+    private function currentSite(Request $request, ?int $requestedSiteId = null): ?Site
     {
         $sessionSiteId = $request->session()->get('pos_site_id');
         $allowedSiteIds = $request->user()
             ? $this->siteAccessService->allowedSiteIds($request->user(), SiteAccessService::MAKE_SALES)
             : [];
-        $site = $sessionSiteId
-            ? Site::query()->active()->whereIn('id', $allowedSiteIds)->find($sessionSiteId)
-            : null;
+        $site = null;
+        $shouldPersistFallback = false;
+
+        if ($requestedSiteId && $request->user()) {
+            $this->siteAccessService->authorizeSite($request->user(), $requestedSiteId, SiteAccessService::MAKE_SALES);
+            $site = Site::query()->active()->find($requestedSiteId);
+        } elseif ($sessionSiteId) {
+            $site = Site::query()->active()->whereIn('id', $allowedSiteIds)->find($sessionSiteId);
+        }
 
         if (! $site && $request->user()) {
+            $shouldPersistFallback = true;
             $site = $request->user()
                 ->accessibleSites()
                 ->wherePivot('is_active', true)
@@ -468,10 +494,11 @@ class PosController extends Controller
         }
 
         if (! $site && $this->isAdmin($request->user())) {
+            $shouldPersistFallback = true;
             $site = Site::query()->active()->orderBy('name')->first();
         }
 
-        if ($site) {
+        if ($site && $shouldPersistFallback) {
             $request->session()->put('pos_site_id', $site->id);
         }
 

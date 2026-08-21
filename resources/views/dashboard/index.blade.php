@@ -8,6 +8,10 @@
     @vite('resources/css/dashboard.css')
 @endpush
 
+@push('scripts')
+    @vite('resources/js/dashboard.js')
+@endpush
+
 @section('header_actions')
 @endsection
 
@@ -61,9 +65,18 @@
         </div>
     </section>
 
-    <section class="dashboard-metrics" aria-label="Business summary">
+    <section
+        class="dashboard-metrics"
+        aria-label="Business summary"
+        data-dashboard-live
+        data-dashboard-live-url="{{ route('web.dashboard.live', request()->query()) }}"
+    >
         @foreach ($metrics as $metric)
-            <article class="metric-card {{ $metric['tone'] }}">
+            <article
+                class="metric-card {{ $metric['tone'] }}"
+                @if ($metric['label'] === 'Today sales') data-dashboard-today-sales @endif
+                @if ($metric['label'] === 'Today profit') data-dashboard-today-profit @endif
+            >
                 <header class="metric-card-heading">
                     <span class="metric-label">{{ $metric['label'] }}</span>
                     <span
@@ -73,10 +86,10 @@
                         {{ ($metric['direction'] ?? 'flat') === 'down' ? '↘' : (($metric['direction'] ?? 'flat') === 'up' ? '↗' : '→') }}
                     </span>
                 </header>
-                <strong>{{ $metric['value'] }}</strong>
+                <strong data-dashboard-metric-value>{{ $metric['value'] }}</strong>
                 <em @class(['metric-trend', $metric['trend'] ?? 'neutral'])>
                     <span aria-hidden="true">{{ ($metric['direction'] ?? 'flat') === 'down' ? '↓' : (($metric['direction'] ?? 'flat') === 'up' ? '↑' : '→') }}</span>
-                    {{ $metric['change'] }}
+                    <span data-dashboard-metric-change>{{ $metric['change'] }}</span>
                 </em>
             </article>
         @endforeach
@@ -156,7 +169,7 @@
             <div>
                 <span class="eyebrow">Today’s sales</span>
                 <h2>Average sale value</h2>
-                <strong>{{ $averageSale }}</strong>
+                <strong data-dashboard-average-sale>{{ $averageSale }}</strong>
             </div>
             <p>Average value per completed sale for {{ $selectedBranchName }} today.</p>
         </article>

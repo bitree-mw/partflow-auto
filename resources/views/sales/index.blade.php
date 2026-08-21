@@ -79,5 +79,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination-wrap">
+            {{ $sales->links() }}
+        </div>
     </section>
 @endsection

@@ -10,6 +10,7 @@ use App\Services\InventoryDocumentService;
 use App\Services\PaymentAccountService;
 use App\Services\PaymentService;
 use App\Services\SiteAccessService;
+use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class SalesController extends Controller
         return view('sales.index', [
             'title' => 'Sales',
             'description' => 'Review recent invoices, payment status, branch activity, and gross profit.',
-            'sales' => $this->saleRows($sales),
+            'sales' => CollectionPaginator::paginate($this->saleRows($sales), $request),
             'summary' => $this->summary($sales),
         ]);
     }

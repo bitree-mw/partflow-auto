@@ -66,5 +66,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination-wrap">
+            {{ $alerts->links() }}
+        </div>
     </section>
 @endsection
