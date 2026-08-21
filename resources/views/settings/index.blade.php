@@ -40,8 +40,8 @@
         <aside class="settings-nav-panel" aria-label="Settings sections">
             <span class="eyebrow">Setup path</span>
             <button type="button" class="active" data-settings-tab="company-profile">
-                <strong>Company profile</strong>
-                <small>Identity, country, currency</small>
+                <strong>Business information</strong>
+                <small>Identity, currency, stock email</small>
             </button>
             <button type="button" data-settings-tab="operating-defaults">
                 <strong>Operating defaults</strong>
@@ -75,7 +75,7 @@
 
             <section class="settings-panel active" id="company-profile" data-settings-panel="company-profile">
                 <header class="settings-header">
-                    <span class="eyebrow">Company profile</span>
+                    <span class="eyebrow">Business information</span>
                     <h2>Business identity</h2>
                     <p>Set the company identity used on invoices, receipts, purchases, reports, and audit records.</p>
                 </header>
@@ -109,6 +109,22 @@
                         <label for="base_currency">Base currency</label>
                         <input class="form-control searchable-input" id="base_currency" name="base_currency" list="currency-options" value="{{ $settings['base_currency'] }}">
                         <x-form-error name="base_currency" />
+                    </div>
+
+                    <div class="form-field full">
+                        <label for="low_stock_notification_email">Low-stock notification email</label>
+                        <input
+                            class="form-control"
+                            id="low_stock_notification_email"
+                            name="low_stock_notification_email"
+                            type="email"
+                            value="{{ old('low_stock_notification_email', $settings['low_stock_notification_email']) }}"
+                            autocomplete="email"
+                            placeholder="inventory@example.com"
+                            aria-describedby="low-stock-notification-help"
+                        >
+                        <small id="low-stock-notification-help">Receives one email when a part at a branch enters low-stock or out-of-stock status. Leave blank to disable emails.</small>
+                        <x-form-error name="low_stock_notification_email" />
                     </div>
                 </div>
             </section>
@@ -526,6 +542,7 @@
                     type="submit"
                     name="settings_action"
                     value="save_settings"
+                    formaction="{{ route('web.settings.business-information.update') }}"
                     data-confirm-title="Save settings changes?"
                     data-confirm="Save the changes made to these settings?"
                     data-confirm-label="Save changes"

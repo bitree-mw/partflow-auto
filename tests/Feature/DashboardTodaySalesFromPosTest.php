@@ -55,8 +55,15 @@ class DashboardTodaySalesFromPosTest extends TestCase
             ->assertOk()
             ->assertSee('Today sales')
             ->assertSee('MWK 2K')
+            ->assertSee('dashboard-side-metric', false)
             ->assertSee('data-dashboard-live', false)
             ->assertSee(route('web.dashboard.live'), false);
+
+        $this->assertStringContainsString(
+            '.insight-panel.dashboard-side-metric',
+            file_get_contents(resource_path('css/dashboard.css')),
+            'The dashboard card selector must outrank the later generic insight-panel theme rule.'
+        );
 
         $this->getJson(route('web.dashboard.live'))
             ->assertOk()

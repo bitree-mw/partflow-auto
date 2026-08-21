@@ -12,9 +12,11 @@ use App\Models\UserSiteAccess;
 use App\Repositories\DashboardRepository;
 use App\Repositories\ReportRepository;
 use App\Services\AlertService;
+use App\Services\InventoryDocumentService;
 use App\Services\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 use Tests\TestCase;
 
 class HighestPriorityGuardsTest extends TestCase
@@ -166,6 +168,55 @@ class HighestPriorityGuardsTest extends TestCase
         $this->assertSame(1, app(AlertService::class)->summary()['count']);
         $this->assertSame(1, app(DashboardRepository::class)->lowStockCount());
         $this->assertCount(1, app(ReportRepository::class)->lowStockBySite());
+    }
+
+    public function test_pos_does_not_expose_database_details_for_an_unexpected_sale_failure(): void
+    {
+        $cashier = $this->userWithPermissions(['sales.create']);
+        $site = Site::query()->create([
+            'name' => 'Safe Error Site',
+            'code' => 'SAFE',
+            'type' => 'shop',
+            'is_active' => true,
+        ]);
+        $type = ProductType::query()->create([
+            'name' => 'Safe Error Part',
+            'code' => 'SEP',
+            'is_active' => true,
+        ]);
+        $product = Product::query()->create([
+            'product_code' => 'SEP-UNKN-UNK-001',
+            'product_name' => 'Safe Error Part',
+            'product_type_id' => $type->id,
+            'default_selling_price' => 15000,
+            'is_active' => true,
+        ]);
+        UserSiteAccess::query()->create([
+            'user_id' => $cashier->id,
+            'site_id' => $site->id,
+            'access_level' => 'sales',
+            'can_make_sales' => true,
+            'is_active' => true,
+        ]);
+
+        $saleService = \Mockery::mock(InventoryDocumentService::class);
+        $saleService->shouldReceive('createSale')
+            ->once()
+            ->andThrow(new RuntimeException("SQLSTATE[42S22]: Unknown column 'secret_column'"));
+        $this->app->instance(InventoryDocumentService::class, $saleService);
+
+        $response = $this->actingAs($cashier)->postJson(route('web.pos.sales'), [
+            'source_site_id' => $site->id,
+            'cart_payload' => json_encode([
+                ['product_id' => $product->id, 'quantity' => 1],
+            ]),
+        ]);
+
+        $response
+            ->assertStatus(500)
+            ->assertJsonPath('message', 'The sale could not be completed. Please try again or contact an administrator.')
+            ->assertDontSee('SQLSTATE')
+            ->assertDontSee('secret_column');
     }
 
     private function userWithPermissions(array $permissions): User

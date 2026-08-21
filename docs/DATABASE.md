@@ -36,7 +36,7 @@ The repository contains 43 migration files. The main implemented tables are:
 | Vehicle compatibility | `car_makes`, `vehicle_models`, `car_models`, `product_compatibilities` | Vehicle-model reference data belongs to makes; product-facing car models and compatibility rows preserve make/model/year/engine/variant details. |
 | Contacts | `contacts` | One table represents customers and suppliers through flags. |
 | Transactions | `inventory_documents`, `inventory_document_items` | Purchases, sales, transfers, adjustments, stock takes, and returns use `document_type`; items preserve quantity, cost, price, discount, tax, and totals. |
-| Stock | `site_stocks`, `stock_movements` | Site stock is unique per site/product. Movements reference site, product, optional document/item, actor, before/after balance, and signed change. |
+| Stock | `site_stocks`, `stock_movements` | Site stock is unique per site/product and records the current low-stock notification cycle. Movements reference site, product, optional document/item, actor, before/after balance, and signed change. |
 | Money and audit | `payments`, `expenses`, `audit_logs` | Payments belong to inventory documents and optional accounts; expenses may reference a site/account/category; API audit middleware writes logs. |
 
 ## Implemented data areas and limitations
@@ -59,7 +59,7 @@ Suppliers use `contacts`; purchases use `inventory_documents` and `inventory_doc
 
 ### Site stock and movements
 
-`site_stocks` stores current and reserved quantity plus thresholds per site/product, with a unique site/product constraint. `StockMovementService` locks balance rows and records movements for domain workflows. However, the public SiteStock CRUD service can directly create, update, or delete quantity rows without movements. Removing quantity mutation from that CRUD surface is confirmed planned work; only threshold editing may remain direct.
+`site_stocks` stores current and reserved quantity, thresholds, and the nullable `low_stock_notified_at` cycle marker per site/product, with a unique site/product constraint. `StockMovementService` locks balance rows, records movements for domain workflows, and evaluates low-stock notification transitions on the same locked row. However, the public SiteStock CRUD service can directly create, update, or delete quantity rows without movements. Removing quantity mutation from that CRUD surface is confirmed planned work; only threshold editing may remain direct.
 
 Recommended movement information:
 

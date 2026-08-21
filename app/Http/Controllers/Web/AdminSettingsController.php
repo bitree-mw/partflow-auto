@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\BusinessSetting;
+use App\Http\Requests\Web\SaveBusinessSettingsRequest;
 use App\Models\CarMake;
 use App\Models\PaymentAccount;
 use App\Models\Role;
@@ -11,6 +11,7 @@ use App\Models\Site;
 use App\Models\User;
 use App\Models\UserSiteAccess;
 use App\Models\VehicleModel;
+use App\Services\BusinessSettingsService;
 use App\Services\SystemConfigurationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,8 @@ use Illuminate\Validation\Rule;
 class AdminSettingsController extends Controller
 {
     public function __construct(
-        private readonly SystemConfigurationService $systemConfiguration
+        private readonly SystemConfigurationService $systemConfiguration,
+        private readonly BusinessSettingsService $businessSettingsService
     ) {}
 
     public function index(Request $request): View
@@ -143,6 +145,14 @@ class AdminSettingsController extends Controller
         };
     }
 
+    public function saveBusinessSettings(SaveBusinessSettingsRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $this->businessSettingsService->update($validated);
+
+        return $this->settingsRedirect($validated['settings_panel'] ?? 'company-profile', 'Settings saved successfully.');
+    }
+
     private function createSite(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -173,21 +183,8 @@ class AdminSettingsController extends Controller
 
     private function saveSettings(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'business_name' => ['required', 'string', 'max:255'],
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:100'],
-            'base_country' => ['nullable', 'string', 'max:100'],
-            'base_currency' => ['required', 'string', 'max:10'],
-            'default_branch' => ['nullable', 'string', 'max:255'],
-            'stock_costing_method' => ['nullable', 'string', 'max:100'],
-            'low_stock_policy' => ['nullable', 'string', 'max:255'],
-            'settings_panel' => ['nullable', 'string', 'max:80'],
-        ]);
-
-        collect($validated)
-            ->except('settings_panel')
-            ->each(fn (mixed $value, string $key): BusinessSetting => $this->putSetting($key, $value));
+        $validated = $request->validate(SaveBusinessSettingsRequest::settingRules());
+        $this->businessSettingsService->update($validated);
 
         return $this->settingsRedirect($validated['settings_panel'] ?? 'company-profile', 'Settings saved successfully.');
     }
@@ -575,14 +572,6 @@ class AdminSettingsController extends Controller
         $model->update(['is_active' => false]);
 
         return $this->settingsRedirect('vehicle-library', 'Vehicle model marked inactive.');
-    }
-
-    private function putSetting(string $key, mixed $value): BusinessSetting
-    {
-        return BusinessSetting::query()->updateOrCreate(
-            ['key' => $key],
-            ['value' => $value]
-        );
     }
 
     private function settingsRedirect(string $panel, string $message, string $flashKey = 'success'): RedirectResponse

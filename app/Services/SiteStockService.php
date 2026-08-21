@@ -11,7 +11,8 @@ use Illuminate\Validation\ValidationException;
 class SiteStockService
 {
     public function __construct(
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly LowStockNotificationService $lowStockNotificationService
     ) {}
 
     public function list(array $filters = [], ?User $user = null): Collection
@@ -88,8 +89,10 @@ class SiteStockService
         $this->siteAccessService->authorizeSite($user, $siteStock->site_id, SiteAccessService::ADJUST_STOCK);
 
         return DB::transaction(function () use ($siteStock, $data) {
-            $quantityOnHand = $data['quantity_on_hand'] ?? $siteStock->quantity_on_hand;
-            $reservedQuantity = $data['reserved_quantity'] ?? $siteStock->reserved_quantity;
+            $lockedStock = SiteStock::query()->lockForUpdate()->findOrFail($siteStock->id);
+            $availableBefore = $lockedStock->available_quantity;
+            $quantityOnHand = $data['quantity_on_hand'] ?? $lockedStock->quantity_on_hand;
+            $reservedQuantity = $data['reserved_quantity'] ?? $lockedStock->reserved_quantity;
 
             if ($reservedQuantity > $quantityOnHand) {
                 throw ValidationException::withMessages([
@@ -97,9 +100,15 @@ class SiteStockService
                 ]);
             }
 
-            $siteStock->update($data);
+            $lockedStock->update($data);
 
-            return $siteStock->refresh()->load([
+            $this->lowStockNotificationService->handleQuantityChange(
+                stock: $lockedStock,
+                availableBefore: $availableBefore,
+                availableAfter: $lockedStock->available_quantity
+            );
+
+            return $lockedStock->refresh()->load([
                 'product.carModel',
                 'product.productType',
                 'product.fuelType',

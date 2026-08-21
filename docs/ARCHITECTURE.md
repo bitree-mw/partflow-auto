@@ -231,17 +231,17 @@ The frontend uses Laravel Blade and Tailwind CSS.
 
 ## External integrations
 
-No external integration is currently confirmed in this architecture document.
+Laravel mail delivery sends a low-stock email to the recipient configured under Business Information. Delivery is attempted after the stock transaction commits, and a delivery failure is logged without rolling back the completed stock operation. The active transport and provider are deployment configuration.
 
 Bank and mobile-money destinations are internal payment-recording options unless the application is connected to an actual payment provider.
 
 <!-- INACTIVE: Online payment gateway integration. Do not treat recorded bank or mobile-money destinations as gateway integration. -->
-<!-- INACTIVE: Email or SMS notifications. Activate only if a provider and notification workflow are implemented. -->
+<!-- INACTIVE: SMS notifications. Activate only if a provider and notification workflow are implemented. -->
 <!-- INACTIVE: Third-party accounting, ERP, supplier-catalogue, or vehicle-data integration. Activate only if implemented. -->
 
 ## Background processing
 
-No queue or scheduled task is currently confirmed in this document.
+Low-stock email is delivered synchronously after commit and does not require a queue worker or scheduled task. No queue-backed or scheduled application task is currently confirmed in this document.
 
 <!-- INACTIVE: Laravel queues process reports, imports, notifications, or other background jobs. When activated, document the queue driver, jobs, retries, timeouts, and failed-job handling. -->
 <!-- INACTIVE: Laravel Scheduler runs recurring tasks. When activated, list each scheduled command, frequency, purpose, and failure-monitoring process. -->

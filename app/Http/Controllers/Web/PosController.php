@@ -9,6 +9,7 @@ use App\Models\Site;
 use App\Models\User;
 use App\Services\InventoryDocumentService;
 use App\Services\SiteAccessService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class PosController extends Controller
 {
@@ -259,7 +261,23 @@ class PosController extends Controller
             ];
         }
 
-        $sale = $this->inventoryDocumentService->createSale($payload, $request->user());
+        try {
+            $sale = $this->inventoryDocumentService->createSale($payload, $request->user());
+        } catch (ValidationException|AuthorizationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'The sale could not be completed. Please try again or contact an administrator.',
+                ], 500);
+            }
+
+            return redirect()
+                ->route('web.pos')
+                ->with('error', 'The sale could not be completed. Please try again or contact an administrator.');
+        }
 
         if ($request->expectsJson()) {
             return response()->json([

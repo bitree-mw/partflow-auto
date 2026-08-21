@@ -22,6 +22,7 @@ class SystemConfigurationService
             'registration_number' => $this->setting('registration_number', config('services.partflow.registration_number', 'MW-BR-1042')),
             'base_country' => $this->setting('base_country', config('services.partflow.base_country', 'Malawi')),
             'base_currency' => $this->currency(),
+            'low_stock_notification_email' => $this->lowStockNotificationEmail(),
             'default_branch' => $this->setting('default_branch', $defaultSite?->name ?? 'All sites'),
             'stock_costing_method' => $this->setting('stock_costing_method', config('services.partflow.stock_costing_method', 'Last purchase cost')),
             'low_stock_policy' => $this->setting('low_stock_policy', 'Use product default unless branch override exists'),
@@ -111,6 +112,13 @@ class SystemConfigurationService
                 'items' => $this->roles()->all(),
             ],
         ]);
+    }
+
+    public function lowStockNotificationEmail(): ?string
+    {
+        $email = $this->setting('low_stock_notification_email');
+
+        return is_string($email) && filled($email) ? $email : null;
     }
 
     private function businessName(): string

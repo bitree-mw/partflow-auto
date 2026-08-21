@@ -17,6 +17,7 @@ class SiteStock extends Model
         'quantity_on_hand',
         'reserved_quantity',
         'low_stock_level',
+        'low_stock_notified_at',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class SiteStock extends Model
             'quantity_on_hand' => 'integer',
             'reserved_quantity' => 'integer',
             'low_stock_level' => 'integer',
+            'low_stock_notified_at' => 'datetime',
         ];
     }
 

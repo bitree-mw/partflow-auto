@@ -12,7 +12,8 @@ use Illuminate\Validation\ValidationException;
 class StockMovementService
 {
     public function __construct(
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly LowStockNotificationService $lowStockNotificationService
     ) {}
 
     public function list(array $filters = [], ?User $user = null): Collection
@@ -138,6 +139,7 @@ class StockMovementService
 
         $stock = $this->stockForUpdate($productId, $siteId);
         $balanceBefore = $stock->quantity_on_hand;
+        $availableBefore = $stock->available_quantity;
         $balanceAfter = $balanceBefore + $quantityChange;
 
         if ($balanceAfter < 0) {
@@ -162,7 +164,7 @@ class StockMovementService
             'quantity_on_hand' => $balanceAfter,
         ])->save();
 
-        return StockMovement::create([
+        $movement = StockMovement::create([
             'product_id' => $productId,
             'site_id' => $siteId,
             'movement_type' => $movementType,
@@ -176,6 +178,14 @@ class StockMovementService
             'notes' => $context['notes'] ?? null,
             'created_by' => $createdBy,
         ]);
+
+        $this->lowStockNotificationService->handleQuantityChange(
+            stock: $stock,
+            availableBefore: $availableBefore,
+            availableAfter: $stock->available_quantity
+        );
+
+        return $movement;
     }
 
     private function stockForUpdate(int $productId, int $siteId): SiteStock
