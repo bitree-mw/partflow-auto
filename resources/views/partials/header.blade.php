@@ -90,7 +90,7 @@
         @hasSection('header_actions')
             @yield('header_actions')
         @elseif (auth()->user()?->hasPermission('sales.create'))
-            <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+            <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
         @endif
     </div>
 </header>

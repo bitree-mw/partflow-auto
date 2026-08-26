@@ -13,7 +13,7 @@
 
 @section('header_actions')
     @if (auth()->user()?->hasPermission('sales.create'))
-        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+        <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
     @endif
 @endsection
 

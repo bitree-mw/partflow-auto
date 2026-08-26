@@ -51,7 +51,12 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('rel="icon" type="image/svg+xml"', false)
             ->assertSee('href="'.asset('favicon.svg').'"', false)
-            ->assertSee('class="brand-icon"', false);
+            ->assertSee('class="brand-icon"', false)
+            ->assertSee('class="login-brand-panel"', false)
+            ->assertSee('class="login-form-panel"', false)
+            ->assertSee('Keep every part, sale, and branch moving.')
+            ->assertSee('Staff access')
+            ->assertSee('data-password-toggle', false);
     }
 
     public function test_back_office_pages_return_successful_responses(): void
@@ -99,6 +104,30 @@ class ExampleTest extends TestCase
         $this->get(route('web.settings.index'))
             ->assertOk()
             ->assertSee('data-track-unsaved-changes', false);
+    }
+
+    public function test_pos_uses_a_standalone_workspace_and_back_office_launchers_open_a_new_tab(): void
+    {
+        $this->actingAs($this->adminUser());
+        Site::create([
+            'name' => 'POS Workspace Branch',
+            'code' => 'PWB',
+            'type' => 'branch',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('web.pos'))
+            ->assertOk()
+            ->assertSee('data-pos-shell', false)
+            ->assertSee('aria-label="Point of sale controls"', false)
+            ->assertSee('data-pos-site-selector', false)
+            ->assertDontSee('data-app-sidebar', false)
+            ->assertDontSee('global_catalogue_search', false)
+            ->assertDontSee('notification-menu', false);
+
+        $this->get(route('web.sales.index'))
+            ->assertOk()
+            ->assertSee('href="'.route('web.pos').'" target="_blank" rel="noopener"', false);
     }
 
     public function test_dashboard_uses_the_prototype_metric_summary_and_selected_sections(): void

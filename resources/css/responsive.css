@@ -207,6 +207,10 @@
         textarea {
             min-height: 44px;
         }
+
+        .auth-shell .login-submit {
+            min-height: 54px;
+        }
     }
 
     @media (max-width: 900px) {
@@ -695,13 +699,13 @@
         }
 
         .login-page {
-            gap: 14px;
-            padding: 12px;
+            gap: 0;
+            padding: 0;
         }
 
         .login-brand-panel {
-            min-height: 250px;
-            padding: 20px;
+            min-height: 340px;
+            padding: 24px 20px;
         }
 
         .login-message h1 {
@@ -709,7 +713,7 @@
         }
 
         .login-card {
-            padding: 20px;
+            padding: 0;
         }
 
         .login-options {

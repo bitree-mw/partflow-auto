@@ -14,17 +14,27 @@
             </a>
 
             <div class="login-message">
-                <span class="eyebrow">Secure workspace</span>
-                <h1>Sign in to continue.</h1>
+                <span class="eyebrow">One clear view of every branch</span>
+                <h1>Keep every part, sale, and branch moving.</h1>
                 <p>{{ $description }}</p>
             </div>
 
-            <div class="login-capabilities" aria-label="Protected modules">
-                <span>POS</span>
-                <span>Purchases</span>
-                <span>Parts catalogue</span>
-                <span>Reports</span>
+            <div class="login-capabilities" aria-label="Workspace benefits">
+                <div>
+                    <strong>Live</strong>
+                    <span>branch stock</span>
+                </div>
+                <div>
+                    <strong>Traceable</strong>
+                    <span>stock movements</span>
+                </div>
+                <div>
+                    <strong>Secure</strong>
+                    <span>role-based access</span>
+                </div>
             </div>
+
+            <small class="login-brand-footer">Built for focused auto-parts teams.</small>
 
             <svg class="gear-machine" viewBox="0 0 420 460" aria-hidden="true" focusable="false">
                 <defs>
@@ -60,60 +70,93 @@
             </svg>
         </section>
 
-        <section class="login-card" aria-label="Login form">
-            <x-flash />
+        <section class="login-form-panel" aria-label="Login form">
+            <div class="login-card">
+                <x-flash />
 
-            <header>
-                <span class="eyebrow">Account access</span>
-                <h2>Welcome back</h2>
-                <p>Use your system account to open the operations dashboard.</p>
-            </header>
+                <header>
+                    <span class="eyebrow">Staff access</span>
+                    <h2>Welcome back.</h2>
+                    <p>Sign in with the account provided by your administrator.</p>
+                </header>
 
-            <form method="POST" action="{{ route('login.store') }}" data-login-form>
-                @csrf
+                <form method="POST" action="{{ route('login.store') }}" data-login-form>
+                    @csrf
 
-                <label>
-                    Email or username
-                    <input
-                        class="auth-control"
-                        name="login"
-                        type="text"
-                        value="{{ old('login', old('email')) }}"
-                        autocomplete="username"
-                        placeholder="Enter email or username"
-                        required
-                        autofocus
-                    >
-                </label>
-
-                <label>
-                    Password
-                    <span class="password-control">
-                        <input
-                            class="auth-control"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="Enter password"
-                            data-password-input
-                            required
-                        >
-                        <button type="button" data-password-toggle>Show</button>
-                    </span>
-                </label>
-
-                <div class="login-options">
-                    <label class="remember-option">
-                        <input name="remember" type="checkbox" value="1">
-                        Remember me
+                    <label>
+                        <span class="login-field-heading">Email address or username</span>
+                        <span class="auth-input-shell">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 6h16v12H4z"></path>
+                                <path d="m4 7 8 6 8-6"></path>
+                            </svg>
+                            <input
+                                class="auth-control"
+                                name="login"
+                                type="text"
+                                value="{{ old('login', old('email')) }}"
+                                autocomplete="username"
+                                placeholder="Enter email or username"
+                                required
+                                autofocus
+                            >
+                        </span>
                     </label>
-                </div>
 
-                <button class="login-submit" type="submit" data-login-submit>
-                    <span data-login-submit-label>Sign in</span>
-                    <span class="login-submit-spinner" aria-hidden="true"></span>
-                </button>
-            </form>
+                    <label>
+                        <span class="login-field-heading">
+                            <span>Password</span>
+                            <small>Case sensitive</small>
+                        </span>
+                        <span class="auth-input-shell password-control">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                            </svg>
+                            <input
+                                class="auth-control"
+                                name="password"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="Enter your password"
+                                data-password-input
+                                required
+                            >
+                            <button type="button" data-password-toggle aria-label="Show password" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5z"></path>
+                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                </svg>
+                            </button>
+                        </span>
+                    </label>
+
+                    <div class="login-options">
+                        <label class="remember-option">
+                            <input name="remember" type="checkbox" value="1">
+                            <span>
+                                <strong>Keep me signed in</strong>
+                                <small>Use only on a trusted device.</small>
+                            </span>
+                        </label>
+                    </div>
+
+                    <button class="login-submit" type="submit" data-login-submit>
+                        <span data-login-submit-label>Sign in</span>
+                        <svg class="login-submit-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14m-5-5 5 5-5 5"></path>
+                        </svg>
+                        <span class="login-submit-spinner" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                <aside class="login-help">
+                    <span aria-hidden="true">?</span>
+                    <p><strong>Cannot sign in?</strong> Ask an administrator to confirm your account is active or reset your password.</p>
+                </aside>
+            </div>
+
+            <small class="login-legal">© {{ date('Y') }} PartFlow Auto. Authorized staff only.</small>
         </section>
     </main>
 @endsection

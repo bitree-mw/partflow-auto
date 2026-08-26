@@ -28,7 +28,7 @@
     $navigationGroups = [
         'Workspace' => [
             ['label' => 'Overview', 'icon' => 'grid', 'href' => route('web.dashboard'), 'active' => request()->routeIs('web.dashboard')],
-            ['label' => 'Point of sale', 'icon' => 'receipt', 'href' => route('web.pos'), 'active' => request()->routeIs('web.pos'), 'permission' => 'sales.create'],
+            ['label' => 'Point of sale', 'icon' => 'receipt', 'href' => route('web.pos'), 'active' => request()->routeIs('web.pos'), 'permission' => 'sales.create', 'new_tab' => true],
         ],
         'Operations' => [
             ['label' => 'Sales', 'icon' => 'trend', 'href' => route('web.sales.index'), 'active' => request()->routeIs('web.sales.*'), 'permission' => 'sales.view'],
@@ -96,6 +96,7 @@
                             href="{{ $item['href'] }}"
                             title="{{ $item['label'] }}"
                             @class(['active' => $item['active'], 'disabled' => $item['href'] === '#'])
+                            @if (! empty($item['new_tab'])) target="_blank" rel="noopener" @endif
                             @if ($item['href'] === '#') aria-disabled="true" tabindex="-1" @endif
                         >
                             <span class="nav-icon" aria-hidden="true">{!! $icons[$item['icon']] !!}</span>

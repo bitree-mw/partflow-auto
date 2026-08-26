@@ -15,7 +15,7 @@
         <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Parts catalogue</a>
     @endif
     @if (auth()->user()?->hasPermission('sales.create'))
-        <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+        <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
     @endif
 @endsection
 

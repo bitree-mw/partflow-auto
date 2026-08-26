@@ -1,21 +1,6 @@
-@extends('layouts.app', [
+@extends('layouts.pos', [
     'title' => 'Point of sale',
-    'description' => 'Choose parts, confirm branch stock, collect payment, and issue a receipt from one screen.',
-    'kicker' => 'Live service',
-    'bodyClass' => 'pos-page',
 ])
-
-@push('styles')
-    @vite('resources/css/pos.css')
-@endpush
-
-@push('scripts')
-    @vite('resources/js/pos.js')
-@endpush
-
-@section('header_actions')
-    <a class="btn" href="{{ route('web.pos') }}">New sale</a>
-@endsection
 
 @section('content')
     <datalist id="pos-vehicle-options">
