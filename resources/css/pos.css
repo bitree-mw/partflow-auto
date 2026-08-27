@@ -1,16 +1,31 @@
 @layer components {
     /* POS-specific layout follows the refined fast-order pattern for auto parts. */
+    .pos-page {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
     .pos-shell {
-        min-height: 100vh;
+        --pos-header-height: 84px;
+        --pos-order-width: 33.333333vw;
+
+        width: 100%;
+        height: 100dvh;
+        overflow: hidden;
         background:
             radial-gradient(circle at 90% 4%, rgb(17 24 39 / 8%), transparent 24%),
             #f3f4f6;
     }
 
     .pos-header {
-        position: sticky;
+        position: fixed;
         top: 0;
+        left: 0;
         z-index: 30;
+        width: calc(100% - var(--pos-order-width));
+        height: var(--pos-header-height);
+        min-height: var(--pos-header-height);
+        padding: 7px 20px;
     }
 
     .pos-header-identity {
@@ -37,12 +52,28 @@
     }
 
     .pos-main {
-        width: 100%;
+        width: calc(100% - var(--pos-order-width));
+        height: calc(100dvh - var(--pos-header-height));
+        margin-top: var(--pos-header-height);
         min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: var(--pf-border-strong) transparent;
     }
 
     .pos-header-actions {
         flex-wrap: nowrap;
+    }
+
+    .pos-close-button {
+        white-space: nowrap;
+    }
+
+    .pos-device-warning {
+        display: none;
     }
 
     @media (min-width: 1381px) {
@@ -79,10 +110,31 @@
     }
 
     .pos-hero {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(330px, 400px);
-        gap: 20px;
-        align-items: end;
+        max-width: 820px;
+    }
+
+    .pos-hero-context {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .pos-branch-heading {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 7px;
+        color: #6d7568;
+    }
+
+    .pos-branch-heading small {
+        font-size: 11px;
+    }
+
+    .pos-branch-heading strong {
+        color: #20261f;
+        font-size: 13px;
     }
 
     .pos-hero h2 {
@@ -100,38 +152,6 @@
         font-size: 13px;
     }
 
-    .activity-session {
-        display: grid;
-        grid-template-columns: 18px minmax(0, 1fr) auto;
-        gap: 10px;
-        align-items: center;
-        padding: 14px;
-        border: 1px solid #d1d5db;
-        border-radius: 18px;
-        background: #fff;
-        box-shadow: 0 18px 45px rgb(17 24 39 / 6%);
-    }
-
-    .activity-session > span {
-        width: 18px;
-        height: 18px;
-        border: 5px solid #d1d5db;
-        border-radius: 999px;
-    }
-
-    .activity-session strong {
-        display: block;
-        color: #20261f;
-        font-size: 14px;
-    }
-
-    .activity-session small {
-        color: #6d7568;
-        font-size: 12px;
-    }
-
-    .activity-session select,
-    .activity-session button,
     .ghost-button,
     .pay-button,
     .add-row button {
@@ -145,16 +165,8 @@
         cursor: pointer;
     }
 
-    .activity-session select {
-        min-width: 190px;
-        font-weight: 900;
-    }
-
     .pos-board {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 460px;
-        gap: 20px;
-        align-items: start;
+        display: block;
     }
 
     .product-browser,
@@ -421,8 +433,19 @@
     }
 
     .order-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
         display: grid;
-        grid-template-rows: auto auto auto auto auto;
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        width: var(--pos-order-width);
+        height: 100dvh;
+        border-top: 0;
+        border-right: 0;
+        border-bottom: 0;
+        border-radius: 0;
         overflow: hidden;
     }
 
@@ -529,8 +552,12 @@
         padding-top: 8px;
         border: 1px solid #d1d5db;
         border-radius: 15px;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         background: #fff;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db transparent;
     }
 
     .cart-empty {
@@ -612,8 +639,8 @@
 
     .checkout-form {
         display: grid;
-        gap: 12px;
-        padding: 18px;
+        gap: 10px;
+        padding: 14px 18px;
     }
 
     .checkout-form label {
@@ -627,39 +654,26 @@
     .checkout-form-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
     }
 
-    .totals-card {
-        display: grid;
-        margin: 0 18px 18px;
-        padding: 13px 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 15px;
-        background: #fff;
-    }
-
-    .totals-card div {
+    .checkout-form .amount-balance-hint {
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        color: #6d7568;
-        font-size: 13px;
-        font-weight: 800;
-    }
-
-    .totals-card strong {
-        color: #20261f;
-    }
-
-    .total-due {
+        grid-column: 2;
         align-items: baseline;
-        color: #20261f;
-        font-weight: 900;
+        justify-content: flex-end;
+        gap: 5px;
+        min-height: 18px;
+        margin-top: -4px;
+        padding: 0 2px;
+        color: #6d7568;
+        font-size: 11px;
     }
 
-    .total-due strong {
-        font-size: 21px;
+    .checkout-form .amount-balance-hint strong {
+        color: var(--pf-text);
+        font-size: 13px;
+        font-weight: 700;
         line-height: 1;
     }
 
@@ -667,11 +681,20 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 9px;
-        padding: 0 18px 18px;
+        padding: 0 18px 14px;
     }
 
     .checkout-actions .pay-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
         width: 100%;
+    }
+
+    .checkout-actions .pay-button strong {
+        color: inherit;
+        font-weight: inherit;
     }
 
     .pos-dialog-open {
@@ -781,10 +804,6 @@
         .product-card-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-
-        .pos-board {
-            grid-template-columns: 1fr;
-        }
     }
 
     @media (max-width: 820px) {
@@ -803,8 +822,7 @@
             grid-template-columns: 1fr;
         }
 
-        .product-browser-footer,
-        .activity-session {
+        .product-browser-footer {
             align-items: flex-start;
             flex-direction: column;
             display: flex;
@@ -819,6 +837,66 @@
 
         .cart-line-actions {
             grid-template-columns: repeat(3, 30px);
+        }
+    }
+
+    @media (max-width: 1199px) {
+        .pos-page {
+            min-height: 100dvh;
+            overflow: hidden;
+            background: var(--pf-canvas);
+        }
+
+        .pos-shell {
+            display: none;
+        }
+
+        .pos-device-warning {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            display: grid;
+            width: 100%;
+            min-height: 100dvh;
+            place-content: center;
+            justify-items: center;
+            gap: 14px;
+            padding: 28px;
+            color: var(--pf-text);
+            background:
+                radial-gradient(circle at 50% 20%, rgb(244 122 42 / 10%), transparent 30%),
+                var(--pf-canvas);
+            text-align: center;
+        }
+
+        .pos-device-warning-icon {
+            display: grid;
+            width: 52px;
+            height: 52px;
+            place-items: center;
+            border-radius: 999px;
+            color: var(--pf-on-accent);
+            background: var(--pf-orange-500);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .pos-device-warning h1 {
+            max-width: 680px;
+            margin: 0;
+            font-size: clamp(28px, 5vw, 42px);
+            line-height: 1.08;
+        }
+
+        .pos-device-warning > p:not(.eyebrow) {
+            max-width: 590px;
+            margin: 0;
+            color: var(--pf-text-muted);
+            line-height: 1.6;
+        }
+
+        .pos-device-warning .btn-secondary {
+            margin-top: 10px;
         }
     }
 }

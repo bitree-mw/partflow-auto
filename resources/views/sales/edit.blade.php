@@ -66,7 +66,7 @@
 
                 <div class="form-field">
                     <label for="document_date">Sale date and time</label>
-                    <input class="form-control" id="document_date" name="document_date" type="datetime-local" value="{{ old('document_date', $sale->document_date?->format('Y-m-d\TH:i')) }}">
+                    <input class="form-control" id="document_date" name="document_date" type="datetime-local" value="{{ old('document_date', $sale->document_date?->format('Y-m-d\TH:i')) }}" data-no-future-date>
                     <x-form-error name="document_date" />
                 </div>
 

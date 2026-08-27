@@ -65,12 +65,14 @@ class SalesController extends Controller
 
         $validated = $request->validate([
             'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
-            'document_date' => ['nullable', 'date'],
+            'document_date' => ['nullable', 'date', 'before_or_equal:now'],
             'notes' => ['nullable', 'string'],
             'payment_account_id' => ['nullable', 'integer', 'exists:payment_accounts,id'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'in:cash,bank,mobile_money,card'],
             'transaction_reference' => ['nullable', 'string', 'max:255'],
+        ], [
+            'document_date.before_or_equal' => 'The sale date and time cannot be in the future.',
         ]);
 
         $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();

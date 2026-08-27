@@ -130,6 +130,74 @@ class HighestPriorityGuardsTest extends TestCase
         $this->assertSame(4, $stock->fresh()->quantity_on_hand);
     }
 
+    public function test_web_and_api_sales_reject_future_document_dates(): void
+    {
+        $cashier = $this->userWithPermissions(['sales.create']);
+        $site = Site::query()->create([
+            'name' => 'Date Guard Site',
+            'code' => 'DATE',
+            'type' => 'shop',
+            'is_active' => true,
+        ]);
+        $type = ProductType::query()->create([
+            'name' => 'Date Guard Part',
+            'code' => 'DGP',
+            'is_active' => true,
+        ]);
+        $product = Product::query()->create([
+            'product_code' => 'DGP-UNKN-UNK-001',
+            'product_name' => 'Date Guard Part',
+            'product_type_id' => $type->id,
+            'default_selling_price' => 5000,
+            'is_active' => true,
+        ]);
+        $stock = SiteStock::query()->create([
+            'product_id' => $product->id,
+            'site_id' => $site->id,
+            'quantity_on_hand' => 3,
+            'reserved_quantity' => 0,
+        ]);
+        UserSiteAccess::query()->create([
+            'user_id' => $cashier->id,
+            'site_id' => $site->id,
+            'access_level' => 'sales',
+            'can_make_sales' => true,
+            'is_active' => true,
+        ]);
+        $futureDate = now()->addDay()->format('Y-m-d H:i:s');
+
+        $this->actingAs($cashier)
+            ->withSession(['_token' => 'future-date-test-token'])
+            ->withHeader('X-CSRF-TOKEN', 'future-date-test-token')
+            ->postJson(route('web.pos.sales'), [
+                'source_site_id' => $site->id,
+                'document_date' => $futureDate,
+                'cart_payload' => json_encode([
+                    ['product_id' => $product->id, 'quantity' => 1],
+                ]),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('document_date')
+            ->assertJsonPath('errors.document_date.0', 'The sale date and time cannot be in the future.');
+
+        Sanctum::actingAs($cashier);
+
+        $this->postJson('/api/sales', [
+            'source_site_id' => $site->id,
+            'document_date' => $futureDate,
+            'status' => 'completed',
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ]],
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.document_date.0', 'The sale date and time cannot be in the future.');
+
+        $this->assertDatabaseCount('inventory_documents', 0);
+        $this->assertSame(3, $stock->fresh()->quantity_on_hand);
+    }
+
     public function test_zero_reorder_threshold_disables_low_stock_alerts(): void
     {
         $site = Site::query()->create([

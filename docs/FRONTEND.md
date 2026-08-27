@@ -113,6 +113,8 @@ The POS should allow staff to:
 
 The browser may show estimates for responsiveness, but the backend result is authoritative.
 
+The POS workspace is intentionally desktop-only. Viewports below 1200 pixels show a blocking unsupported-device notice instead of sale controls. On desktop, the application header and product interactions occupy the left two-thirds of the viewport, while the cart occupies the right third from top to bottom. The left workspace scrolls at the center divider; within the cart, checkout controls stay fixed and only the cart-item list scrolls.
+
 ## Lists, filters, and pagination
 
 - Paginate large datasets on the server.

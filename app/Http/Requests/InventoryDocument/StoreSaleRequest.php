@@ -17,7 +17,7 @@ class StoreSaleRequest extends ApiRequest
         return [
             'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'source_site_id' => ['required', 'integer', 'exists:sites,id'],
-            'document_date' => ['nullable', 'date'],
+            'document_date' => ['nullable', 'date', 'before_or_equal:now'],
             'status' => ['nullable', 'string', 'in:draft,completed'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
@@ -38,6 +38,13 @@ class StoreSaleRequest extends ApiRequest
             'payment.transaction_reference' => ['nullable', 'string', 'max:255'],
             'payment.payment_date' => ['nullable', 'date'],
             'payment.notes' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'document_date.before_or_equal' => 'The sale date and time cannot be in the future.',
         ];
     }
 }

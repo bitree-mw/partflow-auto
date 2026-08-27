@@ -472,6 +472,10 @@
         box-shadow: none;
     }
 
+    .pos-page .order-panel {
+        border-radius: 0;
+    }
+
     .panel-toolbar,
     .insight-header,
     .notification-dropdown header,
@@ -1086,5 +1090,178 @@
         .header-actions {
             flex-wrap: wrap;
         }
+    }
+}
+
+@keyframes pf-rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pf-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.975);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes pf-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pf-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes pf-total-pop {
+    0%, 100% { transform: scale(1); }
+    45% { transform: scale(1.06); }
+}
+
+@layer components {
+    :is(
+        button,
+        .btn,
+        .btn-secondary,
+        .btn-danger,
+        .icon-action,
+        .login-submit,
+        .pay-button,
+        .part-add-button,
+        .catalogue-add-button,
+        .compatibility-add-button,
+        .sidebar-group a,
+        .table-link
+    ) {
+        transition:
+            color 160ms ease,
+            background-color 160ms ease,
+            border-color 160ms ease,
+            box-shadow 180ms ease,
+            opacity 160ms ease,
+            transform 160ms ease;
+    }
+
+    :is(
+        input,
+        select,
+        textarea,
+        .app-combobox-input,
+        .pos-search-field,
+        .notification-dropdown,
+        .app-combobox-list,
+        .async-picker-list
+    ) {
+        transition:
+            border-color 160ms ease,
+            box-shadow 180ms ease,
+            background-color 160ms ease,
+            opacity 160ms ease;
+    }
+
+    :is(
+        .data-panel,
+        .form-panel,
+        .detail-panel,
+        .insight-panel,
+        .money-panel,
+        .report-card,
+        .payment-account-card,
+        .part-card,
+        .catalogue-summary article,
+        .operation-summary article
+    ) {
+        transition:
+            border-color 180ms ease,
+            box-shadow 200ms ease,
+            transform 180ms ease;
+    }
+
+    :is(.part-card, .payment-account-card, .catalogue-summary article, .operation-summary article):hover {
+        transform: translateY(-2px);
+    }
+
+    :is(button, .btn, .btn-secondary, .btn-danger, .icon-action, .login-submit, .pay-button):active {
+        transform: translateY(1px) scale(0.985);
+    }
+
+    .content-shell > :not(dialog) {
+        animation: pf-rise-in 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    .content-shell > :nth-child(2) {
+        animation-delay: 35ms;
+    }
+
+    .content-shell > :nth-child(3) {
+        animation-delay: 70ms;
+    }
+
+    .pos-page .content-shell > .pos-board {
+        animation: none;
+    }
+
+    .pos-page .product-browser {
+        animation: pf-rise-in 260ms 45ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    :is(.app-alert-dialog[open], .pos-dialog-layer:not([hidden])) {
+        animation: pf-fade-in 160ms ease-out both;
+    }
+
+    :is(.app-alert-dialog[open] .app-alert-dialog-card, .app-confirm-dialog[open] .app-confirm-dialog-card, .settings-dialog[open] .settings-dialog-card, .pos-dialog-layer:not([hidden]) .pos-dialog-card) {
+        animation: pf-dialog-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    :is(.app-alert-dialog, .app-confirm-dialog, .pos-dialog-layer).is-closing {
+        animation: pf-fade-out 160ms ease-in both;
+        pointer-events: none;
+    }
+
+    :is(.app-alert-dialog, .app-confirm-dialog, .pos-dialog-layer).is-closing :is(.app-alert-dialog-card, .app-confirm-dialog-card, .pos-dialog-card) {
+        transform: translateY(6px) scale(0.985);
+        transition: transform 160ms ease-in;
+    }
+
+    .notification-menu[open] .notification-dropdown,
+    .app-combobox-list:not([hidden]),
+    .async-picker-list:not([hidden]) {
+        animation: pf-rise-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: top right;
+    }
+
+    [data-complete-sale-total].is-updating,
+    [data-total-due] {
+        display: inline-block;
+    }
+
+    [data-complete-sale-total].is-updating {
+        animation: pf-total-pop 220ms ease-out;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

@@ -18,6 +18,19 @@
     @vite('resources/css/responsive.css')
 </head>
 <body class="pos-page">
+    <section class="pos-device-warning" role="alert" aria-labelledby="pos-device-warning-title">
+        <span class="pos-device-warning-icon" aria-hidden="true">!</span>
+        <p class="eyebrow">Desktop POS required</p>
+        <h1 id="pos-device-warning-title">POS is not supported on mobile or tablet devices.</h1>
+        <p>Open PartFlow Auto on a desktop computer with a screen at least 1200 pixels wide to process sales safely.</p>
+        <button
+            class="btn-secondary"
+            type="button"
+            data-close-pos
+            data-fallback-url="{{ route('web.dashboard') }}"
+        >Close POS</button>
+    </section>
+
     <div class="pos-shell" data-pos-shell>
         <header class="app-header pos-header" aria-label="Point of sale controls">
             <div class="pos-header-identity">
@@ -46,7 +59,12 @@
                     </form>
                 @endif
 
-                <a class="btn" href="{{ route('web.pos') }}">New sale</a>
+                <button
+                    class="btn-secondary pos-close-button"
+                    type="button"
+                    data-close-pos
+                    data-fallback-url="{{ route('web.dashboard') }}"
+                >Close POS</button>
             </div>
         </header>
 

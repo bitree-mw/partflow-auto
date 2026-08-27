@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\PosLookupRequest;
+use App\Http\Requests\Web\StorePosSaleRequest;
 use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
@@ -157,34 +158,9 @@ class PosController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse|JsonResponse
+    public function store(StorePosSaleRequest $request): RedirectResponse|JsonResponse
     {
-        $validated = $request->validate([
-            'source_site_id' => [
-                'required',
-                'integer',
-                Rule::exists('sites', 'id')->where(fn ($query) => $query
-                    ->where('is_active', true)
-                    ->whereNull('deleted_at')),
-            ],
-            'contact_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('contacts', 'id')->where(fn ($query) => $query
-                    ->where('is_active', true)
-                    ->whereNull('deleted_at')),
-            ],
-            'document_date' => ['nullable', 'date'],
-            'cart_payload' => ['required', 'string'],
-            'payment_account_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('payment_accounts', 'id')->where(fn ($query) => $query
-                    ->where('is_active', true)
-                    ->whereNull('deleted_at')),
-            ],
-            'amount_paid' => ['nullable', 'numeric', 'min:0'],
-        ]);
+        $validated = $request->validated();
 
         $cart = json_decode($validated['cart_payload'], true);
 

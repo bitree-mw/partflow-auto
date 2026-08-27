@@ -300,6 +300,28 @@ function initUnsavedChanges() {
     });
 }
 
+function initNoFutureDates() {
+    const inputs = Array.from(document.querySelectorAll('input[type="datetime-local"][data-no-future-date]'));
+
+    if (inputs.length === 0) {
+        return;
+    }
+
+    const refreshMaximum = () => {
+        const currentTime = new Date();
+        const localTime = new Date(currentTime.getTime() - (currentTime.getTimezoneOffset() * 60_000));
+        const maximum = localTime.toISOString().slice(0, 16);
+
+        inputs.forEach((input) => {
+            input.max = maximum;
+        });
+    };
+
+    refreshMaximum();
+    inputs.forEach((input) => input.addEventListener('focus', refreshMaximum));
+    window.setInterval(refreshMaximum, 30_000);
+}
+
 initAppDialogs();
 initSearchableSelects();
 initGlobalSiteSwitcher();
@@ -307,3 +329,4 @@ initMobileSidebar();
 initMobileFilters();
 initResponsiveTables();
 initUnsavedChanges();
+initNoFutureDates();

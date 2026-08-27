@@ -16,19 +16,16 @@
 
     <section class="pos-hero">
         <div>
-            <span class="eyebrow">Fast parts entry</span>
-            <h2>Find, fit, sell.</h2>
-            <p>Search by product, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
-        </div>
-
-        <article class="activity-session">
-            <span></span>
-            <div>
-                <strong>{{ $currentBranch }} activity</strong>
-                <small>{{ $cashier }} - active session</small>
+            <div class="pos-hero-context">
+                <span class="eyebrow">Fast parts entry</span>
+                <span class="pos-branch-heading">
+                    <small>Selling from</small>
+                    <strong data-pos-branch-name>{{ $currentBranch }}</strong>
+                </span>
             </div>
-            <small class="activity-session-site">Selected in header</small>
-        </article>
+            <h2>Find, fit, sell.</h2>
+            <p>{{ $cashier }} · Search by product, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
+        </div>
     </section>
 
     <section class="pos-board" aria-label="Point of sale workspace">
@@ -106,20 +103,15 @@
                 @csrf
                 <input type="hidden" name="source_site_id" value="{{ $currentSiteId }}" data-pos-source-site-id>
                 <input type="hidden" name="cart_payload" value="[]" data-cart-payload>
-                <label>
-                    Customer
-                    <select name="contact_id">
-                        <option value="">Walk-in customer</option>
-                        @foreach ($customers as $customer)
-                            <option value="{{ $customer['id'] }}">{{ $customer['label'] }}</option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <div class="checkout-form-grid">
+                <div class="checkout-form-grid" data-pos-checkout-row="customer-payment">
                     <label>
-                        Sale date and time
-                        <input type="datetime-local" name="document_date" value="{{ old('document_date') }}" data-pos-document-date>
+                        Customer
+                        <select name="contact_id">
+                            <option value="">Walk-in customer</option>
+                            @foreach ($customers as $customer)
+                                <option value="{{ $customer['id'] }}">{{ $customer['label'] }}</option>
+                            @endforeach
+                        </select>
                     </label>
                     <label>
                         Payment account
@@ -130,23 +122,30 @@
                             @endforeach
                         </select>
                     </label>
+                </div>
+
+                <div class="checkout-form-grid" data-pos-checkout-row="date-amount">
+                    <label>
+                        Sale date and time
+                        <input type="datetime-local" name="document_date" value="{{ old('document_date') }}" data-pos-document-date data-no-future-date>
+                    </label>
                     <label>
                         Amount received
                         <input type="text" name="amount_paid" value="0" data-pos-amount-paid>
                     </label>
-                </div>
-            </form>
-
-            <section class="totals-card" aria-label="Sale totals">
-                <div class="total-due">
-                    <span>Total due</span>
-                    <strong data-total-due>{{ $saleTotals['total'] }}</strong>
+                    <span class="amount-balance-hint">
+                        <span>Still owed</span>
+                        <strong data-total-due>{{ $saleTotals['total'] }}</strong>
+                    </span>
                 </div>
                 <span data-subtotal hidden>{{ $saleTotals['subtotal'] }}</span>
-            </section>
+            </form>
 
             <div class="checkout-actions">
-                <button class="pay-button" type="button" data-complete-sale>Complete sale</button>
+                <button class="pay-button" type="button" data-complete-sale>
+                    <span>Complete sale</span>
+                    <strong data-complete-sale-total>(MWK 0)</strong>
+                </button>
             </div>
         </aside>
     </section>

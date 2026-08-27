@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\TaxProfile;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -90,6 +91,7 @@ class InventoryDocumentService
 
     public function createSale(array $data, User $user): InventoryDocument
     {
+        $this->ensureSaleDateIsNotInTheFuture($data['document_date'] ?? null);
         $this->siteAccessService->authorizeSite($user, (int) $data['source_site_id'], SiteAccessService::MAKE_SALES);
 
         return DB::transaction(function () use ($data, $user) {
@@ -120,6 +122,17 @@ class InventoryDocumentService
 
             return $this->show($document->refresh());
         });
+    }
+
+    private function ensureSaleDateIsNotInTheFuture(mixed $documentDate): void
+    {
+        if (! filled($documentDate) || ! Carbon::parse($documentDate)->isFuture()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'document_date' => ['The sale date and time cannot be in the future.'],
+        ]);
     }
 
     public function createTransfer(array $data, User $user): InventoryDocument

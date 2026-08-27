@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             CptWorkbookProductTypeSeeder::class,
             PartFlowBaseTestingSeeder::class,
             PartFlowPurchaseSalesTestingSeeder::class,
+            August2026DemoSalesSeeder::class,
             DefaultSystemUserSeeder::class,
         ]);
     }

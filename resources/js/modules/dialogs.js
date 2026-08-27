@@ -1,11 +1,29 @@
 function dismissDialog(dialog) {
-    if (typeof dialog.close === 'function' && dialog.open) {
-        dialog.close();
+    if (dialog.classList.contains('is-closing')) {
         return;
     }
 
-    dialog.removeAttribute('open');
-    dialog.remove();
+    dialog.classList.add('is-closing');
+    let finished = false;
+
+    const finish = () => {
+        if (finished) {
+            return;
+        }
+
+        finished = true;
+
+        if (typeof dialog.close === 'function' && dialog.open) {
+            dialog.close();
+            return;
+        }
+
+        dialog.removeAttribute('open');
+        dialog.remove();
+    };
+
+    dialog.addEventListener('animationend', finish, { once: true });
+    window.setTimeout(finish, 220);
 }
 
 let confirmationListenerBound = false;

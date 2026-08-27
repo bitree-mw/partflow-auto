@@ -20,14 +20,29 @@ const cartPayload = document.querySelector('[data-cart-payload]');
 const amountPaidInput = document.querySelector('[data-pos-amount-paid]');
 const checkoutForm = document.querySelector('[data-pos-checkout-form]');
 const completeSaleButton = document.querySelector('[data-complete-sale]');
+const completeSaleTotalLabel = document.querySelector('[data-complete-sale-total]');
 const siteSelector = document.querySelector('[data-pos-site-selector]');
 const sourceSiteInput = document.querySelector('[data-pos-source-site-id]');
+
+document.querySelectorAll('[data-close-pos]').forEach((button) => {
+    button.addEventListener('click', () => {
+        window.close();
+
+        window.setTimeout(() => {
+            if (! window.closed) {
+                window.location.assign(button.dataset.fallbackUrl || '/');
+            }
+        }, 150);
+    });
+});
 
 let cartItems = [];
 let searchController = null;
 let suggestionController = null;
 let vehicleController = null;
 let productTypeController = null;
+let currentSaleTotal = 0;
+let amountPaidEdited = false;
 let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
 let vehicleOptions = new Map();
 
@@ -71,6 +86,31 @@ function ensureDialogLayer() {
     return layer;
 }
 
+function dismissPosDialog(layer, callback) {
+    if (layer.classList.contains('is-closing')) {
+        return;
+    }
+
+    layer.classList.add('is-closing');
+    let finished = false;
+
+    const finish = () => {
+        if (finished) {
+            return;
+        }
+
+        finished = true;
+        layer.hidden = true;
+        layer.classList.remove('is-closing');
+        layer.innerHTML = '';
+        document.body.classList.remove('pos-dialog-open');
+        callback();
+    };
+
+    layer.addEventListener('animationend', finish, { once: true });
+    window.setTimeout(finish, 220);
+}
+
 function showAppAlert(message, options = {}) {
     const layer = ensureDialogLayer();
     const title = options.title || 'Notice';
@@ -88,6 +128,7 @@ function showAppAlert(message, options = {}) {
             </div>
         </section>
     `;
+    layer.classList.remove('is-closing');
     layer.hidden = false;
     document.body.classList.add('pos-dialog-open');
 
@@ -96,11 +137,10 @@ function showAppAlert(message, options = {}) {
 
         const close = () => {
             document.removeEventListener('keydown', onKeydown);
-            layer.hidden = true;
-            layer.innerHTML = '';
-            document.body.classList.remove('pos-dialog-open');
-            previouslyFocused?.focus?.();
-            resolve();
+            dismissPosDialog(layer, () => {
+                previouslyFocused?.focus?.();
+                resolve();
+            });
         };
 
         const onKeydown = (event) => {
@@ -135,6 +175,7 @@ function requestAdminPassword() {
             </form>
         </section>
     `;
+    layer.classList.remove('is-closing');
     layer.hidden = false;
     document.body.classList.add('pos-dialog-open');
 
@@ -145,11 +186,10 @@ function requestAdminPassword() {
 
         const close = (value) => {
             document.removeEventListener('keydown', onKeydown);
-            layer.hidden = true;
-            layer.innerHTML = '';
-            document.body.classList.remove('pos-dialog-open');
-            previouslyFocused?.focus?.();
-            resolve(value);
+            dismissPosDialog(layer, () => {
+                previouslyFocused?.focus?.();
+                resolve(value);
+            });
         };
 
         const onKeydown = (event) => {
@@ -554,23 +594,38 @@ function updateCartPayload() {
 
 function updateTotals() {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-    const totalDue = subtotal;
+    currentSaleTotal = subtotal;
 
     if (subtotalLabel) {
         subtotalLabel.textContent = formatCurrency(subtotal);
     }
 
-    if (totalDueLabel) {
-        totalDueLabel.textContent = formatCurrency(totalDue);
+    if (amountPaidInput && !amountPaidEdited) {
+        amountPaidInput.value = Math.round(currentSaleTotal);
     }
 
-    if (amountPaidInput) {
-        amountPaidInput.value = Math.round(totalDue);
+    updatePaymentSummary();
+}
+
+function updatePaymentSummary() {
+    const amountReceived = Math.max(0, parseCurrency(amountPaidInput?.value || 0));
+    const amountStillOwed = Math.max(0, currentSaleTotal - amountReceived);
+
+    if (totalDueLabel) {
+        totalDueLabel.textContent = formatCurrency(amountStillOwed);
+    }
+
+    if (completeSaleTotalLabel) {
+        completeSaleTotalLabel.textContent = `(${formatCurrency(amountReceived)})`;
+        completeSaleTotalLabel.classList.remove('is-updating');
+        void completeSaleTotalLabel.offsetWidth;
+        completeSaleTotalLabel.classList.add('is-updating');
     }
 }
 
 function clearCart() {
     cartItems = [];
+    amountPaidEdited = false;
     renderCart();
 }
 
@@ -686,9 +741,9 @@ siteSelector?.addEventListener('change', async () => {
             sourceSiteInput.value = site.id;
         }
 
-        const activityTitle = document.querySelector('.activity-session strong');
-        if (activityTitle) {
-            activityTitle.textContent = `${site.name} activity`;
+        const branchHeading = document.querySelector('[data-pos-branch-name]');
+        if (branchHeading) {
+            branchHeading.textContent = site.name;
         }
 
         const headerSiteName = document.querySelector('[data-header-site-name]');
@@ -752,6 +807,11 @@ checkoutForm?.addEventListener('submit', async (event) => {
 
 completeSaleButton?.addEventListener('click', () => {
     checkoutForm?.requestSubmit();
+});
+
+amountPaidInput?.addEventListener('input', () => {
+    amountPaidEdited = true;
+    updatePaymentSummary();
 });
 
 renderProductCards();
