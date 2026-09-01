@@ -320,6 +320,11 @@ class DashboardService
         return $value > 0 ? max(3, (int) round(($value / $maximum) * 100)) : 0;
     }
 
+    private function proportionalWidth(float $value, float $maximum): int
+    {
+        return max(0, min(100, (int) round(($value / $maximum) * 100)));
+    }
+
     private function branchPerformance(string $currency, ?int $siteId = null, ?array $siteIds = null): Collection
     {
         $rows = $this->dashboard->branchPerformance([
@@ -328,10 +333,13 @@ class DashboardService
             ...($siteId ? ['site_id' => $siteId] : []),
             ...($siteIds !== null ? ['site_ids' => $siteIds] : []),
         ]);
-        $maxSales = max((float) $rows->max('sales_amount'), 1);
-        $maxProfit = max((float) $rows->max('profit_amount'), 1);
+        $maximumAmount = max(
+            (float) $rows->max('sales_amount'),
+            (float) $rows->max('profit_amount'),
+            1
+        );
 
-        return $rows->map(function (array $branch) use ($currency, $siteId, $maxSales, $maxProfit) {
+        return $rows->map(function (array $branch) use ($currency, $siteId, $maximumAmount) {
             $margin = $this->marginPercent($branch['profit_amount'], $branch['sales_amount']);
 
             return [
@@ -341,8 +349,8 @@ class DashboardService
                 'profit' => $this->formatCurrency($branch['profit_amount'], $currency, true),
                 'sales_raw' => $branch['sales_amount'],
                 'profit_raw' => $branch['profit_amount'],
-                'sales_width' => max(4, (int) round(($branch['sales_amount'] / $maxSales) * 100)),
-                'profit_width' => max(4, (int) round(($branch['profit_amount'] / $maxProfit) * 100)),
+                'sales_width' => $this->proportionalWidth($branch['sales_amount'], $maximumAmount),
+                'profit_width' => $this->proportionalWidth($branch['profit_amount'], $maximumAmount),
                 'selected' => $siteId !== null && (int) $branch['site_id'] === $siteId,
                 'margin' => number_format($margin, 1).'%',
                 'margin_tone' => $margin < 0 ? 'negative' : 'positive',

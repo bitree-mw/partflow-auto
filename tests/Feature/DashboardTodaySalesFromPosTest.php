@@ -55,6 +55,14 @@ class DashboardTodaySalesFromPosTest extends TestCase
             ->assertOk()
             ->assertSee('Today sales')
             ->assertSee('MWK 2K')
+            ->assertSeeInOrder([
+                'Sales',
+                '<b style="width: 100%;"></b>',
+                'MWK 2K',
+                'Profit',
+                '<b style="width: 33%;"></b>',
+                'MWK 500',
+            ], false)
             ->assertSee('dashboard-side-metric', false)
             ->assertSee('data-dashboard-live', false)
             ->assertSee(route('web.dashboard.live'), false);
