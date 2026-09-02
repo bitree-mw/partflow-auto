@@ -12,7 +12,9 @@ use App\Models\SiteStock;
 use App\Models\User;
 use App\Services\StockMovementService;
 use Illuminate\Contracts\Mail\Mailer;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\PendingMail;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Tests\TestCase;
@@ -56,7 +58,7 @@ class LowStockEmailNotificationTest extends TestCase
         ]);
     }
 
-    public function test_email_is_sent_once_per_low_stock_cycle_and_resets_after_replenishment(): void
+    public function test_email_is_queued_once_per_low_stock_cycle_and_resets_after_replenishment(): void
     {
         Mail::fake();
         BusinessSetting::query()->create([
@@ -69,7 +71,7 @@ class LowStockEmailNotificationTest extends TestCase
 
         $movements->decrease($product->id, $site->id, 5, 'sale_out', $user->id);
 
-        Mail::assertSent(LowStockAlertMail::class, function (LowStockAlertMail $mail): bool {
+        Mail::assertQueued(LowStockAlertMail::class, function (LowStockAlertMail $mail): bool {
             $mail->assertSeeInHtml('Review stock alerts');
 
             return $mail->hasTo('stock@example.test')
@@ -80,13 +82,13 @@ class LowStockEmailNotificationTest extends TestCase
         $this->assertNotNull($stock->fresh()->low_stock_notified_at);
 
         $movements->decrease($product->id, $site->id, 1, 'sale_out', $user->id);
-        Mail::assertSentTimes(LowStockAlertMail::class, 1);
+        Mail::assertQueued(LowStockAlertMail::class, 1);
 
         $movements->increase($product->id, $site->id, 10, 'purchase_in', $user->id);
         $this->assertNull($stock->fresh()->low_stock_notified_at);
 
         $movements->decrease($product->id, $site->id, 9, 'sale_out', $user->id);
-        Mail::assertSentTimes(LowStockAlertMail::class, 2);
+        Mail::assertQueued(LowStockAlertMail::class, 2);
     }
 
     public function test_zero_threshold_or_missing_recipient_disables_low_stock_email(): void
@@ -100,13 +102,13 @@ class LowStockEmailNotificationTest extends TestCase
         [$user, $site, $product] = $this->inventory(quantity: 2, threshold: 0);
         app(StockMovementService::class)->decrease($product->id, $site->id, 2, 'sale_out', $user->id);
 
-        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
 
         BusinessSetting::query()->where('key', 'low_stock_notification_email')->delete();
         [$secondUser, $secondSite, $secondProduct] = $this->inventory(quantity: 2, threshold: 1, suffix: '2');
         app(StockMovementService::class)->decrease($secondProduct->id, $secondSite->id, 1, 'sale_out', $secondUser->id);
 
-        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_mail_failure_does_not_roll_back_stock_and_allows_a_later_retry(): void
@@ -117,11 +119,17 @@ class LowStockEmailNotificationTest extends TestCase
         ]);
         [$user, $site, $product, $stock] = $this->inventory(quantity: 6, threshold: 5);
 
+        $pendingMail = \Mockery::mock(PendingMail::class);
+        $pendingMail->shouldReceive('queue')
+            ->once()
+            ->with(\Mockery::type(LowStockAlertMail::class))
+            ->andThrow(new RuntimeException('Test queue dispatch failure'));
+
         $mailer = \Mockery::mock(Mailer::class);
         $mailer->shouldReceive('to')
             ->once()
             ->with('stock@example.test')
-            ->andThrow(new RuntimeException('Test mail transport failure'));
+            ->andReturn($pendingMail);
         $this->app->instance(Mailer::class, $mailer);
 
         app(StockMovementService::class)->decrease($product->id, $site->id, 1, 'sale_out', $user->id);
@@ -133,6 +141,30 @@ class LowStockEmailNotificationTest extends TestCase
             'site_id' => $site->id,
             'quantity_change' => -1,
         ]);
+    }
+
+    public function test_queued_mail_retries_and_releases_the_notification_cycle_after_final_failure(): void
+    {
+        [, , $product, $stock] = $this->inventory(quantity: 5, threshold: 5);
+        $cycleStartedAt = now()->startOfSecond();
+        $stock->forceFill(['low_stock_notified_at' => $cycleStartedAt])->save();
+
+        $mail = new LowStockAlertMail(
+            alert: [
+                'product_id' => $product->id,
+                'site_id' => $stock->site_id,
+            ],
+            siteStockId: $stock->id,
+            notificationCycleStartedAt: $cycleStartedAt->format('Y-m-d H:i:s')
+        );
+
+        $this->assertInstanceOf(ShouldQueue::class, $mail);
+        $this->assertSame(3, $mail->tries);
+        $this->assertSame([60, 300], $mail->backoff);
+
+        $mail->failed(new RuntimeException('Test final transport failure'));
+
+        $this->assertNull($stock->fresh()->low_stock_notified_at);
     }
 
     private function inventory(int $quantity, int $threshold, string $suffix = '1'): array

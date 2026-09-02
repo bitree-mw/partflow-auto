@@ -139,6 +139,16 @@ class ExampleTest extends TestCase
             ->assertSee('href="'.route('web.pos').'" target="_blank" rel="noopener"', false);
     }
 
+    public function test_pos_cart_renderer_includes_manual_quantity_entry(): void
+    {
+        $posScript = file_get_contents(resource_path('js/pos.js'));
+
+        $this->assertIsString($posScript);
+        $this->assertStringContainsString('function setCartQuantity', $posScript);
+        $this->assertStringContainsString('data-cart-quantity="${item.product_id}"', $posScript);
+        $this->assertStringContainsString('max="${maximumQuantity}"', $posScript);
+    }
+
     public function test_dashboard_uses_the_prototype_metric_summary_and_selected_sections(): void
     {
         $user = $this->adminUser();

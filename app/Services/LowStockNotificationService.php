@@ -6,7 +6,6 @@ use App\Mail\LowStockAlertMail;
 use App\Models\SiteStock;
 use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class LowStockNotificationService
@@ -20,8 +19,7 @@ class LowStockNotificationService
         SiteStock $stock,
         int $availableBefore,
         int $availableAfter
-    ): void
-    {
+    ): void {
         $stock->loadMissing(['product', 'site']);
         $threshold = $stock->effective_low_stock_level;
 
@@ -46,6 +44,8 @@ class LowStockNotificationService
 
         $alert = [
             'business_name' => $this->systemConfiguration->settings()['business_name'],
+            'product_id' => $stock->product_id,
+            'site_id' => $stock->site_id,
             'product_code' => $stock->product->product_code,
             'product_name' => $stock->product->product_name,
             'site_name' => $stock->site->name,
@@ -57,24 +57,16 @@ class LowStockNotificationService
         ];
 
         DB::afterCommit(function () use ($recipient, $alert, $stock, $notifiedAt): void {
-            try {
-                $this->mailer->to($recipient)->send(new LowStockAlertMail($alert));
-            } catch (Throwable $exception) {
-                try {
-                    SiteStock::query()
-                        ->whereKey($stock->getKey())
-                        ->where('low_stock_notified_at', $notifiedAt->format('Y-m-d H:i:s'))
-                        ->update(['low_stock_notified_at' => null]);
+            $mail = new LowStockAlertMail(
+                alert: $alert,
+                siteStockId: $stock->getKey(),
+                notificationCycleStartedAt: $notifiedAt->format('Y-m-d H:i:s')
+            );
 
-                    Log::warning('Low-stock email delivery failed.', [
-                        'site_stock_id' => $stock->getKey(),
-                        'product_id' => $stock->product_id,
-                        'site_id' => $stock->site_id,
-                        'exception_type' => class_basename($exception),
-                    ]);
-                } catch (Throwable) {
-                    // The committed stock operation must remain successful even if failure reporting is unavailable.
-                }
+            try {
+                $this->mailer->to($recipient)->queue($mail);
+            } catch (Throwable $exception) {
+                $mail->recordFailure($exception, 'queue_dispatch');
             }
         });
     }

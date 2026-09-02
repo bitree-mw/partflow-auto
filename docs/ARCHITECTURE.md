@@ -231,7 +231,7 @@ The frontend uses Laravel Blade and Tailwind CSS.
 
 ## External integrations
 
-Laravel mail delivery sends a low-stock email to the recipient configured under Business Information. Delivery is attempted after the stock transaction commits, and a delivery failure is logged without rolling back the completed stock operation. The active transport and provider are deployment configuration.
+Laravel queues a low-stock email to the recipient configured under Business Information after the stock transaction commits. Queue dispatch and delivery failures are logged without rolling back the completed stock operation. The active transport and provider are deployment configuration.
 
 Bank and mobile-money destinations are internal payment-recording options unless the application is connected to an actual payment provider.
 
@@ -241,7 +241,7 @@ Bank and mobile-money destinations are internal payment-recording options unless
 
 ## Background processing
 
-Low-stock email is delivered synchronously after commit and does not require a queue worker or scheduled task. No queue-backed or scheduled application task is currently confirmed in this document.
+Low-stock email is queued after commit on the configured Laravel queue connection. A continuously running queue worker is required in deployed environments. Delivery is attempted up to three times with backoff before the failed job is recorded and the notification cycle is released for a later stock-change retry. No scheduled application task is currently confirmed in this document.
 
 <!-- INACTIVE: Laravel queues process reports, imports, notifications, or other background jobs. When activated, document the queue driver, jobs, retries, timeouts, and failed-job handling. -->
 <!-- INACTIVE: Laravel Scheduler runs recurring tasks. When activated, list each scheduled command, frequency, purpose, and failure-monitoring process. -->

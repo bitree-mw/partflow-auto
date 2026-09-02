@@ -494,15 +494,18 @@ function addProductToCart(product) {
     }
 
     const existing = cartItems.find((item) => item.product_id === product.product_id);
+    const availableQuantity = Math.max(1, Number(product.current_branch_stock?.available) || 1);
 
     if (existing) {
-        existing.quantity += 1;
+        existing.available_quantity = availableQuantity;
+        existing.quantity = Math.min(existing.quantity + 1, availableQuantity);
     } else {
         cartItems.push({
             product_id: product.product_id,
             product_code: product.product_code,
             product_name: product.product_name,
             quantity: 1,
+            available_quantity: availableQuantity,
             unit_price: Number(product.selling_price) || 0,
         });
     }
@@ -517,11 +520,31 @@ function changeCartQuantity(productId, delta) {
         return;
     }
 
-    item.quantity += delta;
+    item.quantity = Math.min(
+        item.quantity + delta,
+        Math.max(1, Number(item.available_quantity) || 10000),
+    );
 
     if (item.quantity <= 0) {
         cartItems = cartItems.filter((cartItem) => cartItem.product_id !== productId);
     }
+
+    renderCart();
+}
+
+function setCartQuantity(productId, value) {
+    const item = cartItems.find((cartItem) => cartItem.product_id === productId);
+    const quantity = Number(value);
+
+    if (!item || !Number.isInteger(quantity)) {
+        renderCart();
+        return;
+    }
+
+    item.quantity = Math.min(
+        Math.max(1, quantity),
+        Math.max(1, Number(item.available_quantity) || 10000),
+    );
 
     renderCart();
 }
@@ -539,7 +562,10 @@ function renderCart() {
     if (cartItems.length === 0) {
         cartList.innerHTML = '<div class="cart-empty">Cart is empty.</div>';
     } else {
-        cartList.innerHTML = cartItems.map((item) => `
+        cartList.innerHTML = cartItems.map((item) => {
+            const maximumQuantity = Math.max(1, Number(item.available_quantity) || 10000);
+
+            return `
             <article class="cart-line">
                 <div class="cart-line-main">
                     <strong>${escapeHtml(item.product_code)}</strong>
@@ -551,17 +577,34 @@ function renderCart() {
                 </div>
                 <div class="cart-line-actions" aria-label="Adjust ${escapeHtml(item.product_name)} quantity">
                     <button type="button" data-cart-minus="${item.product_id}" aria-label="Decrease quantity">-</button>
-                    <button type="button" data-cart-plus="${item.product_id}" aria-label="Increase quantity">+</button>
+                    <label class="cart-quantity-field">
+                        <span>Qty</span>
+                        <input
+                            type="number"
+                            inputmode="numeric"
+                            min="1"
+                            max="${maximumQuantity}"
+                            step="1"
+                            value="${escapeHtml(item.quantity)}"
+                            data-cart-quantity="${item.product_id}"
+                            aria-label="Quantity for ${escapeHtml(item.product_name)}"
+                        >
+                    </label>
+                    <button type="button" data-cart-plus="${item.product_id}" aria-label="Increase quantity" ${item.quantity >= maximumQuantity ? 'disabled' : ''}>+</button>
                     <button type="button" data-cart-remove="${item.product_id}" aria-label="Remove item">x</button>
                 </div>
             </article>
-        `).join('');
+        `;
+        }).join('');
 
         cartList.querySelectorAll('[data-cart-minus]').forEach((button) => {
             button.addEventListener('click', () => changeCartQuantity(Number(button.dataset.cartMinus), -1));
         });
         cartList.querySelectorAll('[data-cart-plus]').forEach((button) => {
             button.addEventListener('click', () => changeCartQuantity(Number(button.dataset.cartPlus), 1));
+        });
+        cartList.querySelectorAll('[data-cart-quantity]').forEach((input) => {
+            input.addEventListener('change', () => setCartQuantity(Number(input.dataset.cartQuantity), input.value));
         });
         cartList.querySelectorAll('[data-cart-remove]').forEach((button) => {
             button.addEventListener('click', () => removeCartItem(Number(button.dataset.cartRemove)));
