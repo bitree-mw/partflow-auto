@@ -85,6 +85,8 @@ Never replace cumulative paid with the latest payment. Add payments to history, 
 
 ### Reporting and audit
 
+`scheduled_email_reminders` tracks weekly stock digests separately from stock/financial records. A unique type/period pair prevents repeated scheduled dispatch. `sent_at` records SMTP acceptance, not confirmed inbox delivery. These records do not change stock quantities, document balances, or the stock-change notification cycle.
+
 Reports derive from trusted transactions. Repositories/query objects may support profitability, low stock, sales, purchases, debtors, transfers, and dashboards.
 
 <!-- INACTIVE: A general activity-log package is installed. Activate only after verification. -->

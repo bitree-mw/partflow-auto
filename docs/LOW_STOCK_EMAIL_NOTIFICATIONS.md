@@ -21,6 +21,8 @@ Email delivery runs asynchronously through Laravel's configured queue so mail-pr
 
 Only one recipient address is supported. Leave the field blank and save to disable future low-stock emails.
 
+In addition to stock-change alerts, a separate digest repeats every Monday at 08:00 in the application timezone for parts that remain low. It uses this same recipient and requires Laravel's scheduler as well as a queue worker. See [Scheduled email reminders](SCHEDULED_EMAIL_REMINDERS.md).
+
 ## Configure outgoing mail
 
 The server also needs Laravel mail delivery configured. Set the appropriate non-secret deployment environment values for your provider, for example:

@@ -241,7 +241,9 @@ Bank and mobile-money destinations are internal payment-recording options unless
 
 ## Background processing
 
-Low-stock email is queued after commit on the configured Laravel queue connection. A continuously running queue worker is required in deployed environments. Delivery is attempted up to three times with backoff before the failed job is recorded and the notification cycle is released for a later stock-change retry. No scheduled application task is currently confirmed in this document.
+Low-stock email is queued after commit on the configured Laravel queue connection. A continuously running queue worker is required in deployed environments. Delivery is attempted up to three times with backoff before the failed job is recorded and the notification cycle is released for a later stock-change retry.
+
+The scheduler also queues a weekly low-stock digest each Monday at 08:00 in the application timezone. This is independent of the stock-change notification cycle. `ScheduledReminderService` rechecks current stock before delivery and records queued, sent, skipped, or failed outcomes in `scheduled_email_reminders`. See `docs/SCHEDULED_EMAIL_REMINDERS.md` for worker/scheduler operation and the pending payment-reminder rules.
 
 <!-- INACTIVE: Laravel queues process reports, imports, notifications, or other background jobs. When activated, document the queue driver, jobs, retries, timeouts, and failed-job handling. -->
 <!-- INACTIVE: Laravel Scheduler runs recurring tasks. When activated, list each scheduled command, frequency, purpose, and failure-monitoring process. -->
