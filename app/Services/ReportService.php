@@ -9,7 +9,8 @@ use Illuminate\Support\Collection;
 class ReportService
 {
     public function __construct(
-        private readonly ReportRepository $reports
+        private readonly ReportRepository $reports,
+        private readonly DiscountPolicyService $discountPolicy
     ) {}
 
     public function currentStockBySite(array $filters = []): Collection
@@ -29,7 +30,7 @@ class ReportService
 
     public function stockValuation(array $filters = []): Collection
     {
-        return $this->reports->stockValuation($filters);
+        return $this->reports->stockValuation($filters, $this->discountPolicy->maximumDiscountPercentage());
     }
 
     public function mostSellingProducts(array $filters = []): Collection
@@ -94,7 +95,10 @@ class ReportService
 
     public function fullFieldReportRows(string $reportType, array $filters = []): Collection
     {
-        return $this->reports->fullFieldReportRows($reportType, $filters);
+        return $this->reports->fullFieldReportRows($reportType, [
+            ...$filters,
+            'maximum_discount_percentage' => $this->discountPolicy->maximumDiscountPercentage(),
+        ]);
     }
 
     public function normalizeReportType(string $reportType): string
@@ -190,8 +194,10 @@ class ReportService
                 'available_quantity' => 'Available',
                 'unit_purchase_cost' => 'Unit cost',
                 'unit_selling_price' => 'Selling price',
+                'minimum_selling_price' => 'Product minimum',
+                'minimum_authorized_price' => 'Lowest authorized price',
                 'stock_cost_value' => 'Stock value',
-                'potential_sales_value' => 'Sales value',
+                'potential_sales_value' => 'Lowest authorized sales value',
             ],
             'creditors', 'creditor-report', 'creditor-balances' => [
                 'document_number' => 'Purchase',

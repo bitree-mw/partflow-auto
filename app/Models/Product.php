@@ -28,6 +28,7 @@ class Product extends Model
         'pos_description',
         'default_purchase_price',
         'default_selling_price',
+        'minimum_selling_price',
         'default_low_stock_level',
         'unit_name',
         'pack_size',
@@ -39,6 +40,7 @@ class Product extends Model
         return [
             'default_purchase_price' => 'decimal:2',
             'default_selling_price' => 'decimal:2',
+            'minimum_selling_price' => 'decimal:2',
             'pack_size' => 'decimal:2',
             'default_low_stock_level' => 'integer',
             'is_active' => 'boolean',

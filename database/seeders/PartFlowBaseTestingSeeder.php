@@ -263,6 +263,7 @@ class PartFlowBaseTestingSeeder extends Seeder
                     'pos_description' => null,
                     'default_purchase_price' => 0,
                     'default_selling_price' => $record['sale'],
+                    'minimum_selling_price' => round($record['sale'] * 0.8, 2),
                     'default_low_stock_level' => $record['low'],
                     'unit_name' => 'Each',
                     'pack_size' => 1,

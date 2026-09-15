@@ -116,24 +116,31 @@
 
                 <div class="form-field">
                     <label for="default_selling_price">Selling price</label>
-                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price', $product->default_selling_price) }}">
+                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price', $product->default_selling_price) }}" data-product-selling-price>
                     <x-form-error name="default_selling_price" />
                 </div>
 
                 <div class="form-field">
+                    <label for="minimum_selling_price">Minimum selling price</label>
+                    <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price', $product->minimum_selling_price) }}" aria-describedby="minimum-selling-price-help" data-product-minimum-price>
+                    <small id="minimum-selling-price-help">This is the lowest price allowed after all discounts.</small>
+                    <x-form-error name="minimum_selling_price" />
+                </div>
+
+                <div class="form-field catalog-low-stock-field">
                     <label for="default_low_stock_level">Low stock level</label>
                     <input class="form-control" id="default_low_stock_level" name="default_low_stock_level" type="number" min="0" value="{{ old('default_low_stock_level', $product->default_low_stock_level) }}">
                     <x-form-error name="default_low_stock_level" />
                 </div>
 
-                <div class="form-field">
+                <div class="form-field catalog-pack-size-field">
                     <label for="pack_size">Pack size</label>
                     <input class="form-control" id="pack_size" name="pack_size" type="number" min="0.01" step="0.01" value="{{ old('pack_size', $product->pack_size) }}">
                     <x-form-error name="pack_size" />
                 </div>
 
                 <input type="hidden" name="is_active" value="0">
-                <label class="checkbox-field full">
+                <label class="checkbox-field full catalog-active-toggle">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $product->is_active))>
                     Active
                 </label>

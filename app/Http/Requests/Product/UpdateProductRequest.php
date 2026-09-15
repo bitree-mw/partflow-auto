@@ -84,6 +84,12 @@ class UpdateProductRequest extends ApiRequest
                 'min:0',
             ],
 
+            'minimum_selling_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
             'default_low_stock_level' => [
                 'nullable',
                 'integer',

@@ -155,6 +155,7 @@ Exact verbs and paths require approval. When implemented, each action should:
 
 - Never trust client-provided stock balances, subtotals, VAT, discounts, totals, or outstanding balances.
 - Recalculate authoritative values on the server.
+- Sale pricing uses the current catalogue selling price and trusted cost/tax data. Discounts may not exceed the admin percentage cap or reduce a product below its minimum selling price.
 - Check stock for the correct site at the time of the committed operation.
 - Use transactions for purchases, transfers, sales, stock adjustments, debts, and payments.
 - Use locking or another documented concurrency strategy where simultaneous operations can oversell stock.

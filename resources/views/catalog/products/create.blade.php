@@ -101,17 +101,24 @@
 
                 <div class="form-field">
                     <label for="default_selling_price">Selling price</label>
-                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500">
+                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500" data-product-selling-price>
                     <x-form-error name="default_selling_price" />
                 </div>
 
                 <div class="form-field">
+                    <label for="minimum_selling_price">Minimum selling price</label>
+                    <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price') }}" placeholder="26000" aria-describedby="minimum-selling-price-help" data-product-minimum-price>
+                    <small id="minimum-selling-price-help">Defaults to 20% below the selling price. This is the product's absolute sales floor.</small>
+                    <x-form-error name="minimum_selling_price" />
+                </div>
+
+                <div class="form-field catalog-low-stock-field">
                     <label for="default_low_stock_level">Low stock level</label>
                     <input class="form-control" id="default_low_stock_level" name="default_low_stock_level" type="number" min="0" value="{{ old('default_low_stock_level') }}" placeholder="5">
                     <x-form-error name="default_low_stock_level" />
                 </div>
 
-                <div class="form-field">
+                <div class="form-field catalog-pack-size-field">
                     <label for="pack_size">Pack size</label>
                     <input class="form-control" id="pack_size" name="pack_size" type="number" min="0.01" step="0.01" value="{{ old('pack_size') }}" placeholder="1">
                     <x-form-error name="pack_size" />

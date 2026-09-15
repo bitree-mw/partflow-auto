@@ -26,6 +26,10 @@ class SystemConfigurationService
             'default_branch' => $this->setting('default_branch', $defaultSite?->name ?? 'All sites'),
             'stock_costing_method' => $this->setting('stock_costing_method', config('services.partflow.stock_costing_method', 'Last purchase cost')),
             'low_stock_policy' => $this->setting('low_stock_policy', 'Use product default unless branch override exists'),
+            'maximum_discount_percentage' => (float) $this->setting(
+                'maximum_discount_percentage',
+                DiscountPolicyService::DEFAULT_MAXIMUM_DISCOUNT_PERCENTAGE
+            ),
         ];
     }
 

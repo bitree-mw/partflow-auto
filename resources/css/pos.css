@@ -720,6 +720,46 @@
         line-height: 1;
     }
 
+    .checkout-discount-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        align-items: end;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .checkout-discount-feedback {
+        display: grid;
+        gap: 3px;
+        color: #5c6558;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .checkout-discount-feedback span {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .checkout-discount-feedback strong {
+        color: #20261f;
+        text-align: right;
+    }
+
+    .checkout-discount-feedback.is-invalid,
+    .checkout-discount-feedback.is-invalid strong {
+        color: #991b1b;
+    }
+
+    .checkout-discount-panel input[aria-invalid="true"] {
+        border-color: #dc2626;
+        outline: 2px solid rgb(220 38 38 / 16%);
+    }
+
     .checkout-actions {
         display: grid;
         grid-template-columns: 1fr;
@@ -738,6 +778,11 @@
     .checkout-actions .pay-button strong {
         color: inherit;
         font-weight: inherit;
+    }
+
+    .checkout-actions .pay-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
     }
 
     .pos-dialog-open {

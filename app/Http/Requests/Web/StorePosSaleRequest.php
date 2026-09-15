@@ -31,6 +31,7 @@ class StorePosSaleRequest extends FormRequest
             ],
             'document_date' => ['nullable', 'date', 'before_or_equal:now'],
             'cart_payload' => ['required', 'string'],
+            'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_account_id' => [
                 'nullable',
                 'integer',

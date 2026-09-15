@@ -51,8 +51,10 @@ class ReportRepository
             ->get();
     }
 
-    public function stockValuation(array $filters = []): Collection
+    public function stockValuation(array $filters = [], float $maximumDiscountPercentage = 20): Collection
     {
+        $minimumAuthorizedPrice = $this->minimumAuthorizedPriceSql($maximumDiscountPercentage);
+
         return DB::table('site_stocks')
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
@@ -62,7 +64,7 @@ class ReportRepository
             ->when(isset($filters['site_id']), fn ($query) => $query->where('site_stocks.site_id', $filters['site_id']))
             ->when(array_key_exists('site_ids', $filters), fn ($query) => $query->whereIn('site_stocks.site_id', $filters['site_ids']))
             ->selectRaw('sites.id as site_id, sites.name as site_name')
-            ->selectRaw('SUM(site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as stock_value')
+            ->selectRaw("SUM(site_stocks.quantity_on_hand * ({$minimumAuthorizedPrice})) as stock_value")
             ->selectRaw('SUM(site_stocks.quantity_on_hand) as quantity_on_hand')
             ->groupBy('sites.id', 'sites.name')
             ->orderBy('sites.name')
@@ -551,6 +553,10 @@ class ReportRepository
 
     private function stockRows(array $filters = []): Collection
     {
+        $minimumAuthorizedPrice = $this->minimumAuthorizedPriceSql(
+            (float) ($filters['maximum_discount_percentage'] ?? 20)
+        );
+
         return DB::table('site_stocks')
             ->join('sites', 'sites.id', '=', 'site_stocks.site_id')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
@@ -574,10 +580,23 @@ class ReportRepository
                 DB::raw('(site_stocks.quantity_on_hand - site_stocks.reserved_quantity) as available_quantity'),
                 DB::raw('COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0) as unit_purchase_cost'),
                 DB::raw('COALESCE(products.default_selling_price, 0) as unit_selling_price'),
+                DB::raw('COALESCE(products.minimum_selling_price, 0) as minimum_selling_price'),
+                DB::raw("({$minimumAuthorizedPrice}) as minimum_authorized_price"),
                 DB::raw('site_stocks.quantity_on_hand * COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0) as stock_cost_value'),
-                DB::raw('site_stocks.quantity_on_hand * COALESCE(products.default_selling_price, 0) as potential_sales_value'),
-                DB::raw('site_stocks.quantity_on_hand * (COALESCE(products.default_selling_price, 0) - COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as potential_gross_margin'),
+                DB::raw("site_stocks.quantity_on_hand * ({$minimumAuthorizedPrice}) as potential_sales_value"),
+                DB::raw("site_stocks.quantity_on_hand * (({$minimumAuthorizedPrice}) - COALESCE(latest_purchase_costs.unit_cost, products.default_purchase_price, 0)) as potential_gross_margin"),
             ]);
+    }
+
+    private function minimumAuthorizedPriceSql(float $maximumDiscountPercentage): string
+    {
+        $percentage = max(0, min(100, $maximumDiscountPercentage));
+        $factor = number_format(1 - ($percentage / 100), 6, '.', '');
+        $sellingPrice = 'COALESCE(products.default_selling_price, 0)';
+        $productMinimum = "CASE WHEN COALESCE(products.minimum_selling_price, 0) > {$sellingPrice} THEN {$sellingPrice} ELSE COALESCE(products.minimum_selling_price, 0) END";
+        $adminMinimum = "{$sellingPrice} * {$factor}";
+
+        return "CASE WHEN ({$productMinimum}) > ({$adminMinimum}) THEN ({$productMinimum}) ELSE ({$adminMinimum}) END";
     }
 
     private function latestPurchaseCostSubquery()

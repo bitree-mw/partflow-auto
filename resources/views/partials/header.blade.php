@@ -12,7 +12,7 @@
         <span aria-hidden="true"></span>
     </button>
 
-    <div>
+    <div class="header-copy">
         <p class="eyebrow">{{ $kicker }}</p>
         <h1>{{ $title }}</h1>
         @if (! empty($description))
@@ -25,8 +25,8 @@
         </p>
     </div>
 
-    <div class="header-actions">
-        @if (auth()->user()?->hasPermission('catalogue.view'))
+    <div @class(['header-actions', 'has-dashboard-search' => request()->routeIs('web.dashboard')])>
+        @if (request()->routeIs('web.dashboard') && auth()->user()?->hasPermission('catalogue.view'))
             <form class="header-search" method="GET" action="{{ route('web.catalog.products.index') }}" role="search">
                 <label class="sr-only" for="global_catalogue_search">Search parts catalogue</label>
                 <span aria-hidden="true">⌕</span>
@@ -50,12 +50,14 @@
                 data-can-change-directly="{{ ($globalCanChangeSiteDirectly ?? false) ? '1' : '0' }}"
             >
                 @csrf
-                <label for="global_site_id">Branch</label>
-                <select id="global_site_id" name="site_id" data-global-site-selector data-pos-site-selector aria-label="Active selling branch">
-                    @foreach ($globalSiteOptions as $site)
-                        <option value="{{ $site['id'] }}" @selected((int) $site['id'] === (int) ($globalCurrentSiteId ?? 0))>{{ $site['label'] }}</option>
-                    @endforeach
-                </select>
+                <div class="header-branch-field">
+                    <label for="global_site_id">Branch</label>
+                    <select id="global_site_id" name="site_id" data-global-site-selector data-pos-site-selector aria-label="Active selling branch">
+                        @foreach ($globalSiteOptions as $site)
+                            <option value="{{ $site['id'] }}" @selected((int) $site['id'] === (int) ($globalCurrentSiteId ?? 0))>{{ $site['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <input type="password" name="admin_password" placeholder="Admin password" autocomplete="current-password" data-global-site-password hidden>
                 <button type="submit" class="btn-secondary" data-global-site-submit hidden>Change</button>
                 <span data-global-site-error hidden></span>

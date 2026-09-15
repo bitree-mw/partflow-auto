@@ -64,6 +64,7 @@ class DashboardTodaySalesFromPosTest extends TestCase
                 'MWK 500',
             ], false)
             ->assertSee('dashboard-side-metric', false)
+            ->assertSee('header-branch-field', false)
             ->assertSee('data-dashboard-live', false)
             ->assertSee(route('web.dashboard.live'), false);
 
@@ -71,6 +72,12 @@ class DashboardTodaySalesFromPosTest extends TestCase
             '.insight-panel.dashboard-side-metric',
             file_get_contents(resource_path('css/dashboard.css')),
             'The dashboard card selector must outrank the later generic insight-panel theme rule.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/\.header-branch-field\s*\{[^}]*display:\s*inline-flex;[^}]*flex:\s*0 0 auto;[^}]*align-items:\s*center;/s',
+            file_get_contents(resource_path('css/back-office.css')),
+            'The header branch label and selector must remain inline.'
         );
 
         $this->getJson(route('web.dashboard.live'))

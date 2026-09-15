@@ -232,11 +232,23 @@
     }
 
     .app-header {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(0, auto);
+        column-gap: 24px;
         min-height: 84px;
         padding: 14px 28px;
         border-bottom-color: var(--pf-border);
         background: var(--pf-surface);
         backdrop-filter: none;
+    }
+
+    .header-copy {
+        min-width: 0;
+    }
+
+    .header-copy > p:not(.eyebrow):not(.header-system-context) {
+        max-width: 68ch;
+        line-height: 1.4;
     }
 
     .app-header h1 {
@@ -257,9 +269,14 @@
     }
 
     .header-actions {
-        flex: 1 1 auto;
+        min-width: 0;
+        max-width: none;
+        flex: 0 1 auto;
         flex-wrap: nowrap;
-        max-width: 820px;
+    }
+
+    .header-actions.has-dashboard-search {
+        width: min(820px, 100%);
     }
 
     .header-actions > :is(.btn, .btn-secondary, .btn-danger) {
@@ -449,6 +466,11 @@
         padding: 24px 34px 36px;
     }
 
+    .content-shell > :not(dialog) {
+        min-width: 0;
+        max-width: 100%;
+    }
+
     .data-panel,
     .form-panel,
     .detail-panel,
@@ -466,6 +488,7 @@
     .site-workflow-panel,
     .catalogue-model-window,
     .payment-account-card {
+        min-width: 0;
         border-color: var(--pf-border);
         border-radius: var(--pf-radius-md);
         background: var(--pf-surface);
@@ -1064,7 +1087,7 @@
     }
 
     @media (max-width: 1380px) {
-        .header-actions {
+        .header-actions.has-dashboard-search {
             flex-wrap: wrap;
         }
 

@@ -2,15 +2,15 @@
 
 ## Purpose
 
-This document records the schema and integrity rules verified in the current repository working tree on 2026-08-16. Requirements that are not implemented are explicitly labelled planned or requiring clarification.
+This document records the schema and integrity rules verified in the current repository working tree on 2026-09-15. Requirements that are not implemented are explicitly labelled planned or requiring clarification.
 
 ## Database environment
 
-- Application target: MySQL configured in `config/database.php`; deployed server version is not verified.
+- Application target: MySQL configured in `config/database.php`; the reviewed local server is MySQL 9.7.1, while the deployed server version is not verified.
 - Default connection in configuration: SQLite unless `DB_CONNECTION` overrides it.
-- MySQL charset/collation: `utf8mb4` / `utf8mb4_unicode_ci`.
+- MySQL configuration defaults: `utf8mb4` / `utf8mb4_unicode_ci`; the reviewed local database reports `utf8mb4` / `utf8mb4_0900_ai_ci`.
 - Automated test database: SQLite `:memory:` from `phpunit.xml`.
-- Application runtime: PHP 8.4 locally; Composer permits PHP `^8.2`.
+- Application runtime: PHP 8.4.25 and Laravel 12.62.0 locally; Composer permits PHP `^8.2` and Laravel `^12.0`.
 - Money: recommended `decimal(15,2)` unless the existing schema has an approved alternative.
 - Quantities: integers for indivisible parts, or an approved decimal precision where measured stock is supported.
 
@@ -51,7 +51,7 @@ The schema contains `car_makes`/`vehicle_models` reference data, product-facing 
 
 ### Part catalogue
 
-`products` stores a unique code, name/description, product type, brand, fuel type, origin, units/pack size, default purchase/selling price, tax profile, low-stock threshold, active state, and optional primary car model. References and compatibility are separate related tables.
+`products` stores a unique code, name/description, product type, brand, fuel type, origin, units/pack size, default purchase/selling price, minimum selling price, tax profile, low-stock threshold, active state, and optional primary car model. New products default the minimum selling price to 80% of the selling price; references and compatibility are separate related tables.
 
 ### Suppliers and purchases
 
@@ -75,7 +75,7 @@ Transfers use generic inventory documents with source/destination and items. A c
 
 ### Sales and POS
 
-Sales use inventory-document headers/items and preserve site, cashier, optional customer, quantity, selling price, cost snapshot, discount, VAT, totals, payment status, and completion state. Completed sale creation and its stock/payment effects are transactional.
+Sales use inventory-document headers/items and preserve site, cashier, optional customer, quantity, trusted selling-price and cost snapshots, discount, VAT, totals, payment status, and completion state. The stricter of the admin maximum discount percentage and product minimum selling price is enforced during transactional sale creation. Completed sale creation and its stock/payment effects are transactional.
 
 ### Customers, debtors, and payments
 

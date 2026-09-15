@@ -187,6 +187,26 @@
         border-radius: 18px;
     }
 
+    .catalog-form .catalog-low-stock-field,
+    .catalog-form .catalog-pack-size-field {
+        align-self: start;
+    }
+
+    .catalog-form .catalog-low-stock-field {
+        grid-column: 1;
+    }
+
+    .catalog-form .catalog-pack-size-field {
+        grid-column: 2;
+    }
+
+    .catalog-form .catalog-active-toggle {
+        grid-column: 1;
+        align-self: start;
+        justify-self: start;
+        margin-top: 2px;
+    }
+
     .site-summary {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }

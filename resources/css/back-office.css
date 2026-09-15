@@ -283,6 +283,15 @@
         max-width: 520px;
     }
 
+    .header-branch-field {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 7px;
+        min-height: 42px;
+        white-space: nowrap;
+    }
+
     .header-branch-switcher label {
         color: #6b7280;
         font-size: 10px;
@@ -745,6 +754,7 @@
         background: #e5e7eb;
         font-size: 12px;
         font-weight: 900;
+        white-space: nowrap;
     }
 
     .status-pill.success {

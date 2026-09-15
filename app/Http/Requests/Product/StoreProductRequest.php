@@ -75,6 +75,13 @@ class StoreProductRequest extends ApiRequest
                 'min:0',
             ],
 
+            'minimum_selling_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'lte:default_selling_price',
+            ],
+
             'default_low_stock_level' => [
                 'nullable',
                 'integer',

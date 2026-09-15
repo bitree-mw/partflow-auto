@@ -28,6 +28,7 @@ class SaveBusinessSettingsRequest extends FormRequest
             'default_branch' => ['nullable', 'string', 'max:255'],
             'stock_costing_method' => ['nullable', 'string', 'max:100'],
             'low_stock_policy' => ['nullable', 'string', 'max:255'],
+            'maximum_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'settings_panel' => ['nullable', 'string', 'max:80'],
         ];
     }

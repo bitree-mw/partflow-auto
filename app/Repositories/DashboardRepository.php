@@ -56,7 +56,21 @@ class DashboardRepository
             ->sum('inventory_document_items.profit_amount');
     }
 
-    public function totalStockValue(?int $siteId = null, ?array $siteIds = null): float
+    public function totalStockValue(
+        ?int $siteId = null,
+        ?array $siteIds = null,
+        float $maximumDiscountPercentage = 20
+    ): float {
+        $minimumAuthorizedPrice = $this->minimumAuthorizedPriceSql($maximumDiscountPercentage);
+
+        return (float) DB::table('site_stocks')
+            ->join('products', 'products.id', '=', 'site_stocks.product_id')
+            ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
+            ->when($siteIds !== null, fn ($query) => $query->whereIn('site_stocks.site_id', $siteIds))
+            ->sum(DB::raw("site_stocks.quantity_on_hand * ({$minimumAuthorizedPrice})"));
+    }
+
+    public function totalStockCostValue(?int $siteId = null, ?array $siteIds = null): float
     {
         return (float) DB::table('site_stocks')
             ->join('products', 'products.id', '=', 'site_stocks.product_id')
@@ -75,6 +89,17 @@ class DashboardRepository
             ->when($siteId, fn ($query) => $query->where('site_stocks.site_id', $siteId))
             ->when($siteIds !== null, fn ($query) => $query->whereIn('site_stocks.site_id', $siteIds))
             ->sum(DB::raw('site_stocks.quantity_on_hand * COALESCE(products.default_selling_price, 0)'));
+    }
+
+    private function minimumAuthorizedPriceSql(float $maximumDiscountPercentage): string
+    {
+        $percentage = max(0, min(100, $maximumDiscountPercentage));
+        $factor = number_format(1 - ($percentage / 100), 6, '.', '');
+        $sellingPrice = 'COALESCE(products.default_selling_price, 0)';
+        $productMinimum = "CASE WHEN COALESCE(products.minimum_selling_price, 0) > {$sellingPrice} THEN {$sellingPrice} ELSE COALESCE(products.minimum_selling_price, 0) END";
+        $adminMinimum = "{$sellingPrice} * {$factor}";
+
+        return "CASE WHEN ({$productMinimum}) > ({$adminMinimum}) THEN ({$productMinimum}) ELSE ({$adminMinimum}) END";
     }
 
     public function lowStockCount(?int $siteId = null, ?array $siteIds = null): int

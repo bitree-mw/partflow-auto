@@ -28,6 +28,7 @@ class PosProductResource extends JsonResource
             'reserved_quantity' => $this->reserved_quantity,
             'available_quantity' => $this->available_quantity,
             'selling_price' => $sellingPrice,
+            'minimum_selling_price' => (float) $product->minimum_selling_price,
             'unit_cost' => $unitCost,
             'margin' => $sellingPrice - $unitCost,
             'product_type' => $product->productType ? [

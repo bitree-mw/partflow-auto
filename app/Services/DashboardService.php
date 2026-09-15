@@ -66,11 +66,13 @@ class DashboardService
     {
         $siteId = $this->siteId($filters);
         $siteIds = $filters['site_ids'] ?? null;
+        $maximumDiscountPercentage = $this->systemConfiguration->settings()['maximum_discount_percentage'];
 
         return [
             'today_sales' => $this->dashboard->todaySales($siteId, $siteIds),
             'today_profit' => $this->dashboard->todayProfit($siteId, $siteIds),
-            'total_stock_value' => $this->dashboard->totalStockValue($siteId, $siteIds),
+            'total_stock_value' => $this->dashboard->totalStockValue($siteId, $siteIds, $maximumDiscountPercentage),
+            'total_stock_cost_value' => $this->dashboard->totalStockCostValue($siteId, $siteIds),
             'low_stock_count' => $this->dashboard->lowStockCount($siteId, $siteIds),
             'out_of_stock_count' => $this->dashboard->outOfStockCount($siteId, $siteIds),
             'outstanding_customer_balances' => $this->dashboard->outstandingCustomerBalances($siteId, $siteIds),
@@ -189,8 +191,9 @@ class DashboardService
             'branchSalesMix' => $this->branchSalesMix($branchPerformance),
             'inventoryValueComparison' => $this->inventoryValueComparison(
                 $currency,
+                (float) $summary['total_stock_cost_value'],
                 (float) $summary['total_stock_value'],
-                $this->dashboard->totalStockRetailValue($siteId, $siteIds)
+                (float) $this->systemConfiguration->settings()['maximum_discount_percentage']
             ),
             'balanceExposureComparison' => $this->balanceExposureComparison(
                 $currency,
@@ -275,9 +278,13 @@ class DashboardService
             ->values();
     }
 
-    private function inventoryValueComparison(string $currency, float $costValue, float $retailValue): Collection
-    {
-        $maximum = max($costValue, $retailValue, 1);
+    private function inventoryValueComparison(
+        string $currency,
+        float $costValue,
+        float $minimumAuthorizedValue,
+        float $maximumDiscountPercentage
+    ): Collection {
+        $maximum = max($costValue, $minimumAuthorizedValue, 1);
 
         return collect([
             [
@@ -287,9 +294,9 @@ class DashboardService
                 'tone' => 'neutral',
             ],
             [
-                'label' => 'At selling price',
-                'value' => $this->formatCurrency($retailValue, $currency, true),
-                'width' => $this->comparisonWidth($retailValue, $maximum),
+                'label' => 'Lowest authorized value (max '.number_format($maximumDiscountPercentage, 2).'%)',
+                'value' => $this->formatCurrency($minimumAuthorizedValue, $currency, true),
+                'width' => $this->comparisonWidth($minimumAuthorizedValue, $maximum),
                 'tone' => 'primary',
             ],
         ]);

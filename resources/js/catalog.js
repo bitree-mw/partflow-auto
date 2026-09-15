@@ -165,6 +165,29 @@ function initCarModelPickers(root = document) {
 
 initCarModelPickers();
 
+const productSellingPrice = document.querySelector('[data-product-selling-price]');
+const productMinimumPrice = document.querySelector('[data-product-minimum-price]');
+
+if (productSellingPrice && productMinimumPrice) {
+    const suggestedMinimum = () => Math.round((Number(productSellingPrice.value) || 0) * 80) / 100;
+    const initialMinimum = Number(productMinimumPrice.value);
+    const initialSuggestedMinimum = suggestedMinimum();
+    let minimumWasManuallyEdited = productMinimumPrice.value !== ''
+        && Math.abs(initialMinimum - initialSuggestedMinimum) > 0.009;
+
+    const syncSuggestedMinimum = () => {
+        if (!minimumWasManuallyEdited) {
+            productMinimumPrice.value = suggestedMinimum().toFixed(2);
+        }
+    };
+
+    productMinimumPrice.addEventListener('input', () => {
+        minimumWasManuallyEdited = productMinimumPrice.value !== '';
+    });
+    productSellingPrice.addEventListener('input', syncSuggestedMinimum);
+    syncSuggestedMinimum();
+}
+
 function initProductTypePicker(picker) {
     if (productTypePickers.has(picker)) {
         return;

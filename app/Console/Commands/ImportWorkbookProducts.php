@@ -199,8 +199,7 @@ class ImportWorkbookProducts extends Command
             }
 
             $hasSourceReference = collect($row['references'])->contains(
-                fn (array $reference): bool =>
-                    $reference['reference_type'] === 'other' &&
+                fn (array $reference): bool => $reference['reference_type'] === 'other' &&
                     strtoupper($reference['reference_value']) === $sourceKey
             );
 
@@ -384,6 +383,7 @@ class ImportWorkbookProducts extends Command
                 ->firstOrFail();
 
             $this->productService->update($product, [
+                'product_code' => null,
                 'product_name' => $row['product_name'],
                 'car_model_id' => null,
                 'product_type_id' => $productType->id,

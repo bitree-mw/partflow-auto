@@ -19,6 +19,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\UserSiteAccess;
 use App\Models\VehicleModel;
+use App\Repositories\DashboardRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -203,8 +204,8 @@ class ExampleTest extends TestCase
             'low_stock_level' => 5,
         ]);
 
-        $this->assertSame(1, app(\App\Repositories\DashboardRepository::class)->lowStockCount($site->id));
-        $this->assertSame(1, app(\App\Repositories\DashboardRepository::class)->outOfStockCount($site->id));
+        $this->assertSame(1, app(DashboardRepository::class)->lowStockCount($site->id));
+        $this->assertSame(1, app(DashboardRepository::class)->outOfStockCount($site->id));
 
         InventoryDocument::create([
             'document_number' => 'SALE-DASHBOARD-CURRENT',
@@ -333,6 +334,23 @@ class ExampleTest extends TestCase
             ->assertSee('value="30" selected', false)
             ->assertSee(route('web.catalog.products.index', ['site_id' => $site->id, 'stock_status' => 'out']))
             ->assertSee(route('web.alerts.index', ['site_id' => $site->id]));
+    }
+
+    public function test_global_catalogue_search_is_only_rendered_on_the_dashboard(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->get(route('web.dashboard'))
+            ->assertOk()
+            ->assertSee('global_catalogue_search', false);
+
+        $this->get(route('web.purchases.index'))
+            ->assertOk()
+            ->assertDontSee('global_catalogue_search', false);
+
+        $this->get(route('web.catalog.products.index'))
+            ->assertOk()
+            ->assertDontSee('global_catalogue_search', false);
     }
 
     public function test_reports_page_and_full_csv_exports_use_the_selected_filters(): void
@@ -850,6 +868,80 @@ class ExampleTest extends TestCase
         $this->assertSame('Malawi', $product->part_country_of_origin);
     }
 
+    public function test_product_classification_changes_regenerate_the_code_without_breaking_references(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $unknownBrand = Brand::create([
+            'name' => 'Unknown',
+            'code' => 'UNKN',
+            'is_active' => true,
+        ]);
+        $dubaiBrand = Brand::create([
+            'name' => 'Confirmed Dubai Brand',
+            'code' => 'DUBA',
+            'country' => 'Dubai',
+            'is_active' => true,
+        ]);
+        $productType = ProductType::create([
+            'name' => 'Brake Pad',
+            'code' => 'BP',
+            'is_active' => true,
+        ]);
+        $site = Site::create([
+            'name' => 'Reference Warehouse',
+            'code' => 'REF',
+            'type' => 'warehouse',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'product_code' => 'BP-UNKN-UNK-001',
+            'product_name' => 'Tracked Brake Pad',
+            'product_type_id' => $productType->id,
+            'brand_id' => $unknownBrand->id,
+            'default_selling_price' => 25000,
+            'default_low_stock_level' => 2,
+            'pack_size' => 1,
+            'is_active' => true,
+        ]);
+        $reference = $product->references()->create([
+            'reference_type' => 'oem_number',
+            'reference_value' => 'OEM-TRACKED-1',
+            'is_primary' => true,
+        ]);
+        $stock = SiteStock::create([
+            'product_id' => $product->id,
+            'site_id' => $site->id,
+            'quantity_on_hand' => 6,
+            'reserved_quantity' => 0,
+            'low_stock_level' => 2,
+        ]);
+        $originalId = $product->id;
+        $originalCode = $product->product_code;
+
+        $this->put(route('web.catalog.products.update', $product), [
+            'product_code' => $originalCode,
+            'product_name' => $product->product_name,
+            'product_type_id' => $productType->id,
+            'brand_id' => $dubaiBrand->id,
+            'part_country_of_origin' => 'Dubai',
+            'default_selling_price' => 25000,
+            'default_low_stock_level' => 2,
+            'pack_size' => 1,
+            'is_active' => 1,
+        ])->assertRedirect(route('web.catalog.products.index'));
+
+        $product->refresh();
+
+        $this->assertSame($originalId, $product->id);
+        $this->assertNotSame($originalCode, $product->product_code);
+        $this->assertStringStartsWith('BP-DUBA-DXB-', $product->product_code);
+        $this->assertSame($dubaiBrand->id, $product->brand_id);
+        $this->assertSame('Dubai', $product->part_country_of_origin);
+        $this->assertDatabaseHas('product_references', ['id' => $reference->id, 'product_id' => $originalId]);
+        $this->assertDatabaseHas('site_stocks', ['id' => $stock->id, 'product_id' => $originalId, 'quantity_on_hand' => 6]);
+    }
+
     public function test_product_forms_use_confirmation_for_edits_and_deactivation(): void
     {
         $this->actingAs($this->adminUser());
@@ -938,6 +1030,12 @@ class ExampleTest extends TestCase
             ->assertSee('status-pill danger', false)
             ->assertSee('status-pill inactive', false)
             ->assertSee('Low stock level: 10');
+
+        $this->assertMatchesRegularExpression(
+            '/\.status-pill\s*\{[^}]*white-space:\s*nowrap;/s',
+            file_get_contents(resource_path('css/back-office.css')),
+            'Status pills must keep their labels on one line.'
+        );
 
         $this->assertCount(4, $products);
     }

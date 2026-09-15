@@ -18,6 +18,11 @@ const subtotalLabel = document.querySelector('[data-subtotal]');
 const totalDueLabel = document.querySelector('[data-total-due]');
 const cartPayload = document.querySelector('[data-cart-payload]');
 const amountPaidInput = document.querySelector('[data-pos-amount-paid]');
+const discountInput = document.querySelector('[data-pos-discount-amount]');
+const discountPercentageLabel = document.querySelector('[data-discount-percentage]');
+const discountLimitLabel = document.querySelector('[data-discount-limit]');
+const discountFeedback = document.querySelector('[data-pos-discount-feedback]');
+const saleTotalLabel = document.querySelector('[data-sale-total]');
 const checkoutForm = document.querySelector('[data-pos-checkout-form]');
 const completeSaleButton = document.querySelector('[data-complete-sale]');
 const completeSaleTotalLabel = document.querySelector('[data-complete-sale-total]');
@@ -45,6 +50,7 @@ let currentSaleTotal = 0;
 let amountPaidEdited = false;
 let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
 let vehicleOptions = new Map();
+const configuredMaximumDiscountPercentage = Math.max(0, Number(endpoints.maximumDiscountPercentage) || 0);
 
 function formatCurrency(value) {
     return `MWK ${Math.round(value).toLocaleString('en-US')}`;
@@ -507,6 +513,8 @@ function addProductToCart(product) {
             quantity: 1,
             available_quantity: availableQuantity,
             unit_price: Number(product.selling_price) || 0,
+            minimum_authorized_price: Number(product.minimum_authorized_price) || 0,
+            maximum_discount_percentage: Number(product.maximum_discount_percentage) || 0,
         });
     }
 
@@ -629,7 +637,6 @@ function updateCartPayload() {
         cartPayload.value = JSON.stringify(cartItems.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
-            unit_price: item.unit_price,
         })));
         cartPayload.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -637,10 +644,44 @@ function updateCartPayload() {
 
 function updateTotals() {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-    currentSaleTotal = subtotal;
+    const discountAmount = Math.max(0, parseCurrency(discountInput?.value || 0));
+    const discountPercentage = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
+    const productLimit = cartItems.length > 0
+        ? Math.min(...cartItems.map((item) => Math.max(0, Number(item.maximum_discount_percentage) || 0)))
+        : configuredMaximumDiscountPercentage;
+    const maximumDiscountPercentage = Math.min(configuredMaximumDiscountPercentage, productLimit);
+    const maximumDiscountAmount = Math.round((subtotal * maximumDiscountPercentage / 100) * 100) / 100;
+    const exceedsDiscountLimit = discountAmount > maximumDiscountAmount + 0.009;
+
+    currentSaleTotal = Math.max(0, subtotal - discountAmount);
 
     if (subtotalLabel) {
         subtotalLabel.textContent = formatCurrency(subtotal);
+    }
+
+    if (discountInput) {
+        discountInput.max = maximumDiscountAmount.toFixed(2);
+        discountInput.setAttribute('aria-invalid', exceedsDiscountLimit ? 'true' : 'false');
+    }
+
+    if (discountPercentageLabel) {
+        discountPercentageLabel.textContent = `${discountPercentage.toFixed(2)}%`;
+    }
+
+    if (discountLimitLabel) {
+        discountLimitLabel.textContent = `${maximumDiscountPercentage.toFixed(2)}% (${formatCurrency(maximumDiscountAmount)})`;
+    }
+
+    if (discountFeedback) {
+        discountFeedback.classList.toggle('is-invalid', exceedsDiscountLimit);
+    }
+
+    if (saleTotalLabel) {
+        saleTotalLabel.textContent = formatCurrency(currentSaleTotal);
+    }
+
+    if (completeSaleButton) {
+        completeSaleButton.disabled = exceedsDiscountLimit;
     }
 
     if (amountPaidInput && !amountPaidEdited) {
@@ -669,6 +710,9 @@ function updatePaymentSummary() {
 function clearCart() {
     cartItems = [];
     amountPaidEdited = false;
+    if (discountInput) {
+        discountInput.value = '0';
+    }
     renderCart();
 }
 
@@ -815,6 +859,11 @@ checkoutForm?.addEventListener('submit', async (event) => {
         return;
     }
 
+    if (discountInput?.getAttribute('aria-invalid') === 'true') {
+        await showAppAlert('Reduce the discount to the allowed percentage shown at checkout.', { title: 'Discount limit exceeded' });
+        return;
+    }
+
     try {
         const response = await fetch(checkoutForm.action, {
             method: 'POST',
@@ -856,6 +905,8 @@ amountPaidInput?.addEventListener('input', () => {
     amountPaidEdited = true;
     updatePaymentSummary();
 });
+
+discountInput?.addEventListener('input', updateTotals);
 
 renderProductCards();
 renderCart();

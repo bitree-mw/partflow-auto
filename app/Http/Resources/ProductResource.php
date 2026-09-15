@@ -48,6 +48,7 @@ class ProductResource extends JsonResource
 
             'default_purchase_price' => (float) $this->default_purchase_price,
             'default_selling_price' => (float) $this->default_selling_price,
+            'minimum_selling_price' => (float) $this->minimum_selling_price,
             'default_low_stock_level' => $this->default_low_stock_level,
 
             'unit_name' => $this->unit_name,

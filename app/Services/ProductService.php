@@ -15,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class ProductService
 {
+    public function __construct(
+        private readonly DiscountPolicyService $discountPolicy
+    ) {}
+
     public function list(array $filters = []): Collection
     {
         return Product::query()
@@ -61,6 +65,7 @@ class ProductService
     public function create(array $data): Product
     {
         return DB::transaction(function () use ($data) {
+            $data = $this->withValidatedPricing($data);
             $data['brand_id'] = $data['brand_id'] ?? $this->unknownBrandId();
             $data['part_country_of_origin'] = $this->partCountryOfOrigin(
                 (int) $data['brand_id'],
@@ -88,6 +93,7 @@ class ProductService
                 'pos_description' => null,
                 'default_purchase_price' => 0,
                 'default_selling_price' => $data['default_selling_price'] ?? 0,
+                'minimum_selling_price' => $data['minimum_selling_price'],
                 'default_low_stock_level' => $data['default_low_stock_level'] ?? 0,
                 'unit_name' => $data['unit_name'] ?? 'piece',
                 'pack_size' => $data['pack_size'] ?? 1,
@@ -118,20 +124,21 @@ class ProductService
                 );
             }
 
-            $shouldRegenerateCode =
-                empty($data['product_code']) &&
-                (
-                    array_key_exists('car_model_id', $data) ||
-                    array_key_exists('product_type_id', $data) ||
-                    array_key_exists('fuel_type_id', $data) ||
-                    array_key_exists('brand_id', $data) ||
-                    array_key_exists('part_country_of_origin', $data)
+            $submittedProductCode = $data['product_code'] ?? null;
+            $hasManualCodeChange = filled($submittedProductCode)
+                && $this->normalizeManualProductCode((string) $submittedProductCode) !== strtoupper((string) $product->product_code);
+            $shouldRegenerateCode = ! $hasManualCodeChange
+                && (
+                    (array_key_exists('product_code', $data) && blank($submittedProductCode))
+                    || $this->classificationValuesChanged($product, $data)
                 );
 
-            if (! empty($data['product_code'])) {
+            if ($hasManualCodeChange) {
                 $productCode = $this->normalizeManualProductCode($data['product_code']);
                 $this->ensureProductCodeIsAvailable($productCode, $product->id);
                 $data['product_code'] = $productCode;
+            } elseif (array_key_exists('product_code', $data)) {
+                unset($data['product_code']);
             }
 
             if ($shouldRegenerateCode) {
@@ -159,6 +166,7 @@ class ProductService
             }
 
             unset($data['default_purchase_price'], $data['pos_description']);
+            $data = $this->withValidatedPricing($data, $product);
 
             $references = $data['references'] ?? null;
             $compatibilities = $data['compatibilities'] ?? null;
@@ -195,6 +203,33 @@ class ProductService
         $product->delete();
     }
 
+    private function withValidatedPricing(array $data, ?Product $product = null): array
+    {
+        $sellingPriceChanged = array_key_exists('default_selling_price', $data);
+        $sellingPrice = round((float) ($data['default_selling_price'] ?? $product?->default_selling_price ?? 0), 2);
+
+        if (array_key_exists('minimum_selling_price', $data) && filled($data['minimum_selling_price'])) {
+            $minimumSellingPrice = round((float) $data['minimum_selling_price'], 2);
+        } elseif ($sellingPriceChanged || ! $product) {
+            $minimumSellingPrice = $this->discountPolicy->defaultMinimumSellingPrice($sellingPrice);
+        } else {
+            unset($data['minimum_selling_price']);
+
+            return $data;
+        }
+
+        if ($sellingPrice < 0 || $minimumSellingPrice < 0 || $minimumSellingPrice > $sellingPrice) {
+            throw ValidationException::withMessages([
+                'minimum_selling_price' => ['The minimum selling price must be between zero and the selling price.'],
+            ]);
+        }
+
+        $data['default_selling_price'] = $sellingPrice;
+        $data['minimum_selling_price'] = $minimumSellingPrice;
+
+        return $data;
+    }
+
     private function generateProductCode(array $data, ?int $ignoreProductId = null): string
     {
         $carModel = CarModel::find($data['car_model_id'] ?? null);
@@ -229,6 +264,24 @@ class ProductService
             ->toString();
 
         return $code !== '' ? $code : 'PART';
+    }
+
+    private function classificationValuesChanged(Product $product, array $data): bool
+    {
+        foreach (['car_model_id', 'product_type_id', 'fuel_type_id', 'brand_id'] as $field) {
+            if (array_key_exists($field, $data) && (int) ($data[$field] ?? 0) !== (int) ($product->{$field} ?? 0)) {
+                return true;
+            }
+        }
+
+        if (array_key_exists('part_country_of_origin', $data)) {
+            $currentOrigin = mb_strtolower(trim((string) ($product->part_country_of_origin ?? '')));
+            $newOrigin = mb_strtolower(trim((string) ($data['part_country_of_origin'] ?? '')));
+
+            return $currentOrigin !== $newOrigin;
+        }
+
+        return false;
     }
 
     private function brandCodePrefix(?int $brandId): string
@@ -276,6 +329,7 @@ class ProductService
         $country = Str::of($country ?: 'Unknown')->lower()->trim()->toString();
         $codes = [
             'china' => 'CHN',
+            'dubai' => 'DXB',
             'fiji' => 'FJI',
             'germany' => 'DEU',
             'india' => 'IND',

@@ -8,6 +8,7 @@ use App\Http\Requests\Web\StorePosSaleRequest;
 use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
+use App\Services\DiscountPolicyService;
 use App\Services\InventoryDocumentService;
 use App\Services\SiteAccessService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -21,13 +22,15 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\InputBag;
 use Throwable;
 
 class PosController extends Controller
 {
     public function __construct(
         private readonly InventoryDocumentService $inventoryDocumentService,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly DiscountPolicyService $discountPolicy
     ) {}
 
     public function index(Request $request): View
@@ -67,6 +70,7 @@ class PosController extends Controller
                 'productTypes' => route('web.pos.product-types'),
                 'site' => route('web.pos.site'),
                 'canChangeSiteDirectly' => $this->isAdmin($request->user()),
+                'maximumDiscountPercentage' => $this->discountPolicy->maximumDiscountPercentage(),
             ],
         ]);
     }
@@ -117,6 +121,7 @@ class PosController extends Controller
         return response()->json([
             'productTypes' => collect($this->apiCall($request, 'GET', 'product-types', [
                 'search' => $request->query('search'),
+                'is_active' => true,
             ])['data'] ?? [])
                 ->map(fn (array $productType): array => [
                     'id' => $productType['id'] ?? null,
@@ -201,7 +206,7 @@ class PosController extends Controller
 
         $products = Product::query()
             ->whereIn('id', collect($cartData['items'])->pluck('product_id'))
-            ->get(['id', 'default_selling_price'])
+            ->get(['id', 'default_selling_price', 'minimum_selling_price'])
             ->keyBy('id');
 
         $items = collect($cartData['items'])
@@ -220,6 +225,7 @@ class PosController extends Controller
             'contact_id' => $validated['contact_id'] ?? null,
             'document_date' => $documentDate,
             'status' => 'completed',
+            'discount_amount' => (float) ($validated['discount_amount'] ?? 0),
             'items' => $items,
         ];
 
@@ -339,6 +345,8 @@ class PosController extends Controller
         $price = (float) ($primaryStock['selling_price'] ?? 0);
         $cost = (float) ($primaryStock['unit_cost'] ?? 0);
         $margin = (float) ($primaryStock['margin'] ?? ($price - $cost));
+        $minimumSellingPrice = (float) ($primaryStock['minimum_selling_price'] ?? $price);
+        $minimumAuthorizedPrice = $this->discountPolicy->minimumAuthorizedPrice($price, $minimumSellingPrice);
 
         return [
             'id' => $primaryStock['product_id'] ?? null,
@@ -354,6 +362,10 @@ class PosController extends Controller
             'oem_number' => $this->reference($references, 'oem_number'),
             'selling_price' => $price,
             'selling_price_display' => $this->money($price),
+            'minimum_selling_price' => $minimumSellingPrice,
+            'minimum_authorized_price' => $minimumAuthorizedPrice,
+            'minimum_authorized_price_display' => $this->money($minimumAuthorizedPrice),
+            'maximum_discount_percentage' => $this->discountPolicy->maximumDiscountPercentageForPrices($price, $minimumSellingPrice),
             'unit_cost' => $cost,
             'margin_display' => $this->money($margin),
             'tax_profile' => data_get($primaryStock, 'tax_profile.name', 'No tax profile'),
@@ -390,6 +402,10 @@ class PosController extends Controller
             'oem_number' => 'N/A',
             'selling_price' => 0,
             'selling_price_display' => $this->money(0),
+            'minimum_selling_price' => 0,
+            'minimum_authorized_price' => 0,
+            'minimum_authorized_price_display' => $this->money(0),
+            'maximum_discount_percentage' => 0,
             'unit_cost' => 0,
             'margin_display' => $this->money(0),
             'tax_profile' => 'No tax profile',
@@ -565,7 +581,7 @@ class PosController extends Controller
 
         if (! $isGet) {
             $apiRequest->request->replace($payload);
-            $apiRequest->setJson(new \Symfony\Component\HttpFoundation\InputBag($payload));
+            $apiRequest->setJson(new InputBag($payload));
             $apiRequest->merge($payload);
         }
 

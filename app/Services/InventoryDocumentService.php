@@ -17,7 +17,8 @@ class InventoryDocumentService
     public function __construct(
         private readonly StockMovementService $stockMovementService,
         private readonly PaymentService $paymentService,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly DiscountPolicyService $discountPolicy
     ) {}
 
     public function list(array $filters = [], ?User $user = null): Collection
@@ -102,7 +103,8 @@ class InventoryDocumentService
                 items: $data['items'],
                 priceBasis: 'price',
                 invoiceDiscount: (float) ($data['discount_amount'] ?? 0),
-                profitMultiplier: 1
+                profitMultiplier: 1,
+                enforceSaleDiscountPolicy: true
             );
 
             if ($status === 'completed') {
@@ -397,7 +399,8 @@ class InventoryDocumentService
         array $items,
         string $priceBasis,
         float $invoiceDiscount = 0,
-        int $profitMultiplier = 0
+        int $profitMultiplier = 0,
+        bool $enforceSaleDiscountPolicy = false
     ): array {
         if ($invoiceDiscount < 0) {
             throw ValidationException::withMessages([
@@ -416,8 +419,12 @@ class InventoryDocumentService
                 ->findOrFail($row['product_id']);
 
             $quantity = (int) $row['quantity'];
-            $unitCost = round((float) ($row['unit_cost'] ?? $this->latestPurchaseCost($product)), 2);
-            $unitPrice = round((float) ($row['unit_price'] ?? $product->default_selling_price), 2);
+            $unitCost = round((float) ($enforceSaleDiscountPolicy
+                ? $this->latestPurchaseCost($product)
+                : ($row['unit_cost'] ?? $this->latestPurchaseCost($product))), 2);
+            $unitPrice = round((float) ($enforceSaleDiscountPolicy
+                ? $product->default_selling_price
+                : ($row['unit_price'] ?? $product->default_selling_price)), 2);
             $lineUnitAmount = $priceBasis === 'cost' ? $unitCost : $unitPrice;
             $lineSubtotal = round($quantity * $lineUnitAmount, 2);
             $lineDiscount = round((float) ($row['discount_amount'] ?? 0), 2);
@@ -458,6 +465,12 @@ class InventoryDocumentService
             $netBeforeInvoiceDiscount += $lineNetBeforeInvoiceDiscount;
         }
 
+        if ($enforceSaleDiscountPolicy && round($invoiceDiscount, 2) > round($netBeforeInvoiceDiscount, 2)) {
+            throw ValidationException::withMessages([
+                'discount_amount' => ['The sale discount cannot exceed the sale subtotal.'],
+            ]);
+        }
+
         $invoiceDiscount = min(round($invoiceDiscount, 2), round($netBeforeInvoiceDiscount, 2));
         $allocatedInvoiceDiscount = 0;
         $documentItems = [];
@@ -478,8 +491,34 @@ class InventoryDocumentService
             $allocatedInvoiceDiscount += $invoiceDiscountShare;
 
             $totalLineDiscount = round($line['item_discount'] + $invoiceDiscountShare, 2);
+
+            if ($enforceSaleDiscountPolicy) {
+                $minimumUnitPrice = $this->discountPolicy->minimumAuthorizedUnitPrice($line['product']);
+                $maximumLineDiscount = round(
+                    ($line['unit_price'] - $minimumUnitPrice) * $line['quantity'],
+                    2
+                );
+
+                if ($totalLineDiscount > $maximumLineDiscount + 0.009) {
+                    $maximumPercentage = $this->discountPolicy->maximumDiscountPercentageFor($line['product']);
+                    $discountErrorKey = $invoiceDiscount > 0
+                        ? 'discount_amount'
+                        : "items.{$index}.discount_amount";
+
+                    throw ValidationException::withMessages([
+                        $discountErrorKey => [
+                            "The discount for {$line['product']->product_name} cannot exceed {$maximumPercentage}% ("
+                            .number_format($maximumLineDiscount, 2).').',
+                        ],
+                    ]);
+                }
+            }
+
             $lineTaxBase = max(0, round($line['line_subtotal'] - $totalLineDiscount, 2));
-            $taxProfile = $this->resolveTaxProfile($line['row']['tax_profile_id'] ?? null, $line['product']);
+            $taxProfile = $this->resolveTaxProfile(
+                $enforceSaleDiscountPolicy ? null : ($line['row']['tax_profile_id'] ?? null),
+                $line['product']
+            );
             $tax = $this->calculateTax($lineTaxBase, $taxProfile);
             $lineProfit = $profitMultiplier === 0
                 ? 0

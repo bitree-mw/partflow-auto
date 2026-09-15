@@ -45,7 +45,7 @@
             </button>
             <button type="button" data-settings-tab="operating-defaults">
                 <strong>Operating defaults</strong>
-                <small>Branch, costing, stock policy</small>
+                <small>Branch, costing, stock and discount policy</small>
             </button>
             <button type="button" data-settings-tab="vehicle-library">
                 <strong>Vehicle library</strong>
@@ -153,6 +153,13 @@
                         <label for="low_stock_policy">Low stock policy</label>
                         <input class="form-control" id="low_stock_policy" name="low_stock_policy" value="{{ $settings['low_stock_policy'] }}">
                         <x-form-error name="low_stock_policy" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="maximum_discount_percentage">Maximum sales discount</label>
+                        <input class="form-control" id="maximum_discount_percentage" name="maximum_discount_percentage" type="number" min="0" max="100" step="0.01" value="{{ old('maximum_discount_percentage', $settings['maximum_discount_percentage']) }}" aria-describedby="maximum-discount-help">
+                        <small id="maximum-discount-help">Percentage cap for sales agents. A product's minimum selling price may impose a stricter limit.</small>
+                        <x-form-error name="maximum_discount_percentage" />
                     </div>
                 </div>
             </section>
