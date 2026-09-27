@@ -177,9 +177,11 @@ class InventoryDocumentService
         });
     }
 
-    public function createStockAdjustment(array $data, User $user): InventoryDocument
+    public function createStockAdjustment(array $data, User $user, bool $enforceSiteAccess = true): InventoryDocument
     {
-        $this->siteAccessService->authorizeSite($user, (int) $data['site_id'], SiteAccessService::ADJUST_STOCK);
+        if ($enforceSiteAccess) {
+            $this->siteAccessService->authorizeSite($user, (int) $data['site_id'], SiteAccessService::ADJUST_STOCK);
+        }
 
         return DB::transaction(function () use ($data, $user) {
             $status = $data['status'] ?? 'approved';

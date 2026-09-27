@@ -17,6 +17,10 @@ const errorDialogMap = {
     update_vehicle_model: 'edit-vehicle-model',
 };
 const listSearches = Array.from(document.querySelectorAll('[data-settings-list-search]'));
+const logoInput = document.querySelector('[data-logo-input]');
+const logoPreview = document.querySelector('[data-logo-preview]');
+const logoFileName = document.querySelector('[data-logo-file-name]');
+const themeColorInputs = Array.from(document.querySelectorAll('[data-theme-color]'));
 
 let activeIndex = 0;
 
@@ -25,7 +29,10 @@ function activateTab(index) {
     const activeKey = tabButtons[activeIndex]?.dataset.settingsTab;
 
     tabButtons.forEach((button) => {
-        button.classList.toggle('active', button.dataset.settingsTab === activeKey);
+        const isActive = button.dataset.settingsTab === activeKey;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+        button.tabIndex = isActive ? 0 : -1;
     });
 
     tabPanels.forEach((panel) => {
@@ -81,6 +88,25 @@ function closeDialog(dialog) {
 
 tabButtons.forEach((button, index) => {
     button.addEventListener('click', () => activateTab(index));
+    button.addEventListener('keydown', (event) => {
+        const targetIndex = event.key === 'ArrowRight'
+            ? (index + 1) % tabButtons.length
+            : event.key === 'ArrowLeft'
+                ? (index - 1 + tabButtons.length) % tabButtons.length
+                : event.key === 'Home'
+                    ? 0
+                    : event.key === 'End'
+                        ? tabButtons.length - 1
+                        : null;
+
+        if (targetIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(targetIndex);
+        tabButtons[targetIndex]?.focus();
+    });
 });
 
 previousButton?.addEventListener('click', () => activateTab(activeIndex - 1));
@@ -147,5 +173,34 @@ listSearches.forEach((input) => {
         items.forEach((item) => {
             item.hidden = needle !== '' && !item.dataset.settingsListItem.includes(needle);
         });
+    });
+});
+
+logoInput?.addEventListener('change', () => {
+    const [file] = logoInput.files ?? [];
+
+    if (logoFileName) {
+        logoFileName.textContent = file?.name || 'No file selected';
+    }
+
+    if (!file || !logoPreview) {
+        return;
+    }
+
+    const image = document.createElement('img');
+    image.className = 'company-logo-image';
+    image.alt = 'New company logo preview';
+    image.src = URL.createObjectURL(file);
+    image.addEventListener('load', () => URL.revokeObjectURL(image.src), { once: true });
+    logoPreview.replaceChildren(image);
+});
+
+themeColorInputs.forEach((input) => {
+    const output = document.querySelector(`[data-theme-color-output="${input.dataset.themeColor}"]`);
+
+    input.addEventListener('input', () => {
+        if (output) {
+            output.textContent = input.value.toUpperCase();
+        }
     });
 });

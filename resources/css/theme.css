@@ -22,7 +22,7 @@
         gap: 16px;
         padding: 27px 16px 18px;
         overflow: visible;
-        color: #ffffff;
+        color: var(--pf-on-color);
         background: var(--pf-navy-950);
     }
 
@@ -30,7 +30,7 @@
         grid-template-columns: 40px minmax(0, 1fr);
         gap: 12px;
         min-height: 50px;
-        color: #ffffff;
+        color: var(--pf-on-color);
     }
 
     .brand-mark span,
@@ -60,7 +60,7 @@
     .brand-mark small,
     .sidebar-user small {
         margin-top: 4px;
-        color: #91a0ba;
+        color: color-mix(in srgb, var(--pf-on-color) 65%, transparent);
         font-size: 9px;
         letter-spacing: 0.18em;
     }
@@ -120,7 +120,7 @@
 
     .sidebar-group p {
         padding: 0 12px;
-        color: #7183a3;
+        color: color-mix(in srgb, var(--pf-on-color) 52%, transparent);
         font-size: 9px;
         letter-spacing: 0.17em;
     }
@@ -130,13 +130,13 @@
         min-height: 42px;
         padding: 0 12px;
         border-radius: var(--pf-radius-sm);
-        color: #91a0ba;
+        color: color-mix(in srgb, var(--pf-on-color) 65%, transparent);
         font-size: 13px;
         font-weight: 600;
     }
 
     .sidebar-group a:hover {
-        color: #ffffff;
+        color: var(--pf-on-color);
         background: rgb(255 255 255 / 7%);
     }
 
@@ -147,7 +147,7 @@
     }
 
     .sidebar-group a em {
-        color: #ffffff;
+        color: var(--pf-on-color);
         background: rgb(255 255 255 / 18%);
         font-weight: 700;
     }
@@ -175,7 +175,7 @@
     }
 
     .sidebar-user strong {
-        color: #ffffff;
+        color: var(--pf-on-color);
         font-weight: 600;
     }
 
@@ -188,7 +188,7 @@
     }
 
     .sidebar-user button {
-        color: #91a0ba;
+        color: color-mix(in srgb, var(--pf-on-color) 65%, transparent);
     }
 
     .sidebar-collapsed {

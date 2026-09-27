@@ -15,6 +15,7 @@
     @stack('styles')
     @vite('resources/css/theme.css')
     @vite('resources/css/responsive.css')
+    @include('partials.theme-variables')
 </head>
 <body class="{{ $bodyClass ?? 'app-shell' }}">
     <div class="app-frame" data-app-frame>

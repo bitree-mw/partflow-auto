@@ -535,8 +535,8 @@
     }
 
     .branch-comparison-chart article.selected {
-        border-color: #1f3a5f;
-        background: #f8fafc;
+        border-color: var(--pf-orange-border);
+        background: var(--pf-orange-hover);
     }
 
     .branch-chart-label {
@@ -580,11 +580,11 @@
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: #93a8c8;
+        background: color-mix(in srgb, var(--pf-orange-500) 55%, white);
     }
 
     .branch-comparison-chart article.selected .branch-chart-bars b {
-        background: #1f3a5f;
+        background: var(--pf-orange-500);
     }
 
     .branch-chart-bars strong {
@@ -632,7 +632,7 @@
         min-height: 2px;
         border: 1px solid #d1d5db;
         border-radius: 12px 12px 4px 4px;
-        background: linear-gradient(180deg, #111827, #4b5563);
+        background: linear-gradient(180deg, var(--pf-orange-500), var(--pf-orange-600));
     }
 
     .bar-column em {
@@ -682,7 +682,7 @@
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: #111827;
+        background: var(--pf-orange-500);
     }
 
     @media (max-width: 1180px) {
@@ -816,11 +816,11 @@
 
     .dashboard-performance-panel .bar-column span {
         border: 0;
-        background: #f7b27d;
+        background: color-mix(in srgb, var(--pf-orange-500) 58%, white);
     }
 
     .dashboard-performance-panel .bar-column:last-child span {
-        background: #f47a2a;
+        background: var(--pf-orange-500);
     }
 
     .dashboard-chart-footer {
@@ -844,7 +844,7 @@
         width: 8px;
         height: 8px;
         border-radius: 999px;
-        background: #f47a2a;
+        background: var(--pf-orange-500);
     }
 
     .dashboard-chart-footer strong {
@@ -1146,11 +1146,11 @@
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: #17223a;
+        background: color-mix(in srgb, var(--pf-orange-500) 58%, white);
     }
 
     .analytics-bar-track i.primary {
-        background: #f47a2a;
+        background: var(--pf-orange-500);
     }
 
     .analytics-note {

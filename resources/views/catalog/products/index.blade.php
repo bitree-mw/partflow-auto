@@ -81,14 +81,17 @@
 
     <section class="data-panel">
         <div class="panel-toolbar">
-            <form class="filter-form" method="GET" action="{{ route('web.catalog.products.index') }}">
+            <form class="filter-form" method="GET" action="{{ route('web.catalog.products.index') }}" data-live-product-filters>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                 <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search products..." aria-label="Search sellable products">
 
-                <div class="async-picker filter-async-picker" data-product-type-picker data-endpoint="{{ route('web.catalog.product-type-options') }}">
+                <div class="async-picker filter-async-picker" data-product-type-picker data-empty-label="All product types" data-endpoint="{{ route('web.catalog.product-type-options') }}">
                     <input type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? ($filters['product_type_id'] ?? '') }}" data-product-type-value>
-                    <input class="form-control" type="search" value="{{ $selectedProductType['label'] ?? '' }}" placeholder="All product types" autocomplete="off" aria-label="Filter by product type" data-product-type-search>
-                    <div class="async-picker-list" data-product-type-results hidden></div>
+                    <button class="app-combobox-input app-combobox-trigger" type="button" data-product-type-trigger data-placeholder="All product types" aria-label="Filter by product type" aria-haspopup="listbox" aria-expanded="false">{{ $selectedProductType['label'] ?? 'All product types' }}</button>
+                    <div class="async-picker-list" data-product-type-panel hidden>
+                        <input class="app-combobox-search" type="search" placeholder="Search product types..." autocomplete="off" aria-label="Search product types" data-product-type-search>
+                        <div class="async-picker-options" data-product-type-results role="listbox"></div>
+                    </div>
                 </div>
 
                 <select name="brand_id" aria-label="Filter by brand">
@@ -196,7 +199,7 @@
                             <td colspan="8">
                                 <span class="branch-stock-pills branch-stock-full">
                                     @foreach ($product['branch_stock'] as $branch)
-                                        <span @class(['branch-stock-pill', 'empty' => $branch['qty'] === 0])>
+                                        <span class="branch-stock-pill">
                                             <span>{{ $branch['site'] }}</span>
                                             <strong>{{ $branch['qty'] }}</strong>
                                         </span>

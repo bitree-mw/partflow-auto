@@ -12,14 +12,24 @@ function initCarModelPicker(picker) {
 
     const endpoint = picker.dataset.endpoint;
     const valueInput = picker.querySelector('[data-car-model-value]');
+    const trigger = picker.querySelector('[data-car-model-trigger]');
+    const panel = picker.querySelector('[data-car-model-panel]');
     const searchInput = picker.querySelector('[data-car-model-search]');
     const results = picker.querySelector('[data-car-model-results]');
 
-    if (!endpoint || !valueInput || !searchInput || !results) {
+    if (!endpoint || !valueInput || !trigger || !panel || !searchInput || !results) {
         return;
     }
 
     carModelPickers.add(picker);
+    panel.hidden = true;
+    results.replaceChildren();
+    searchInput.value = '';
+    if (!valueInput.value) {
+        trigger.textContent = trigger.dataset.placeholder || 'Select vehicle';
+    }
+    panel.id = `car-model-picker-${Math.random().toString(36).slice(2)}`;
+    trigger.setAttribute('aria-controls', panel.id);
 
     let abortController = null;
     let searchTimer = null;
@@ -27,7 +37,8 @@ function initCarModelPicker(picker) {
     let currentPage = 1;
 
     function closeResults() {
-        results.hidden = true;
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
     }
 
     function removeLoadMoreButton() {
@@ -38,6 +49,7 @@ function initCarModelPicker(picker) {
         const option = document.createElement('button');
         option.type = 'button';
         option.className = 'async-picker-option';
+        option.setAttribute('role', 'option');
         option.textContent = item.label;
 
         option.addEventListener('mousedown', (event) => {
@@ -46,8 +58,10 @@ function initCarModelPicker(picker) {
 
         option.addEventListener('click', () => {
             valueInput.value = item.id;
-            searchInput.value = item.label;
+            trigger.textContent = item.label || trigger.dataset.placeholder || 'Select vehicle';
             closeResults();
+            valueInput.dispatchEvent(new Event('change', { bubbles: true }));
+            trigger.focus();
         });
 
         results.appendChild(option);
@@ -80,21 +94,22 @@ function initCarModelPicker(picker) {
             removeLoadMoreButton();
         } else {
             results.replaceChildren();
+            if (!currentQuery.trim() && picker.dataset.emptyLabel) {
+                appendOption({ id: '', label: picker.dataset.emptyLabel });
+            }
         }
 
-        if (!items.length && !append) {
+        if (!items.length && !append && results.children.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'async-picker-empty';
             empty.textContent = 'No matching vehicle variants';
             results.appendChild(empty);
-            results.hidden = false;
             return;
         }
 
         items.forEach(appendOption);
         appendLoadMoreButton(meta);
 
-        results.hidden = false;
     }
 
     async function searchModels(query = '', page = 1, append = false) {
@@ -125,6 +140,9 @@ function initCarModelPicker(picker) {
             }
 
             const payload = await response.json();
+            if (cleanQuery !== searchInput.value.trim()) {
+                return;
+            }
             renderResults(payload.data || [], payload.meta || {}, append);
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -135,27 +153,61 @@ function initCarModelPicker(picker) {
 
     function queueSearch() {
         window.clearTimeout(searchTimer);
+        results.innerHTML = '<div class="async-picker-empty">Searching...</div>';
         searchTimer = window.setTimeout(() => searchModels(searchInput.value, 1), 160);
     }
 
-    searchInput.addEventListener('focus', () => {
-        searchInput.select();
-        searchModels(searchInput.value, 1);
+    trigger.addEventListener('click', () => {
+        if (!panel.hidden) {
+            closeResults();
+            return;
+        }
+
+        searchInput.value = '';
+        results.innerHTML = '<div class="async-picker-empty">Loading...</div>';
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        searchInput.focus();
+        searchModels('', 1);
     });
 
-    searchInput.addEventListener('input', () => {
-        valueInput.value = '';
-        queueSearch();
-    });
+    searchInput.addEventListener('input', queueSearch);
 
     searchInput.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeResults();
+            trigger.focus();
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            const options = Array.from(results.querySelectorAll('.async-picker-option'));
+            if (options.length) {
+                event.preventDefault();
+                const current = options.findIndex((option) => option.classList.contains('highlighted'));
+                const next = current < 0
+                    ? (event.key === 'ArrowDown' ? 0 : options.length - 1)
+                    : (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+                options.forEach((option) => option.classList.remove('highlighted'));
+                options[next].classList.add('highlighted');
+                options[next].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (event.key === 'Enter') {
+            const firstOption = results.querySelector('.async-picker-option.highlighted, .async-picker-option');
+            if (firstOption) {
+                event.preventDefault();
+                firstOption.click();
+            }
         }
     });
 
-    searchInput.addEventListener('blur', () => {
-        window.setTimeout(closeResults, 140);
+    picker.addEventListener('focusout', (event) => {
+        if (!picker.contains(event.relatedTarget)) {
+            closeResults();
+        }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (!picker.contains(event.target)) {
+            closeResults();
+        }
     });
 }
 
@@ -195,14 +247,24 @@ function initProductTypePicker(picker) {
 
     const endpoint = picker.dataset.endpoint;
     const valueInput = picker.querySelector('[data-product-type-value]');
+    const trigger = picker.querySelector('[data-product-type-trigger]');
+    const panel = picker.querySelector('[data-product-type-panel]');
     const searchInput = picker.querySelector('[data-product-type-search]');
     const results = picker.querySelector('[data-product-type-results]');
 
-    if (!endpoint || !valueInput || !searchInput || !results) {
+    if (!endpoint || !valueInput || !trigger || !panel || !searchInput || !results) {
         return;
     }
 
     productTypePickers.add(picker);
+    panel.hidden = true;
+    results.replaceChildren();
+    searchInput.value = '';
+    if (!valueInput.value) {
+        trigger.textContent = trigger.dataset.placeholder || 'Select product type';
+    }
+    panel.id = `product-type-picker-${Math.random().toString(36).slice(2)}`;
+    trigger.setAttribute('aria-controls', panel.id);
 
     let abortController = null;
     let searchTimer = null;
@@ -210,7 +272,8 @@ function initProductTypePicker(picker) {
     let currentPage = 1;
 
     function closeResults() {
-        results.hidden = true;
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
     }
 
     function removeLoadMoreButton() {
@@ -221,6 +284,7 @@ function initProductTypePicker(picker) {
         const option = document.createElement('button');
         option.type = 'button';
         option.className = 'async-picker-option';
+        option.setAttribute('role', 'option');
         option.textContent = item.label;
 
         option.addEventListener('mousedown', (event) => {
@@ -229,8 +293,10 @@ function initProductTypePicker(picker) {
 
         option.addEventListener('click', () => {
             valueInput.value = item.id;
-            searchInput.value = item.label;
+            trigger.textContent = item.label || trigger.dataset.placeholder || 'Select product type';
             closeResults();
+            valueInput.dispatchEvent(new Event('change', { bubbles: true }));
+            trigger.focus();
         });
 
         results.appendChild(option);
@@ -263,21 +329,22 @@ function initProductTypePicker(picker) {
             removeLoadMoreButton();
         } else {
             results.replaceChildren();
+            if (!currentQuery.trim() && picker.dataset.emptyLabel) {
+                appendOption({ id: '', label: picker.dataset.emptyLabel });
+            }
         }
 
-        if (!items.length && !append) {
+        if (!items.length && !append && results.children.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'async-picker-empty';
             empty.textContent = 'No matching product types';
             results.appendChild(empty);
-            results.hidden = false;
             return;
         }
 
         items.forEach(appendOption);
         appendLoadMoreButton(meta);
 
-        results.hidden = false;
     }
 
     async function searchProductTypes(query = '', page = 1, append = false) {
@@ -308,6 +375,9 @@ function initProductTypePicker(picker) {
             }
 
             const payload = await response.json();
+            if (cleanQuery !== searchInput.value.trim()) {
+                return;
+            }
             renderResults(payload.data || [], payload.meta || {}, append);
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -318,27 +388,61 @@ function initProductTypePicker(picker) {
 
     function queueSearch() {
         window.clearTimeout(searchTimer);
+        results.innerHTML = '<div class="async-picker-empty">Searching...</div>';
         searchTimer = window.setTimeout(() => searchProductTypes(searchInput.value, 1), 160);
     }
 
-    searchInput.addEventListener('focus', () => {
-        searchInput.select();
-        searchProductTypes(searchInput.value, 1);
+    trigger.addEventListener('click', () => {
+        if (!panel.hidden) {
+            closeResults();
+            return;
+        }
+
+        searchInput.value = '';
+        results.innerHTML = '<div class="async-picker-empty">Loading...</div>';
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        searchInput.focus();
+        searchProductTypes('', 1);
     });
 
-    searchInput.addEventListener('input', () => {
-        valueInput.value = '';
-        queueSearch();
-    });
+    searchInput.addEventListener('input', queueSearch);
 
     searchInput.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeResults();
+            trigger.focus();
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            const options = Array.from(results.querySelectorAll('.async-picker-option'));
+            if (options.length) {
+                event.preventDefault();
+                const current = options.findIndex((option) => option.classList.contains('highlighted'));
+                const next = current < 0
+                    ? (event.key === 'ArrowDown' ? 0 : options.length - 1)
+                    : (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+                options.forEach((option) => option.classList.remove('highlighted'));
+                options[next].classList.add('highlighted');
+                options[next].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (event.key === 'Enter') {
+            const firstOption = results.querySelector('.async-picker-option.highlighted, .async-picker-option');
+            if (firstOption) {
+                event.preventDefault();
+                firstOption.click();
+            }
         }
     });
 
-    searchInput.addEventListener('blur', () => {
-        window.setTimeout(closeResults, 140);
+    picker.addEventListener('focusout', (event) => {
+        if (!picker.contains(event.relatedTarget)) {
+            closeResults();
+        }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (!picker.contains(event.target)) {
+            closeResults();
+        }
     });
 }
 
@@ -348,6 +452,22 @@ function initProductTypePickers(root = document) {
 
 initProductTypePickers();
 
+document.querySelectorAll('[data-live-product-filters]').forEach((form) => {
+    const searchInput = form.querySelector('input[name="search"]');
+    let submitTimer = null;
+
+    function submitFilters(delay = 0) {
+        window.clearTimeout(submitTimer);
+        submitTimer = window.setTimeout(() => form.requestSubmit(), delay);
+    }
+
+    searchInput?.addEventListener('input', () => submitFilters(350));
+
+    form.querySelectorAll('select, input[type="hidden"][name="product_type_id"]').forEach((control) => {
+        control.addEventListener('change', () => submitFilters());
+    });
+});
+
 document.querySelectorAll('[data-product-brand]').forEach((brandSelect) => {
     const form = brandSelect.closest('form');
     const originInput = form?.querySelector('[data-product-origin]');
@@ -356,19 +476,16 @@ document.querySelectorAll('[data-product-brand]').forEach((brandSelect) => {
         return;
     }
 
-    function syncOrigin(clearUnknownOrigin = false) {
+    function syncOrigin() {
         const selectedBrand = brandSelect.selectedOptions[0];
         const isUnknown = !selectedBrand?.value || selectedBrand.dataset.unknown === '1';
 
-        originInput.readOnly = !isUnknown;
-        originInput.setAttribute('aria-readonly', isUnknown ? 'false' : 'true');
+        originInput.readOnly = true;
+        originInput.setAttribute('aria-readonly', 'true');
 
         if (isUnknown) {
-            if (clearUnknownOrigin) {
-                originInput.value = '';
-            }
-
-            originInput.placeholder = 'Search country';
+            originInput.value = '';
+            originInput.placeholder = 'Select a brand with a country';
             return;
         }
 
@@ -378,7 +495,7 @@ document.querySelectorAll('[data-product-brand]').forEach((brandSelect) => {
             : 'Brand country is not set';
     }
 
-    brandSelect.addEventListener('change', () => syncOrigin(true));
+    brandSelect.addEventListener('change', syncOrigin);
     syncOrigin();
 });
 
@@ -390,7 +507,7 @@ document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
             const rows = list.querySelectorAll('.compatibility-variant-row');
 
             if (rows.length === 1) {
-                rows[0].querySelector('[data-car-model-search], input:not([type="hidden"]), select')?.focus();
+                rows[0].querySelector('[data-car-model-trigger]')?.focus();
                 return;
             }
 
@@ -413,10 +530,13 @@ document.querySelectorAll('[data-compatibility-list]').forEach((list) => {
 
         row.querySelectorAll('[data-car-model-results]').forEach((results) => {
             results.replaceChildren();
-            results.hidden = true;
         });
 
-        const input = row.querySelector('[data-car-model-search], input:not([type="hidden"]), select');
+        row.querySelectorAll('[data-car-model-panel]').forEach((panel) => {
+            panel.hidden = true;
+        });
+
+        const input = row.querySelector('[data-car-model-trigger]');
         const removeButton = row.querySelector('[data-remove-compatibility-variant]');
 
         if (removeButton) {

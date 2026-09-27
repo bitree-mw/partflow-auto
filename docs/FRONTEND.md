@@ -49,7 +49,7 @@ Do not reorganize working views merely to match this example. Record and follow 
 | Area | Status | Verified surface and limitation |
 | --- | --- | --- |
 | Authentication | **Partial** | Login/logout pages exist; password reset and a web registration flow do not. |
-| Dashboard and alerts | **Partial** | Summary and alert pages exist with branch scoping, responsive 7/14/30-day revenue movement, a fixed-height priority-action queue for stock, transfers, purchases, balances, and stock-count variances, inventory-value comparison, debtor/creditor comparison, low-stock alerts, sales distribution, and branch performance. Custom dashboard date ranges and debtor aging are not implemented. |
+| Dashboard and alerts | **Partial** | Summary and alert pages exist with branch scoping, responsive 7/14/30-day revenue movement, a fixed-height priority-action queue for stock, transfers, purchases, balances, and stock-count variances, inventory-value comparison, debtor/creditor comparison, low-stock alerts, sales distribution, and branch performance. Dashboard charts use the configured secondary brand color. Custom dashboard date ranges and debtor aging are not implemented. |
 | Catalogue and compatibility | **Implemented** | Product, brand, type, fuel, car-model, and compatibility management screens exist. |
 | Contacts | **Implemented — basic** | Customer and supplier list/create/delete screens exist; transaction-history/statement pages do not. |
 | Purchases | **Partial** | List/create/edit screens exist; there is no receive action screen. |
@@ -58,6 +58,7 @@ Do not reorganize working views merely to match this example. Record and follow 
 | POS and sales | **Partial** | Search/cart/customer/payment checkout and sale list/edit exist; printable receipt, idempotent checkout, and void/reversal UI do not. |
 | Customers and debtors | **Partial** | Customer records, a credit-limit field, and sale balances exist; limit enforcement, due dates, aging, statements, and collection workflow do not. |
 | Users and access | **Partial** | Settings can create, edit, deactivate/reactivate, reset passwords, assign roles, and select a user's primary site. A full multi-site capability editor and conventional `/api/users` CRUD resource do not exist. |
+| Company branding | **Implemented** | Administrators can change the company name, choose and preview a validated company logo, and set primary, secondary, and tertiary application colors from top-level settings tabs. The branding is applied to login, back-office, POS layouts, and dashboard charts. |
 | Reports | **Partial** | Report filters and export link exist; the export link does not currently attach the bearer token required by the API route. |
 | Payment accounts | **Implemented — basic** | List/create/show/edit screens exist. Payment reversal/reconciliation UI is not claimed. |
 
@@ -96,6 +97,10 @@ Components should focus on presentation. They must not calculate authoritative p
 - Disable or guard repeated submission where duplicate purchases, transfers, sales, or payments could be created.
 - Use explicit confirmation for irreversible or high-impact actions.
 - Never use a simple delete button for a transaction that should be voided or reversed.
+- Selects with more than 10 choices use the shared searchable combobox. It renders 10 matches initially and exposes further matches in groups of 10.
+- Searchable comboboxes display the current selection in a non-editable trigger. Opening one reveals a separate search field inside the menu; searching does not change the submitted selection until an option is chosen. Where clearing is allowed, choose the explicit empty option.
+- Catalogue vehicle/product-type pickers and POS vehicle/product-type filters use the same trigger-and-menu pattern. POS part search remains a free-text search field.
+- Product origin is read-only on product forms and is derived from the selected brand on the server.
 
 ## Point-of-sale experience
 
@@ -122,6 +127,7 @@ The POS workspace is intentionally desktop-only. Viewports below 1200 pixels sho
 - Whitelist allowed sort fields and directions.
 - Provide useful empty states rather than blank tables.
 - Common filters include site, status, date range, supplier, customer, category, and low-stock state.
+- Product catalogue filters apply automatically after a short search-input delay or immediately when a dropdown value changes.
 - Avoid loading complete part, customer, sale, or movement tables into the browser.
 
 ## Tailwind CSS rules

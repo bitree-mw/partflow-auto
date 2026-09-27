@@ -181,7 +181,7 @@
         display: grid;
         grid-template-rows: auto auto 1fr auto;
         min-height: 690px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .pos-toolbar {
@@ -244,6 +244,17 @@
     .add-row input {
         padding: 0 14px;
         font-weight: 800;
+    }
+
+    .pos-toolbar .pos-filter-picker {
+        min-width: 0;
+    }
+
+    .pos-toolbar .app-combobox-search {
+        min-height: 38px;
+        padding: 0 10px;
+        border-radius: 10px;
+        font-weight: 600;
     }
 
     .quick-row {

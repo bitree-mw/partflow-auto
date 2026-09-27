@@ -554,7 +554,14 @@ class DashboardService
 
     private function branchSalesMix(Collection $branchPerformance): Collection
     {
-        $colors = ['#1f3a5f', '#4f7cad', '#7fb4d8', '#91c7a9', '#d7a75f', '#b96b6b'];
+        $colors = [
+            'var(--pf-orange-500)',
+            'color-mix(in srgb, var(--pf-orange-500) 82%, white)',
+            'color-mix(in srgb, var(--pf-orange-500) 66%, white)',
+            'color-mix(in srgb, var(--pf-orange-500) 50%, white)',
+            'color-mix(in srgb, var(--pf-orange-500) 34%, white)',
+            'color-mix(in srgb, var(--pf-orange-500) 20%, white)',
+        ];
         $totalSales = (float) $branchPerformance->sum('sales_raw');
 
         if ($totalSales <= 0) {

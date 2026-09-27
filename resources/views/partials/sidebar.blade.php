@@ -52,7 +52,7 @@
 
 <aside class="app-sidebar" aria-label="Primary navigation" data-app-sidebar>
     <a class="brand-mark" href="{{ route('web.dashboard') }}">
-        <span><x-brand-icon /></span>
+        <span><x-company-logo :system="$appSystem" /></span>
         <strong>{{ $appSystem['business_name'] ?? 'PartFlow Auto' }}</strong>
         <small>{{ $appSystem['tagline'] ?? 'Auto parts operations' }}</small>
     </a>

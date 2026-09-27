@@ -37,25 +37,25 @@
     </datalist>
 
     <section class="settings-console">
-        <aside class="settings-nav-panel" aria-label="Settings sections">
+        <aside class="settings-nav-panel" aria-label="Settings sections" role="tablist">
             <span class="eyebrow">Setup path</span>
-            <button type="button" class="active" data-settings-tab="company-profile">
+            <button id="settings-tab-company-profile" type="button" class="active" role="tab" aria-selected="true" aria-controls="company-profile" data-settings-tab="company-profile">
                 <strong>Business information</strong>
                 <small>Identity, currency, stock email</small>
             </button>
-            <button type="button" data-settings-tab="operating-defaults">
+            <button id="settings-tab-operating-defaults" type="button" role="tab" aria-selected="false" aria-controls="operating-defaults" data-settings-tab="operating-defaults">
                 <strong>Operating defaults</strong>
                 <small>Branch, costing, stock and discount policy</small>
             </button>
-            <button type="button" data-settings-tab="vehicle-library">
+            <button id="settings-tab-vehicle-library" type="button" role="tab" aria-selected="false" aria-controls="vehicle-library" data-settings-tab="vehicle-library">
                 <strong>Vehicle library</strong>
                 <small>Car makes and model dropdowns</small>
             </button>
-            <button type="button" data-settings-tab="payment-accounts">
+            <button id="settings-tab-payment-accounts" type="button" role="tab" aria-selected="false" aria-controls="payment-accounts" data-settings-tab="payment-accounts">
                 <strong>Payment accounts</strong>
                 <small>Cash, bank, and mobile money</small>
             </button>
-            <button type="button" data-settings-tab="user-management">
+            <button id="settings-tab-user-management" type="button" role="tab" aria-selected="false" aria-controls="user-management" data-settings-tab="user-management">
                 <strong>User management</strong>
                 <small>Admins, roles, site access, and status</small>
             </button>
@@ -65,6 +65,7 @@
             class="settings-content"
             method="POST"
             action="{{ route('web.settings.update') }}"
+            enctype="multipart/form-data"
             data-settings-content
             data-track-unsaved-changes
             data-settings-initial-panel="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}"
@@ -73,17 +74,62 @@
             @csrf
             <input type="hidden" name="settings_panel" value="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}" data-settings-active-panel>
 
-            <section class="settings-panel active" id="company-profile" data-settings-panel="company-profile">
+            <section class="settings-panel active" id="company-profile" role="tabpanel" aria-labelledby="settings-tab-company-profile" data-settings-panel="company-profile">
                 <header class="settings-header">
                     <span class="eyebrow">Business information</span>
                     <h2>Business identity</h2>
                     <p>Set the company identity used on invoices, receipts, purchases, reports, and audit records.</p>
                 </header>
 
+                <div class="branding-settings-card">
+                    <div class="branding-logo-control">
+                        <div class="branding-logo-preview" data-logo-preview>
+                            <x-company-logo :system="$settings" />
+                        </div>
+                        <div class="branding-logo-fields">
+                            <span class="branding-logo-label">Company logo</span>
+                            <input class="branding-logo-file-input" id="company_logo" name="company_logo" type="file" accept="image/png,image/jpeg,image/webp" data-logo-input>
+                            <div class="branding-logo-picker-row">
+                                <label class="btn-secondary branding-logo-button" for="company_logo">Choose logo</label>
+                                <span class="branding-logo-file-name" data-logo-file-name>No file selected</span>
+                            </div>
+                            <small>PNG, JPG, or WebP up to 2 MB. A wide or square logo works best.</small>
+                            <x-form-error name="company_logo" />
+                        </div>
+                    </div>
+
+                    <fieldset class="branding-color-controls">
+                        <legend>Application colors</legend>
+                        <p>Primary controls navigation, secondary controls actions, and tertiary controls the page background.</p>
+                        <div class="branding-color-grid">
+                            @foreach ([
+                                'primary_color' => ['Primary', '#0a1630'],
+                                'secondary_color' => ['Secondary', '#f47a2a'],
+                                'tertiary_color' => ['Tertiary', '#f5f6f8'],
+                            ] as $colorKey => [$colorLabel, $defaultColor])
+                                <label class="branding-color-field" for="{{ $colorKey }}">
+                                    <span>{{ $colorLabel }}</span>
+                                    <span class="branding-color-input">
+                                        <input
+                                            id="{{ $colorKey }}"
+                                            name="{{ $colorKey }}"
+                                            type="color"
+                                            value="{{ old($colorKey, $settings[$colorKey] ?? $defaultColor) }}"
+                                            data-theme-color="{{ $colorKey }}"
+                                        >
+                                        <output for="{{ $colorKey }}" data-theme-color-output="{{ $colorKey }}">{{ old($colorKey, $settings[$colorKey] ?? $defaultColor) }}</output>
+                                    </span>
+                                    <x-form-error :name="$colorKey" />
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                </div>
+
                 <div class="form-grid settings-section">
                     <div class="form-field">
-                        <label for="business_name">Trading name</label>
-                        <input class="form-control" id="business_name" name="business_name" value="{{ $settings['business_name'] }}">
+                        <label for="business_name">Company name</label>
+                        <input class="form-control" id="business_name" name="business_name" value="{{ old('business_name', $settings['business_name']) }}" required>
                         <x-form-error name="business_name" />
                     </div>
 
@@ -129,7 +175,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="operating-defaults" data-settings-panel="operating-defaults" hidden>
+            <section class="settings-panel" id="operating-defaults" role="tabpanel" aria-labelledby="settings-tab-operating-defaults" data-settings-panel="operating-defaults" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Operating defaults</span>
                     <h2>Stock and branch rules</h2>
@@ -164,7 +210,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="vehicle-library" data-settings-panel="vehicle-library" hidden>
+            <section class="settings-panel" id="vehicle-library" role="tabpanel" aria-labelledby="settings-tab-vehicle-library" data-settings-panel="vehicle-library" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Vehicle library</span>
                     <h2>Car makes and models</h2>
@@ -312,7 +358,7 @@
 
             </section>
 
-            <section class="settings-panel" id="payment-accounts" data-settings-panel="payment-accounts" hidden>
+            <section class="settings-panel" id="payment-accounts" role="tabpanel" aria-labelledby="settings-tab-payment-accounts" data-settings-panel="payment-accounts" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Payment accounts</span>
                     <h2>Cash, bank, mobile money, and card accounts</h2>
@@ -353,7 +399,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="user-management" data-settings-panel="user-management" hidden>
+            <section class="settings-panel" id="user-management" role="tabpanel" aria-labelledby="settings-tab-user-management" data-settings-panel="user-management" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">User management</span>
                     <h2>People, access, and branch scope</h2>

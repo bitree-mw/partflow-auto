@@ -30,8 +30,6 @@
         $selectedProductType = collect($selectedProductTypes ?? [])->keyBy('id')->get((int) old('product_type_id', $product->product_type_id));
     @endphp
 
-    <x-country-datalist id="part-origin-countries" :countries="$countries" />
-
     <form
         class="form-panel catalog-form"
         method="POST"
@@ -50,9 +48,12 @@
                 <div class="form-field product-type-field">
                     <label for="product_type_id">Product type</label>
                     <div class="async-picker" data-product-type-picker data-endpoint="{{ route('web.catalog.product-type-options') }}">
-                        <input id="product_type_id" type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? old('product_type_id', $product->product_type_id) }}" data-product-type-value>
-                        <input class="form-control" type="search" value="{{ $selectedProductType['label'] ?? '' }}" placeholder="Search product type or code" autocomplete="off" required data-product-type-search>
-                        <div class="async-picker-list" data-product-type-results hidden></div>
+                        <input type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? old('product_type_id', $product->product_type_id) }}" data-product-type-value>
+                        <button id="product_type_id" class="app-combobox-input app-combobox-trigger" type="button" data-product-type-trigger data-placeholder="Select product type" aria-haspopup="listbox" aria-expanded="false" aria-required="true">{{ $selectedProductType['label'] ?? 'Select product type' }}</button>
+                        <div class="async-picker-list" data-product-type-panel hidden>
+                            <input class="app-combobox-search" type="search" placeholder="Search product type or code..." autocomplete="off" aria-label="Search product types" data-product-type-search>
+                            <div class="async-picker-options" data-product-type-results role="listbox"></div>
+                        </div>
                     </div>
                     <x-form-error name="product_type_id" />
                 </div>
@@ -72,7 +73,8 @@
 
                 <div class="form-field">
                     <label for="part_country_of_origin">Product origin</label>
-                    <input class="form-control searchable-input" id="part_country_of_origin" name="part_country_of_origin" value="{{ old('part_country_of_origin', $product->part_country_of_origin) }}" list="part-origin-countries" placeholder="Search country" data-product-origin>
+                    <input class="form-control" id="part_country_of_origin" value="{{ $product->part_country_of_origin }}" placeholder="Derived from selected brand" data-product-origin readonly aria-readonly="true">
+                    <p class="form-help">Set automatically from the selected brand.</p>
                     <x-form-error name="part_country_of_origin" />
                 </div>
 
@@ -161,10 +163,13 @@
                             $selectedCarModel = $selectedCarModelLookup->get((int) $selectedCompatibleCarModel);
                         @endphp
                         <div class="compatibility-variant-row" data-async-car-model-row>
-                            <div class="async-picker" data-car-model-picker data-endpoint="{{ route('web.catalog.car-model-options') }}">
+                            <div class="async-picker" data-car-model-picker data-empty-label="No vehicle selected" data-endpoint="{{ route('web.catalog.car-model-options') }}">
                                 <input type="hidden" name="compatible_car_model_ids[]" value="{{ $selectedCarModel['id'] ?? '' }}" data-car-model-value>
-                                <input class="form-control" type="search" value="{{ $selectedCarModel['label'] ?? '' }}" placeholder="Search vehicle make, model, year, engine, or origin" autocomplete="off" data-car-model-search>
-                                <div class="async-picker-list" data-car-model-results hidden></div>
+                                <button class="app-combobox-input app-combobox-trigger" type="button" data-car-model-trigger data-placeholder="Select vehicle variant" aria-label="Choose compatible vehicle variant" aria-haspopup="listbox" aria-expanded="false">{{ $selectedCarModel['label'] ?? 'Select vehicle variant' }}</button>
+                                <div class="async-picker-list" data-car-model-panel hidden>
+                                    <input class="app-combobox-search" type="search" placeholder="Search make, model, year, or engine..." autocomplete="off" aria-label="Search vehicle variants" data-car-model-search>
+                                    <div class="async-picker-options" data-car-model-results role="listbox"></div>
+                                </div>
                             </div>
                             <button class="btn-secondary" type="button" data-remove-compatibility-variant>Remove</button>
                         </div>

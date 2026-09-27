@@ -453,7 +453,10 @@
         top: calc(100% + 6px);
         right: 0;
         left: 0;
+        display: grid;
+        gap: 4px;
         max-height: 260px;
+        padding: 6px;
         overflow-y: auto;
         border: 1px solid #d1d5db;
         border-radius: 14px;
@@ -463,6 +466,11 @@
 
     .async-picker-list[hidden] {
         display: none;
+    }
+
+    .async-picker-options {
+        display: grid;
+        gap: 2px;
     }
 
     .async-picker-option,
@@ -481,10 +489,12 @@
 
     .async-picker-option,
     .async-picker-more {
+        border-radius: 10px;
         cursor: pointer;
     }
 
     .async-picker-option:hover,
+    .async-picker-option.highlighted,
     .async-picker-option:focus,
     .async-picker-more:hover,
     .async-picker-more:focus {

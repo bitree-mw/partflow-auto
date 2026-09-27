@@ -49,8 +49,6 @@ class PosController extends Controller
             'cashier' => auth()->user()?->name ?? 'Cashier',
             'saleNumber' => 'Draft sale',
             'quickSearches' => [],
-            'vehicleFilters' => collect(['All vehicles'])->merge(collect($products)->pluck('vehicle')->filter()->unique())->values()->all(),
-            'productTypeFilters' => collect(['All product types'])->merge(collect($products)->pluck('product_type')->filter()->unique())->values()->all(),
             'products' => $products,
             'selectedProduct' => $selectedProduct,
             'cartLines' => [],

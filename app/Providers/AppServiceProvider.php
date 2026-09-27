@@ -25,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer(['layouts.auth', 'auth.*'], function ($view): void {
+            $view->with('appSystem', app(SystemConfigurationService::class)->headerContext());
+        });
+
         View::composer('layouts.pos', function ($view): void {
             $view->with('appSystem', app(SystemConfigurationService::class)->headerContext(auth()->user()));
         });

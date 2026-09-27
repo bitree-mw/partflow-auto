@@ -3,17 +3,6 @@
 ])
 
 @section('content')
-    <datalist id="pos-vehicle-options">
-        @foreach ($vehicleFilters as $filter)
-            <option value="{{ $filter }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="pos-product-type-options">
-        @foreach ($productTypeFilters as $filter)
-            <option value="{{ $filter }}"></option>
-        @endforeach
-    </datalist>
-
     <section class="pos-hero">
         <div>
             <div class="pos-hero-context">
@@ -36,8 +25,22 @@
                     <input id="part-search" type="search" value="" placeholder="Search product, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by product, code, barcode, vehicle, or OEM">
                 </label>
 
-                <input class="searchable-input" data-pos-filter data-pos-vehicle-filter list="pos-vehicle-options" value="" placeholder="All vehicles" aria-label="Filter products by vehicle">
-                <input class="searchable-input" data-pos-filter data-pos-product-type-filter list="pos-product-type-options" value="" placeholder="All product types" aria-label="Filter products by product type">
+                <div class="app-combobox pos-filter-picker" data-pos-vehicle-picker>
+                    <input type="hidden" data-pos-vehicle-id value="">
+                    <button class="app-combobox-input app-combobox-trigger" type="button" data-pos-vehicle-trigger aria-label="Filter products by vehicle" aria-haspopup="listbox" aria-controls="pos-vehicle-options" aria-expanded="false">All vehicles</button>
+                    <div class="app-combobox-list" data-pos-vehicle-panel hidden>
+                        <input class="app-combobox-search" type="search" data-pos-vehicle-search placeholder="Search vehicles..." autocomplete="off" aria-label="Search vehicles">
+                        <div class="app-combobox-options" id="pos-vehicle-options" data-pos-vehicle-options role="listbox"></div>
+                    </div>
+                </div>
+                <div class="app-combobox pos-filter-picker" data-pos-product-type-picker>
+                    <input type="hidden" data-pos-product-type-filter value="">
+                    <button class="app-combobox-input app-combobox-trigger" type="button" data-pos-product-type-trigger aria-label="Filter products by product type" aria-haspopup="listbox" aria-controls="pos-product-type-options" aria-expanded="false">All product types</button>
+                    <div class="app-combobox-list" data-pos-product-type-panel hidden>
+                        <input class="app-combobox-search" type="search" data-pos-product-type-search placeholder="Search product types..." autocomplete="off" aria-label="Search product types">
+                        <div class="app-combobox-options" id="pos-product-type-options" data-pos-product-type-options role="listbox"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="quick-row" aria-label="Quick search chips" data-suggestions-row hidden>

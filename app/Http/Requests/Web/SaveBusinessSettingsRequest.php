@@ -20,6 +20,10 @@ class SaveBusinessSettingsRequest extends FormRequest
     {
         return [
             'business_name' => ['required', 'string', 'max:255'],
+            'company_logo' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'primary_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'secondary_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'tertiary_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'legal_name' => ['nullable', 'string', 'max:255'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'base_country' => ['nullable', 'string', 'max:100'],

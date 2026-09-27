@@ -22,6 +22,7 @@ use App\Models\VehicleModel;
 use App\Repositories\DashboardRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -459,8 +460,10 @@ class ExampleTest extends TestCase
             'line_total' => 400,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('web.reports.index'))
+        $reportsPage = $this->actingAs($user)
+            ->get(route('web.reports.index'));
+
+        $reportsPage
             ->assertOk()
             ->assertSeeInOrder([
                 'Sales report',
@@ -472,8 +475,11 @@ class ExampleTest extends TestCase
             ->assertDontSee('P&amp;L movement accounts', false)
             ->assertDontSee('Profit and loss')
             ->assertSee('View report')
-            ->assertDontSee('target="_blank"', false)
             ->assertSee(route('web.reports.view'));
+
+        $reportGrid = Str::between($reportsPage->getContent(), '<section class="report-grid"', '</section>');
+        $this->assertNotEmpty($reportGrid);
+        $this->assertStringNotContainsString('target="_blank"', $reportGrid);
 
         $filters = [
             'date_from' => today()->subDays(2)->toDateString(),
@@ -844,7 +850,7 @@ class ExampleTest extends TestCase
         $this->assertSame(0, $product->compatibilities()->count());
     }
 
-    public function test_unknown_brand_keeps_manually_selected_product_origin(): void
+    public function test_product_origin_cannot_be_injected_when_the_brand_has_no_country(): void
     {
         $this->actingAs($this->adminUser());
 
@@ -865,7 +871,7 @@ class ExampleTest extends TestCase
         $product = Product::query()->where('product_type_id', $productType->id)->firstOrFail();
 
         $this->assertSame('UNKN', $product->brand?->code);
-        $this->assertSame('Malawi', $product->part_country_of_origin);
+        $this->assertNull($product->part_country_of_origin);
     }
 
     public function test_product_classification_changes_regenerate_the_code_without_breaking_references(): void
@@ -964,7 +970,9 @@ class ExampleTest extends TestCase
             ->assertSee('class="form-field product-type-field"', false)
             ->assertSee('data-product-type-picker', false)
             ->assertSee('data-product-brand', false)
-            ->assertSee('data-product-origin', false);
+            ->assertSee('data-product-origin', false)
+            ->assertSee('readonly aria-readonly="true"', false)
+            ->assertDontSee('name="part_country_of_origin"', false);
 
         $this->get(route('web.catalog.products.edit', $product))
             ->assertOk()
@@ -973,6 +981,7 @@ class ExampleTest extends TestCase
 
         $this->get(route('web.catalog.products.index'))
             ->assertOk()
+            ->assertSee('data-live-product-filters', false)
             ->assertSee('data-confirm-title="Deactivate product?"', false)
             ->assertSee('data-confirm-label="Deactivate"', false);
     }

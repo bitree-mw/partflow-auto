@@ -26,6 +26,9 @@ class StoreCatalogProductRequest extends FormRequest
                 ->unique()
                 ->values()
                 ->all(),
+            // Product origin is derived from the selected brand by ProductService.
+            // Ignore injected form values so the displayed origin and stored value agree.
+            'part_country_of_origin' => null,
         ]);
     }
 

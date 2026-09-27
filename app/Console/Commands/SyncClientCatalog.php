@@ -15,9 +15,9 @@ class SyncClientCatalog extends Command
     protected $signature = 'catalog:sync-client-manifest
         {manifest=database/data/september_2026_client_catalog.json : Absolute path or project-relative manifest path}
         {--dry-run : Validate and preview changes without writing to the database}
-        {--force : Confirm deletion of sale and purchase transactions and apply the reconciliation}';
+        {--force : Confirm deletion of operational history and replacement of the product catalogue}';
 
-    protected $description = 'Reconcile client workbook products, prices, and stock while deleting only sale and purchase transactions';
+    protected $description = 'Reset operational data and load the September 2026 warehouse catalogue and opening stock';
 
     public function __construct(private readonly ClientCatalogSyncService $syncService)
     {
@@ -38,29 +38,23 @@ class SyncClientCatalog extends Command
         $this->table(
             [
                 'Manifest products',
-                'Will create',
-                'Will update',
-                'Store qty',
+                'Products deleted',
+                'Documents deleted',
+                'Contacts deleted',
+                'Expenses deleted',
                 'Warehouse qty',
                 'Priced',
                 'Zero price',
-                'Generic archived',
-                'Duplicates archived',
-                'Sales deleted',
-                'Purchases deleted',
             ],
             [[
                 $preview['manifest_products'],
-                $preview['will_create'],
-                $preview['will_update'],
-                $preview['store_quantity'],
+                $preview['products_to_delete'],
+                $preview['documents_to_delete'],
+                $preview['contacts_to_delete'],
+                $preview['expenses_to_delete'],
                 $preview['warehouse_quantity'],
                 $preview['priced_products'],
                 $preview['zero_price_products'],
-                $preview['generic_products_to_archive'],
-                $preview['duplicate_products_to_archive'],
-                $preview['sales_to_delete'],
-                $preview['purchases_to_delete'],
             ]]
         );
 
@@ -71,7 +65,7 @@ class SyncClientCatalog extends Command
         }
 
         if (! $this->option('force')) {
-            $this->error('Re-run with --force to delete sale and purchase transactions and apply the workbook reconciliation.');
+            $this->error('Re-run with --force to delete operational history and replace the product catalogue.');
 
             return self::FAILURE;
         }
@@ -85,24 +79,21 @@ class SyncClientCatalog extends Command
         }
 
         $this->info(sprintf(
-            'Reconciliation complete: %d products created, %d updated, %d generic products archived, and %d duplicate products archived.',
+            'Warehouse reset complete: %d products created after deleting %d existing products.',
             $result['products_created'],
-            $result['products_updated'],
-            $result['generic_products_archived'],
-            $result['duplicate_products_archived'],
+            $result['products_deleted'],
         ));
         $this->line(sprintf(
-            'Deleted %d sales and %d purchases, including %d items, %d payments, and %d linked stock movements.',
-            $result['sales_deleted'],
-            $result['purchases_deleted'],
-            $result['document_items_deleted'],
-            $result['payments_deleted'],
+            'Deleted %d old inventory documents, %d stock movements, %d contacts, and %d expenses.',
+            $result['documents_deleted'],
             $result['stock_movements_deleted'],
+            $result['contacts_deleted'],
+            $result['expenses_deleted'],
         ));
         $this->line(sprintf(
-            'Workbook stock applied: %d units at Limbe Store and %d units at Limbe Warehouse.',
-            $result['store_quantity'],
+            'Opening warehouse stock applied: %d units at Limbe Warehouse in adjustment #%d.',
             $result['warehouse_quantity'],
+            $result['opening_adjustment_id'],
         ));
 
         return self::SUCCESS;
@@ -139,7 +130,7 @@ class SyncClientCatalog extends Command
     {
         $topLevel = Validator::make($manifest, [
             'brands' => ['required', 'array', 'min:1'],
-            'retired_product_types' => ['required', 'array'],
+            'retired_product_types' => ['present', 'array'],
             'retired_product_types.*' => ['required', 'string', 'distinct'],
             'sites' => ['required', 'array', 'min:1'],
             'sites.*' => ['required', 'string', 'distinct'],
@@ -188,6 +179,8 @@ class SyncClientCatalog extends Command
                 'pack_size' => ['required', 'numeric', 'min:0.01'],
                 'is_active' => ['required', 'boolean'],
                 'description' => ['required', 'string'],
+                'source_rows' => ['required', 'array', 'min:1'],
+                'source_rows.*' => ['required', 'string', 'regex:/^Warehouse_September_2026\.xlsx\/.+\/row [0-9]+$/'],
                 'match_reference_values' => ['present', 'array'],
                 'match_reference_values.*' => ['required', 'string', 'distinct'],
                 'stocks' => ['required', 'array'],
@@ -207,6 +200,14 @@ class SyncClientCatalog extends Command
             }
 
             $row = $validator->validated();
+            $nonWarehouseQuantity = collect($row['stocks'])
+                ->except('LMBWH')
+                ->sum();
+
+            if ($nonWarehouseQuantity !== 0) {
+                throw new RuntimeException("Manifest product {$row['source_key']} contains stock outside Limbe Warehouse.");
+            }
+
             if (isset($sourceKeys[$row['source_key']])) {
                 throw new RuntimeException("Manifest contains duplicate source key: {$row['source_key']}.");
             }

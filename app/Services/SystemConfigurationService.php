@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserSiteAccess;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class SystemConfigurationService
 {
@@ -18,6 +19,10 @@ class SystemConfigurationService
 
         return [
             'business_name' => $this->businessName(),
+            'company_logo_url' => $this->companyLogoUrl(),
+            'primary_color' => $this->themeColor('primary_color', '#0a1630'),
+            'secondary_color' => $this->themeColor('secondary_color', '#f47a2a'),
+            'tertiary_color' => $this->themeColor('tertiary_color', '#f5f6f8'),
             'legal_name' => $this->setting('legal_name', $this->businessName().' Limited'),
             'registration_number' => $this->setting('registration_number', config('services.partflow.registration_number', 'MW-BR-1042')),
             'base_country' => $this->setting('base_country', config('services.partflow.base_country', 'Malawi')),
@@ -36,10 +41,18 @@ class SystemConfigurationService
     public function headerContext(?User $user = null): array
     {
         $defaultSite = $this->defaultSite($user);
+        $primaryColor = $this->themeColor('primary_color', '#0a1630');
+        $secondaryColor = $this->themeColor('secondary_color', '#f47a2a');
 
         return [
             'business_name' => $this->businessName(),
             'business_initials' => $this->initials($this->businessName()),
+            'company_logo_url' => $this->companyLogoUrl(),
+            'primary_color' => $primaryColor,
+            'secondary_color' => $secondaryColor,
+            'tertiary_color' => $this->themeColor('tertiary_color', '#f5f6f8'),
+            'on_primary_color' => $this->contrastingTextColor($primaryColor),
+            'on_secondary_color' => $this->contrastingTextColor($secondaryColor),
             'tagline' => config('services.partflow.tagline', 'Auto parts operations'),
             'currency' => $this->currency(),
             'site_name' => $defaultSite?->name ?? 'All sites',
@@ -140,6 +153,36 @@ class SystemConfigurationService
     private function currency(): string
     {
         return $this->setting('base_currency', config('services.partflow.base_currency', 'MWK'));
+    }
+
+    private function companyLogoUrl(): ?string
+    {
+        $path = $this->setting('company_logo_path');
+
+        if (! is_string($path) || ! filled($path) || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    private function themeColor(string $key, string $default): string
+    {
+        $color = $this->setting($key, $default);
+
+        return is_string($color) && preg_match('/^#[0-9A-Fa-f]{6}$/', $color)
+            ? strtolower($color)
+            : $default;
+    }
+
+    private function contrastingTextColor(string $hexColor): string
+    {
+        $red = hexdec(substr($hexColor, 1, 2));
+        $green = hexdec(substr($hexColor, 3, 2));
+        $blue = hexdec(substr($hexColor, 5, 2));
+        $luminance = (($red * 299) + ($green * 587) + ($blue * 114)) / 1000;
+
+        return $luminance > 150 ? '#17223a' : '#ffffff';
     }
 
     private function defaultSite(?User $user = null): ?Site

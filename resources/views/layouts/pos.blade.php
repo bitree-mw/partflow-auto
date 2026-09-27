@@ -16,6 +16,7 @@
     ])
     @vite('resources/css/theme.css')
     @vite('resources/css/responsive.css')
+    @include('partials.theme-variables')
 </head>
 <body class="pos-page">
     <section class="pos-device-warning" role="alert" aria-labelledby="pos-device-warning-title">
@@ -34,7 +35,7 @@
     <div class="pos-shell" data-pos-shell>
         <header class="app-header pos-header" aria-label="Point of sale controls">
             <div class="pos-header-identity">
-                <span class="pos-brand-icon" aria-hidden="true"><x-brand-icon /></span>
+                <span class="pos-brand-icon"><x-company-logo :system="$appSystem" /></span>
                 <div>
                     <p class="eyebrow">Live service</p>
                     <h1>Point of sale</h1>

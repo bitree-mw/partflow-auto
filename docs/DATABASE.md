@@ -53,6 +53,14 @@ The schema contains `car_makes`/`vehicle_models` reference data, product-facing 
 
 `products` stores a unique code, name/description, product type, brand, fuel type, origin, units/pack size, default purchase/selling price, minimum selling price, tax profile, low-stock threshold, active state, and optional primary car model. New products default the minimum selling price to 80% of the selling price; references and compatibility are separate related tables.
 
+### September 2026 client-workbook baseline
+
+The local database was reset on 2026-09-22 from `client_docs/Warehouse_September_2026.xlsx` through the validated warehouse catalogue manifest. The reset retains application configuration and reference data, including users, sites, product types, makes, and vehicle models. It removes the previous products, contacts, expenses, scheduled reminders, inventory documents, site balances, and stock movements before loading the warehouse baseline.
+
+The warehouse workbook reconciles to 466 consolidated products and 1,356 units at Limbe Warehouse (`LMBWH`). Two warehouse products have zero opening quantity. One approved opening adjustment contains 464 line items and movements, so every positive warehouse opening balance remains traceable.
+
+On 2026-09-23, the six other workbooks in `client_docs` were reconciled row by row to 161 products and 954 units. The retained CPT source list contributes another 39 products and 55 units. The store import reuses 22 reviewed matches to warehouse products, creates 178 distinct products where no safe match exists, and produces 200 Limbe Store (`LMBST`) stock rows totalling 1,009 units. Nineteen store rows have zero quantity. One approved store stock take contains 181 changed line items and movements. The resulting catalogue contains 644 products; the local database still contains no sale, purchase, or transfer history.
+
 ### Suppliers and purchases
 
 Suppliers use `contacts`; purchases use `inventory_documents` and `inventory_document_items`. Completed creation records costs/totals and creates `purchase_in` movements transactionally. A separate draft-to-received transition is planned and does not exist.

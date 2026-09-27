@@ -25,7 +25,7 @@
         height: 100svh;
         padding: clamp(34px, 5vw, 78px) clamp(34px, 4.8vw, 88px) clamp(30px, 4vw, 54px);
         overflow: hidden;
-        color: #fff;
+        color: var(--pf-on-color);
         background:
             linear-gradient(145deg, rgb(255 255 255 / 5%), transparent 42%),
             var(--pf-navy-950);
@@ -68,7 +68,7 @@
         gap: 13px;
         width: fit-content;
         align-items: center;
-        color: #fff;
+        color: var(--pf-on-color);
         text-decoration: none;
     }
 
@@ -92,7 +92,7 @@
     .login-brand small {
         display: block;
         margin-top: 6px;
-        color: #91a0ba;
+        color: color-mix(in srgb, var(--pf-on-color) 65%, transparent);
         font-size: 9px;
         font-weight: 600;
         letter-spacing: 0.18em;
@@ -118,7 +118,7 @@
     .login-message h1 {
         max-width: 650px;
         margin: 18px 0 0;
-        color: #fff;
+        color: var(--pf-on-color);
         font-size: clamp(44px, 4.7vw, 70px);
         font-weight: 400;
         line-height: 0.98;
@@ -128,7 +128,7 @@
     .login-message p {
         max-width: 590px;
         margin: 22px 0 0;
-        color: #b9c3d3;
+        color: color-mix(in srgb, var(--pf-on-color) 72%, transparent);
         font-size: 15px;
         line-height: 1.7;
     }
@@ -139,7 +139,7 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         padding-top: 24px;
-        border-top: 1px solid rgb(255 255 255 / 12%);
+        border-top: 1px solid color-mix(in srgb, var(--pf-on-color) 12%, transparent);
     }
 
     .login-capabilities div {
@@ -147,7 +147,7 @@
         gap: 7px;
         min-width: 0;
         padding: 0 20px;
-        border-left: 1px solid rgb(255 255 255 / 12%);
+        border-left: 1px solid color-mix(in srgb, var(--pf-on-color) 12%, transparent);
     }
 
     .login-capabilities div:first-child {
@@ -156,13 +156,13 @@
     }
 
     .login-capabilities strong {
-        color: #fff;
+        color: var(--pf-on-color);
         font-size: 12px;
     }
 
     .login-capabilities span,
     .login-brand-footer {
-        color: #91a0ba;
+        color: color-mix(in srgb, var(--pf-on-color) 65%, transparent);
         font-size: 10px;
     }
 

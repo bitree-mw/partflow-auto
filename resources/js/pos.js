@@ -4,9 +4,18 @@ let currentBranch = JSON.parse(document.querySelector('#pos-current-branch')?.te
 
 const endpoints = JSON.parse(document.querySelector('#pos-endpoints-data')?.textContent || '{}');
 const searchInput = document.querySelector('#part-search');
-const vehicleFilter = document.querySelector('[data-pos-vehicle-filter]');
+const vehiclePicker = document.querySelector('[data-pos-vehicle-picker]');
+const vehicleIdInput = document.querySelector('[data-pos-vehicle-id]');
+const vehicleTrigger = document.querySelector('[data-pos-vehicle-trigger]');
+const vehiclePanel = document.querySelector('[data-pos-vehicle-panel]');
+const vehicleSearch = document.querySelector('[data-pos-vehicle-search]');
+const vehicleResults = document.querySelector('[data-pos-vehicle-options]');
+const productTypePicker = document.querySelector('[data-pos-product-type-picker]');
 const productTypeFilter = document.querySelector('[data-pos-product-type-filter]');
-const filters = Array.from(document.querySelectorAll('[data-pos-filter]'));
+const productTypeTrigger = document.querySelector('[data-pos-product-type-trigger]');
+const productTypePanel = document.querySelector('[data-pos-product-type-panel]');
+const productTypeSearch = document.querySelector('[data-pos-product-type-search]');
+const productTypeResults = document.querySelector('[data-pos-product-type-options]');
 const clearSearch = document.querySelector('[data-pos-clear]');
 const resetSearch = document.querySelector('[data-pos-reset]');
 const productGrid = document.querySelector('.product-card-grid');
@@ -49,7 +58,6 @@ let productTypeController = null;
 let currentSaleTotal = 0;
 let amountPaidEdited = false;
 let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
-let vehicleOptions = new Map();
 const configuredMaximumDiscountPercentage = Math.max(0, Number(endpoints.maximumDiscountPercentage) || 0);
 
 function formatCurrency(value) {
@@ -216,13 +224,7 @@ function requestAdminPassword() {
 }
 
 function selectedVehicleId() {
-    const value = (vehicleFilter?.value || '').trim().toLowerCase();
-
-    if (!value || value === 'all vehicles') {
-        return null;
-    }
-
-    return vehicleOptions.get(value)?.id || null;
+    return vehicleIdInput?.value || null;
 }
 
 function branchStockTooltip(product) {
@@ -308,15 +310,9 @@ async function loadProducts() {
 
     if (vehicleId) {
         params.set('compatible_car_model_id', vehicleId);
-    } else {
-        const vehicleText = (vehicleFilter?.value || '').trim();
-
-        if (vehicleText && vehicleText.toLowerCase() !== 'all vehicles') {
-            params.set('vehicle_search', vehicleText);
-        }
     }
 
-    if (productType && productType.toLowerCase() !== 'all product types') {
+    if (productType) {
         params.set('product_type', productType);
     }
 
@@ -412,17 +408,73 @@ function renderSuggestions(suggestions) {
     });
 }
 
+function renderFilterOptions(container, items, emptyLabel, selectedValue, onChoose, query = '') {
+    if (!container) {
+        return;
+    }
+
+    container.replaceChildren();
+
+    const addOption = (label, value) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'app-combobox-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', String(value === selectedValue));
+        option.textContent = label;
+        option.addEventListener('click', () => onChoose(value, label));
+        container.append(option);
+    };
+
+    if (!query.trim()) {
+        addOption(emptyLabel, '');
+    }
+
+    items.forEach((item) => addOption(item.label, item.value));
+
+    if (container.children.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'app-combobox-empty';
+        empty.textContent = 'No matches';
+        container.append(empty);
+    }
+}
+
+function closeFilterPicker(panel, trigger) {
+    if (!panel || !trigger) {
+        return;
+    }
+
+    panel.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+}
+
+function chooseVehicle(value, label) {
+    vehicleIdInput.value = value;
+    vehicleTrigger.textContent = value ? label : 'All vehicles';
+    closeFilterPicker(vehiclePanel, vehicleTrigger);
+    vehicleTrigger.focus();
+    loadProducts();
+}
+
+function chooseProductType(value, label) {
+    productTypeFilter.value = value;
+    productTypeTrigger.textContent = value ? label : 'All product types';
+    closeFilterPicker(productTypePanel, productTypeTrigger);
+    productTypeTrigger.focus();
+    loadProducts();
+}
+
 async function loadVehicleModels() {
-    if (!endpoints.vehicleModels || !vehicleFilter) {
+    if (!endpoints.vehicleModels || !vehicleSearch || !vehicleResults) {
         return;
     }
 
     vehicleController?.abort();
     vehicleController = new AbortController();
 
-    const params = new URLSearchParams({
-        search: vehicleFilter.value.trim(),
-    });
+    const query = vehicleSearch.value.trim();
+    const params = new URLSearchParams({ search: query });
 
     try {
         const response = await fetch(`${endpoints.vehicleModels}?${params}`, {
@@ -435,35 +487,32 @@ async function loadVehicleModels() {
             throw new Error(payload.message || 'Could not load vehicle models.');
         }
 
-        vehicleOptions = new Map();
-        const datalist = document.querySelector('#pos-vehicle-options');
-
-        if (datalist) {
-            datalist.innerHTML = '<option value="All vehicles"></option>';
-            (payload.vehicles || []).forEach((vehicle) => {
-                const label = vehicle.display_name;
-                vehicleOptions.set(label.toLowerCase(), vehicle);
-                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(label)}"></option>`);
-            });
+        if (query !== vehicleSearch.value.trim()) {
+            return;
         }
+
+        const items = (payload.vehicles || []).map((vehicle) => ({
+            label: vehicle.display_name,
+            value: String(vehicle.id),
+        }));
+        renderFilterOptions(vehicleResults, items, 'All vehicles', selectedVehicleId() || '', chooseVehicle, query);
     } catch (error) {
         if (error.name !== 'AbortError') {
-            vehicleOptions = new Map();
+            vehicleResults.innerHTML = '<div class="app-combobox-empty">Could not load vehicles.</div>';
         }
     }
 }
 
 async function loadProductTypes() {
-    if (!endpoints.productTypes || !productTypeFilter) {
+    if (!endpoints.productTypes || !productTypeSearch || !productTypeResults) {
         return;
     }
 
     productTypeController?.abort();
     productTypeController = new AbortController();
 
-    const params = new URLSearchParams({
-        search: productTypeFilter.value.trim(),
-    });
+    const query = productTypeSearch.value.trim();
+    const params = new URLSearchParams({ search: query });
 
     try {
         const response = await fetch(`${endpoints.productTypes}?${params}`, {
@@ -476,20 +525,18 @@ async function loadProductTypes() {
             throw new Error(payload.message || 'Could not load product types.');
         }
 
-        const datalist = document.querySelector('#pos-product-type-options');
-
-        if (datalist) {
-            datalist.innerHTML = '<option value="All product types"></option>';
-            (payload.productTypes || []).forEach((productType) => {
-                datalist.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(productType.name)}"></option>`);
-            });
+        if (query !== productTypeSearch.value.trim()) {
+            return;
         }
+
+        const items = (payload.productTypes || []).map((productType) => ({
+            label: productType.name,
+            value: productType.name,
+        }));
+        renderFilterOptions(productTypeResults, items, 'All product types', productTypeFilter.value, chooseProductType, query);
     } catch (error) {
         if (error.name !== 'AbortError') {
-            const datalist = document.querySelector('#pos-product-type-options');
-            if (datalist) {
-                datalist.innerHTML = '<option value="All product types"></option>';
-            }
+            productTypeResults.innerHTML = '<div class="app-combobox-empty">Could not load product types.</div>';
         }
     }
 }
@@ -758,27 +805,84 @@ const scheduleProductTypes = debounce(() => {
     loadProductTypes();
 }, 180);
 
+function setupFilterPicker(picker, trigger, panel, search, results, load, schedule, otherPanel, otherTrigger) {
+    if (!picker || !trigger || !panel || !search || !results) {
+        return;
+    }
+
+    const open = () => {
+        closeFilterPicker(otherPanel, otherTrigger);
+        search.value = '';
+        results.innerHTML = '<div class="app-combobox-empty">Loading...</div>';
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        search.focus();
+        load();
+    };
+
+    trigger.addEventListener('click', () => {
+        if (panel.hidden) {
+            open();
+        } else {
+            closeFilterPicker(panel, trigger);
+        }
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            open();
+        }
+    });
+
+    search.addEventListener('input', () => {
+        results.innerHTML = '<div class="app-combobox-empty">Searching...</div>';
+        schedule();
+    });
+
+    panel.addEventListener('keydown', (event) => {
+        const options = Array.from(results.querySelectorAll('.app-combobox-option'));
+        const currentIndex = options.findIndex((option) => option.classList.contains('highlighted'));
+
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && options.length > 0) {
+            event.preventDefault();
+            const nextIndex = currentIndex < 0
+                ? (event.key === 'ArrowDown' ? 0 : options.length - 1)
+                : (currentIndex + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+            options.forEach((option) => option.classList.remove('highlighted'));
+            options[nextIndex].classList.add('highlighted');
+            options[nextIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter' && options.length > 0) {
+            event.preventDefault();
+            (options[currentIndex] || options[0]).click();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closeFilterPicker(panel, trigger);
+            trigger.focus();
+        }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (!picker.contains(event.target)) {
+            closeFilterPicker(panel, trigger);
+        }
+    });
+
+    picker.addEventListener('focusout', (event) => {
+        if (!picker.contains(event.relatedTarget)) {
+            closeFilterPicker(panel, trigger);
+        }
+    });
+}
+
+setupFilterPicker(vehiclePicker, vehicleTrigger, vehiclePanel, vehicleSearch, vehicleResults,
+    loadVehicleModels, scheduleVehicleModels, productTypePanel, productTypeTrigger);
+setupFilterPicker(productTypePicker, productTypeTrigger, productTypePanel, productTypeSearch, productTypeResults,
+    loadProductTypes, scheduleProductTypes, vehiclePanel, vehicleTrigger);
+
 searchInput?.addEventListener('input', () => {
     scheduleProducts();
     scheduleSuggestions();
-});
-
-vehicleFilter?.addEventListener('input', () => {
-    scheduleVehicleModels();
-    scheduleProducts();
-});
-
-filters.forEach((filter) => {
-    if (filter === productTypeFilter) {
-        filter.addEventListener('input', () => {
-            scheduleProductTypes();
-            scheduleProducts();
-        });
-        filter.addEventListener('change', scheduleProducts);
-    } else if (filter !== vehicleFilter) {
-        filter.addEventListener('input', scheduleProducts);
-        filter.addEventListener('change', scheduleProducts);
-    }
 });
 
 clearSearch?.addEventListener('click', (event) => {
@@ -795,9 +899,12 @@ resetSearch?.addEventListener('click', () => {
     if (searchInput) {
         searchInput.value = '';
     }
-    filters.forEach((filter) => {
-        filter.value = '';
-    });
+    vehicleIdInput.value = '';
+    vehicleTrigger.textContent = 'All vehicles';
+    productTypeFilter.value = '';
+    productTypeTrigger.textContent = 'All product types';
+    closeFilterPicker(vehiclePanel, vehicleTrigger);
+    closeFilterPicker(productTypePanel, productTypeTrigger);
     renderSuggestions([]);
     loadProducts();
     searchInput?.focus();
@@ -910,5 +1017,3 @@ discountInput?.addEventListener('input', updateTotals);
 
 renderProductCards();
 renderCart();
-loadVehicleModels();
-loadProductTypes();

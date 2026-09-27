@@ -3,19 +3,51 @@
 namespace App\Services;
 
 use App\Models\BusinessSetting;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+use Throwable;
 
 class BusinessSettingsService
 {
     public function update(array $settings): void
     {
-        DB::transaction(function () use ($settings): void {
-            collect($settings)
-                ->except('settings_panel')
-                ->each(fn (mixed $value, string $key) => BusinessSetting::query()->updateOrCreate(
-                    ['key' => $key],
-                    ['value' => $value]
-                ));
-        });
+        $logo = $settings['company_logo'] ?? null;
+        $oldLogoPath = BusinessSetting::query()->where('key', 'company_logo_path')->first()?->value;
+        $newLogoPath = null;
+
+        if ($logo instanceof UploadedFile) {
+            $newLogoPath = $logo->store('branding', 'public');
+
+            if (! is_string($newLogoPath)) {
+                throw new RuntimeException('The company logo could not be stored.');
+            }
+
+            $settings['company_logo_path'] = $newLogoPath;
+        }
+
+        unset($settings['company_logo']);
+
+        try {
+            DB::transaction(function () use ($settings): void {
+                collect($settings)
+                    ->except('settings_panel')
+                    ->each(fn (mixed $value, string $key) => BusinessSetting::query()->updateOrCreate(
+                        ['key' => $key],
+                        ['value' => $value]
+                    ));
+            });
+        } catch (Throwable $exception) {
+            if ($newLogoPath) {
+                Storage::disk('public')->delete($newLogoPath);
+            }
+
+            throw $exception;
+        }
+
+        if ($newLogoPath && is_string($oldLogoPath) && $oldLogoPath !== $newLogoPath) {
+            Storage::disk('public')->delete($oldLogoPath);
+        }
     }
 }

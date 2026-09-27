@@ -4,11 +4,11 @@
 
 @section('content')
     <main class="login-page">
-        <section class="login-brand-panel" aria-label="PartFlow Auto">
+        <section class="login-brand-panel" aria-label="{{ $appSystem['business_name'] ?? 'PartFlow Auto' }}">
             <a class="login-brand" href="{{ route('login') }}">
-                <span><x-brand-icon /></span>
+                <span><x-company-logo :system="$appSystem" /></span>
                 <div>
-                    <strong>PartFlow Auto</strong>
+                    <strong>{{ $appSystem['business_name'] ?? 'PartFlow Auto' }}</strong>
                     <small>Auto parts operations</small>
                 </div>
             </a>
@@ -156,7 +156,7 @@
                 </aside>
             </div>
 
-            <small class="login-legal">© {{ date('Y') }} PartFlow Auto. Authorized staff only.</small>
+            <small class="login-legal">© {{ date('Y') }} {{ $appSystem['business_name'] ?? 'PartFlow Auto' }}. Authorized staff only.</small>
         </section>
     </main>
 @endsection

@@ -834,10 +834,7 @@ class CatalogController extends Controller
     public function products(Request $request): View
     {
         $filters = $this->catalogueFilters($request, ['product_type_id', 'brand_id', 'stock_status', 'site_id']);
-
-        if (! $request->has('site_id')) {
-            $filters['site_id'] = $request->session()->get('pos_site_id');
-        }
+        $siteIds = $this->siteAccessService->allowedSiteIds($request->user());
 
         $stockSiteId = filled($filters['site_id'] ?? null) ? (int) $filters['site_id'] : null;
 
@@ -847,25 +844,35 @@ class CatalogController extends Controller
 
         $productQuery = Product::query()
             ->select('products.*')
-            ->selectSub(function ($query) use ($stockSiteId) {
+            ->selectSub(function ($query) use ($stockSiteId, $siteIds) {
                 $query->from('site_stocks')
                     ->selectRaw('COALESCE(SUM(quantity_on_hand - reserved_quantity), 0)')
                     ->whereColumn('site_stocks.product_id', 'products.id')
+                    ->whereIn('site_stocks.site_id', $siteIds)
                     ->when($stockSiteId, fn ($query) => $query->where('site_stocks.site_id', $stockSiteId));
             }, 'stock_total')
             ->withCount('compatibilities')
-            ->with(['carModel', 'compatibilities', 'productType', 'fuelType', 'brand', 'taxProfile', 'siteStocks.site'])
+            ->withExists(['siteStocks as has_stock_anywhere' => fn ($query) => $query->where(function ($query): void {
+                $query->where('quantity_on_hand', '>', 0)
+                    ->orWhere('reserved_quantity', '>', 0);
+            })])
+            ->with([
+                'carModel', 'compatibilities', 'productType', 'fuelType', 'brand', 'taxProfile',
+                'siteStocks' => fn ($query) => $query->whereIn('site_id', $siteIds)->with('site'),
+            ])
             ->search($filters['search'] ?? null)
+            ->when($stockSiteId, fn ($query) => $query->whereHas('siteStocks', fn ($stockQuery) => $stockQuery->where('site_id', $stockSiteId)))
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
             ->when($filters['product_type_id'] ?? null, fn ($query, $productTypeId) => $query->where('product_type_id', $productTypeId))
             ->when($filters['brand_id'] ?? null, fn ($query, $brandId) => $query->where('brand_id', $brandId))
-            ->when(($filters['stock_status'] ?? null) === 'out', function ($query) use ($stockSiteId) {
+            ->when(($filters['stock_status'] ?? null) === 'out', function ($query) use ($stockSiteId, $siteIds) {
+                $scopedSiteIds = $siteIds ?: [0];
                 $siteConstraint = $stockSiteId ? ' AND site_stocks.site_id = ?' : '';
                 $bindings = $stockSiteId ? [$stockSiteId] : [];
 
                 $query->whereRaw(
-                    '(SELECT COALESCE(SUM(quantity_on_hand - reserved_quantity), 0) FROM site_stocks WHERE site_stocks.product_id = products.id'.$siteConstraint.') <= 0',
-                    $bindings
+                    '(SELECT COALESCE(SUM(quantity_on_hand - reserved_quantity), 0) FROM site_stocks WHERE site_stocks.product_id = products.id AND site_stocks.site_id IN ('.implode(',', array_fill(0, count($scopedSiteIds), '?')).')'.$siteConstraint.') <= 0',
+                    [...$scopedSiteIds, ...$bindings]
                 );
             });
 
@@ -897,7 +904,7 @@ class CatalogController extends Controller
             'brandOptions' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'stockSiteOptions' => Site::query()
                 ->active()
-                ->whereIn('id', $this->siteAccessService->allowedSiteIds($request->user()))
+                ->whereIn('id', $siteIds)
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'catalogueSummary' => [
@@ -920,7 +927,6 @@ class CatalogController extends Controller
             'description' => 'Build a product using vehicle fitment, product type, fuel, brand, tax, references, and compatibility.',
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'selectedProductTypes' => $this->productTypeOptionsByIds($selectedProductTypeIds),
-            'countries' => config('countries'),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list(['is_active' => true])),
             'brands' => $this->brandOptions($this->brandService->list(['is_active' => true])),
             'taxProfiles' => $this->taxProfileOptions(),
@@ -1073,7 +1079,6 @@ class CatalogController extends Controller
             'product' => $product,
             'selectedCarModels' => $this->carModelOptionsByIds($selectedCarModelIds),
             'selectedProductTypes' => $this->productTypeOptionsByIds($selectedProductTypeIds),
-            'countries' => config('countries'),
             'fuelTypes' => $this->fuelTypeOptions($this->fuelTypeService->list()),
             'brands' => $this->brandOptions($this->brandService->list()),
             'taxProfiles' => $this->taxProfileOptions(),
@@ -1396,7 +1401,7 @@ class CatalogController extends Controller
             ? $allStockRows->where('site_id', $stockSiteId)
             : $allStockRows;
         $stockStatus = $this->productStockStatus($product, $stockRows);
-        $branchStock = $stockRows
+        $branchStock = $allStockRows
             ->sortBy('site.name')
             ->map(fn ($stock): array => [
                 'site' => $stock->site?->name ?? 'Unassigned',
@@ -1420,10 +1425,10 @@ class CatalogController extends Controller
             'compatible_count' => $compatibilityCount,
             'compatible_label' => $compatibilityCount.' '.($compatibilityCount === 1 ? 'vehicle' : 'vehicles'),
             'price' => $this->money((float) $product->default_selling_price),
-            'stock' => collect($branchStock)->sum('qty'),
+            'stock' => $stockRows->sum('available_quantity'),
             'low_stock_level' => (int) ($product->default_low_stock_level ?? 0),
             'branch_stock' => $branchStock,
-            'has_stock' => $allStockRows->contains(fn ($stock): bool => $stock->quantity_on_hand > 0 || $stock->reserved_quantity > 0),
+            'has_stock' => (bool) $product->has_stock_anywhere,
             'is_active' => (bool) $product->is_active,
             'status' => $stockStatus['label'],
             'status_tone' => $stockStatus['tone'],
