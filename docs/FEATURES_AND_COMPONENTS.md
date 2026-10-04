@@ -20,6 +20,8 @@ Do not label a feature Implemented merely because a menu item, route, model, or 
 
 | Feature | Status | Verified implementation and limitation | Primary evidence |
 | --- | --- | --- | --- |
+| Email notifications and cron delivery | **Implemented — low-stock scope** | Stock-change emails and a Monday stock digest use persistent queued delivery. Opt-in cPanel cron processes the database queue in bounded runs with overlap locks. Payment reminders remain absent. Hosting SMTP delivery requires staging verification. | `app/Services/LowStockNotificationService.php`, `app/Services/ScheduledReminderService.php`, `routes/console.php`, `docs/CPANEL_DEPLOYMENT.md` |
+| Grouped schema installation | **Implemented — empty databases only** | Six schema groups cover the 46 historical migrations through September 2026. The installer rejects existing tables/views and preserves historical migration names for future upgrades. Existing database imports retain their own migration ledger. Schema equivalence is tested on SQLite; target MySQL import compatibility is unverified. | `database/baseline`, `app/Console/Commands/InstallSchemaBaseline.php`, `tests/Feature/SchemaBaselineTest.php` |
 | Authentication | **Partial** | Session login/logout and Sanctum register/login/me/logout exist. Blade login also creates and stores a personal access token for internal API dispatch; password reset, explicit auth throttling, and a complete registration-role policy are absent. | `app/Http/Controllers/Web/AuthSessionController.php`, `app/Services/AuthService.php`, `app/Http/Controllers/Api/AuthController.php`, `routes/web.php`, `routes/api.php` |
 | Roles and permissions | **Implemented** | Custom roles store JSON permissions. `RequirePermission` supports exact and wildcard permission checks, and Blade navigation is permission-aware. No policy classes are currently used. | `app/Models/Role.php`, `app/Models/User.php`, `app/Http/Middleware/RequirePermission.php`, `bootstrap/app.php` |
 | Sites and user-site access | **Implemented** | Active user-site assignments and operation flags are enforced in Form Requests, services, API reads, Blade reads, reports, dashboards, payments, and stock workflows. System administrators with `*` may use all active sites; transfers require access to both sites. | `app/Models/UserSiteAccess.php`, `app/Services/SiteAccessService.php`, `tests/Feature/SiteAccessAuthorizationTest.php` |
@@ -149,9 +151,9 @@ These capabilities are not active and are not approved current work. Keep them i
 - Barcode generation and scanner workflows. Existing references and text search are not barcode generation/scanning.
 - Part-image upload, object storage, image transformation, and cleanup workflows.
 - Cash drawers, till opening/closing, and daily cash reconciliation beyond recorded expenses and payment accounts.
-- Email, SMS, or provider-backed notifications.
+- SMS and provider-backed notifications beyond the implemented low-stock emails.
 - Online payment gateways. Recording bank or mobile-money destinations is not gateway integration.
 - Accounting, ERP, supplier-catalogue, vehicle-data, or other third-party integrations.
-- Redis-backed features, queues, scheduled jobs, WebSockets, and realtime dashboards.
+- Redis-backed features, scheduled jobs beyond the implemented stock reminders and cron queue worker, WebSockets, and realtime dashboards.
 - Two-factor authentication, named Sanctum token abilities, OpenAPI generation, and API idempotency keys.
 - Browser-test automation and a JavaScript unit-test runner.

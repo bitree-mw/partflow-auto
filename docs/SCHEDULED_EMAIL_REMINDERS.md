@@ -20,7 +20,12 @@ The scheduler only queues `SendScheduledEmailReminder`; SMTP runs in the backgro
 
 ## Operation
 
-Run the new migration through the normal deployment procedure. Both the queue worker and scheduler must remain running:
+For cPanel shared hosting, use the opt-in minute-based cron worker described in
+[cPanel deployment](CPANEL_DEPLOYMENT.md#emails-using-cpanel-cron). It processes the
+same persistent database queue without a continuous worker process.
+
+Run any pending migration through the normal deployment procedure. On hosts with
+process supervision, run the queue worker and scheduler as services:
 
 ```shell
 php artisan queue:work --sleep=3 --tries=3 --timeout=60

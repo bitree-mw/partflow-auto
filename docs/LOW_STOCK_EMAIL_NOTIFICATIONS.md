@@ -25,6 +25,10 @@ In addition to stock-change alerts, a separate digest repeats every Monday at 08
 
 ## Configure outgoing mail
 
+cPanel can process these emails with short-lived cron workers. See
+[cPanel deployment](CPANEL_DEPLOYMENT.md#emails-using-cpanel-cron) for the environment
+settings and single cron entry; a supervised continuous worker is an alternative.
+
 The server also needs Laravel mail delivery configured. Set the appropriate non-secret deployment environment values for your provider, for example:
 
 ```dotenv
@@ -40,10 +44,11 @@ MAIL_FROM_NAME="PartFlow Auto"
 
 Use the exact host, port, security scheme, and credentials supplied by the email provider. Providers using implicit TLS commonly specify `smtps`; STARTTLS providers commonly use `smtp` and negotiate encryption. Do not commit real credentials to the repository. After changing cached production configuration, follow the deployment's normal Laravel configuration-cache refresh procedure.
 
-The deployment must also use a persistent queue connection such as `database` and keep a queue worker running, for example under Supervisor or the hosting platform's process manager:
+The deployment must also use a persistent queue connection such as `database`.
+Use the cPanel cron mode above or run a supervised queue worker:
 
 ```shell
-php artisan queue:work --tries=3 --timeout=30
+php artisan queue:work --tries=3 --timeout=60
 ```
 
 Restart long-running workers after deploying application or mail configuration changes. The repository's `composer run dev` command already starts a development queue listener.
@@ -74,6 +79,6 @@ For local verification without sending real email, `MAIL_MAILER=log` writes the 
 - Confirm the Business Information address is saved and valid.
 - Confirm the branch-specific part threshold is greater than zero.
 - Check the deployment's Laravel log for `Low-stock email delivery failed.`
-- Check `php artisan queue:failed` for terminally failed mail jobs and confirm a queue worker is continuously running.
+- Check `php artisan queue:failed` for terminally failed mail jobs and confirm the cPanel cron worker or supervised worker is processing jobs.
 - Verify the mail provider allows the configured sender address and that the server can connect to the provider.
 - Confirm `APP_URL` is correct so the **Review stock alerts** link in the email opens the right installation.

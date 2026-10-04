@@ -26,7 +26,10 @@ This document records the schema and integrity rules verified in the current rep
 
 ## Implemented schema map
 
-The repository contains 43 migration files. The main implemented tables are:
+The repository contains 46 historical migration files through 2026-09-15. A separate
+six-file grouped baseline is available for empty databases; imported databases keep
+their original migration history. See [cPanel deployment](CPANEL_DEPLOYMENT.md).
+The main implemented tables are:
 
 | Area | Tables/models | Important relationships and constraints |
 | --- | --- | --- |
