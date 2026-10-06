@@ -39,23 +39,23 @@
     <section class="settings-console">
         <aside class="settings-nav-panel" aria-label="Settings sections" role="tablist">
             <span class="eyebrow">Setup path</span>
-            <button id="settings-tab-company-profile" type="button" class="active" role="tab" aria-selected="true" aria-controls="company-profile" data-settings-tab="company-profile">
+            <button id="settings-tab-company-profile" type="button" class="active" role="tab" aria-selected="true" aria-controls="settings-panel-company-profile" data-settings-tab="company-profile">
                 <strong>Business information</strong>
                 <small>Identity, currency, stock email</small>
             </button>
-            <button id="settings-tab-operating-defaults" type="button" role="tab" aria-selected="false" aria-controls="operating-defaults" data-settings-tab="operating-defaults">
+            <button id="settings-tab-operating-defaults" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-operating-defaults" data-settings-tab="operating-defaults">
                 <strong>Operating defaults</strong>
                 <small>Branch, costing, stock and discount policy</small>
             </button>
-            <button id="settings-tab-vehicle-library" type="button" role="tab" aria-selected="false" aria-controls="vehicle-library" data-settings-tab="vehicle-library">
+            <button id="settings-tab-vehicle-library" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-vehicle-library" data-settings-tab="vehicle-library">
                 <strong>Vehicle library</strong>
                 <small>Car makes and model dropdowns</small>
             </button>
-            <button id="settings-tab-payment-accounts" type="button" role="tab" aria-selected="false" aria-controls="payment-accounts" data-settings-tab="payment-accounts">
+            <button id="settings-tab-payment-accounts" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-payment-accounts" data-settings-tab="payment-accounts">
                 <strong>Payment accounts</strong>
                 <small>Cash, bank, and mobile money</small>
             </button>
-            <button id="settings-tab-user-management" type="button" role="tab" aria-selected="false" aria-controls="user-management" data-settings-tab="user-management">
+            <button id="settings-tab-user-management" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-user-management" data-settings-tab="user-management">
                 <strong>User management</strong>
                 <small>Admins, roles, site access, and status</small>
             </button>
@@ -74,7 +74,7 @@
             @csrf
             <input type="hidden" name="settings_panel" value="{{ old('settings_panel', session('settings_panel', 'company-profile')) }}" data-settings-active-panel>
 
-            <section class="settings-panel active" id="company-profile" role="tabpanel" aria-labelledby="settings-tab-company-profile" data-settings-panel="company-profile">
+            <section class="settings-panel active" id="settings-panel-company-profile" role="tabpanel" aria-labelledby="settings-tab-company-profile" data-settings-panel="company-profile">
                 <header class="settings-header">
                     <span class="eyebrow">Business information</span>
                     <h2>Business identity</h2>
@@ -209,7 +209,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="operating-defaults" role="tabpanel" aria-labelledby="settings-tab-operating-defaults" data-settings-panel="operating-defaults" hidden>
+            <section class="settings-panel" id="settings-panel-operating-defaults" role="tabpanel" aria-labelledby="settings-tab-operating-defaults" data-settings-panel="operating-defaults" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Operating defaults</span>
                     <h2>Stock and branch rules</h2>
@@ -244,7 +244,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="vehicle-library" role="tabpanel" aria-labelledby="settings-tab-vehicle-library" data-settings-panel="vehicle-library" hidden>
+            <section class="settings-panel" id="settings-panel-vehicle-library" role="tabpanel" aria-labelledby="settings-tab-vehicle-library" data-settings-panel="vehicle-library" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Vehicle library</span>
                     <h2>Car makes and models</h2>
@@ -392,7 +392,7 @@
 
             </section>
 
-            <section class="settings-panel" id="payment-accounts" role="tabpanel" aria-labelledby="settings-tab-payment-accounts" data-settings-panel="payment-accounts" hidden>
+            <section class="settings-panel" id="settings-panel-payment-accounts" role="tabpanel" aria-labelledby="settings-tab-payment-accounts" data-settings-panel="payment-accounts" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">Payment accounts</span>
                     <h2>Cash, bank, mobile money, and card accounts</h2>
@@ -433,7 +433,7 @@
                 </div>
             </section>
 
-            <section class="settings-panel" id="user-management" role="tabpanel" aria-labelledby="settings-tab-user-management" data-settings-panel="user-management" hidden>
+            <section class="settings-panel" id="settings-panel-user-management" role="tabpanel" aria-labelledby="settings-tab-user-management" data-settings-panel="user-management" hidden>
                 <header class="settings-header">
                     <span class="eyebrow">User management</span>
                     <h2>People, access, and branch scope</h2>
