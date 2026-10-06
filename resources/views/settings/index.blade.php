@@ -12,24 +12,7 @@
 @endpush
 
 @section('content')
-    <x-country-datalist id="settings-countries" :countries="$countries" />
 
-    <datalist id="currency-options">
-        @foreach ($currencies as $currency)
-            <option value="{{ $currency }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="costing-method-options">
-        @foreach ($costingMethods as $costingMethod)
-            <option value="{{ $costingMethod }}"></option>
-        @endforeach
-    </datalist>
-    <datalist id="branch-options">
-        <option value="All sites"></option>
-        @foreach ($sites as $site)
-            <option value="{{ $site['name'] }}"></option>
-        @endforeach
-    </datalist>
     <datalist id="vehicle-make-options">
         @foreach ($carMakeOptions as $make)
             <option value="{{ $make['name'] }}"></option>
@@ -177,18 +160,6 @@
                         <x-form-error name="registration_number" />
                     </div>
 
-                    <div class="form-field">
-                        <label for="base_country">Base country</label>
-                        <input class="form-control searchable-input" id="base_country" name="base_country" list="settings-countries" value="{{ $settings['base_country'] }}">
-                        <x-form-error name="base_country" />
-                    </div>
-
-                    <div class="form-field">
-                        <label for="base_currency">Base currency</label>
-                        <input class="form-control searchable-input" id="base_currency" name="base_currency" list="currency-options" value="{{ $settings['base_currency'] }}">
-                        <x-form-error name="base_currency" />
-                    </div>
-
                     @if ($packageFeatures['low_stock_emails'])
                     <div class="form-field full">
                         <label for="low_stock_notification_email">Low-stock notification email</label>
@@ -219,13 +190,21 @@
                 <div class="form-grid settings-section">
                     <div class="form-field">
                         <label for="default_branch">Default branch</label>
-                        <input class="form-control searchable-input" id="default_branch" name="default_branch" list="branch-options" value="{{ $settings['default_branch'] }}">
+                        <select class="form-control" id="default_branch" name="default_branch">
+                            @foreach ($branchOptions as $branchOption)
+                                <option value="{{ $branchOption }}" @selected(old('default_branch', $settings['default_branch']) === $branchOption)>{{ $branchOption }}</option>
+                            @endforeach
+                        </select>
                         <x-form-error name="default_branch" />
                     </div>
 
                     <div class="form-field">
                         <label for="stock_costing_method">Stock costing method</label>
-                        <input class="form-control searchable-input" id="stock_costing_method" name="stock_costing_method" list="costing-method-options" value="{{ $settings['stock_costing_method'] }}">
+                        <select class="form-control" id="stock_costing_method" name="stock_costing_method">
+                            @foreach ($costingMethods as $costingMethod)
+                                <option value="{{ $costingMethod }}" @selected(old('stock_costing_method', $settings['stock_costing_method']) === $costingMethod)>{{ $costingMethod }}</option>
+                            @endforeach
+                        </select>
                         <x-form-error name="stock_costing_method" />
                     </div>
 
@@ -402,8 +381,24 @@
                     <div class="filter-form">
                         <input type="search" placeholder="Search accounts..." aria-label="Search payment accounts" data-settings-list-search="payment-account-list">
                     </div>
-                    <a class="btn" href="{{ route('web.payment-accounts.create') }}">Create account</a>
+                    <a class="btn" href="{{ route('web.payment-accounts.create', ['return_to' => route('web.settings.index').'#payment-accounts']) }}">Create account</a>
                 </div>
+                <div class="form-grid settings-section">
+                    <div class="form-field">
+                        <label for="default_pos_payment_account_id">Default payment account for the POS</label>
+                        <select class="form-control" id="default_pos_payment_account_id" name="default_pos_payment_account_id" aria-describedby="default-pos-account-help">
+                            <option value="">None (cashier chooses each sale)</option>
+                            @foreach ($posPaymentAccountOptions as $accountOption)
+                                <option value="{{ $accountOption->id }}" @selected((string) old('default_pos_payment_account_id', $settings['default_pos_payment_account_id']) === (string) $accountOption->id)>
+                                    {{ $accountOption->account_name }} ({{ $accountTypes[$accountOption->account_type] ?? $accountOption->account_type }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <small id="default-pos-account-help">Pre-selected at checkout. Cashiers can still pick another account. Click Save settings to apply.</small>
+                        <x-form-error name="default_pos_payment_account_id" />
+                    </div>
+                </div>
+
                 <div class="site-list" data-settings-list="payment-account-list">
                     @forelse ($paymentAccounts as $account)
                         <article data-settings-list-item="{{ strtolower($account->account_name.' '.$account->account_holder_name.' '.$account->account_type) }}">
@@ -413,8 +408,8 @@
                             </div>
                             <em>{{ $account->is_active ? 'Active' : 'Inactive' }}</em>
                             <div class="settings-row-actions">
-                                <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $account) }}">View</a>
-                                <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', $account) }}" title="Edit payment account" aria-label="Edit payment account">
+                                <a class="btn-secondary" href="{{ route('web.payment-accounts.show', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}">View</a>
+                                <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}" title="Edit payment account" aria-label="Edit payment account">
                                     <x-icons.pencil />
                                 </a>
                             </div>

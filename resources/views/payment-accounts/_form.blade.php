@@ -1,4 +1,7 @@
 @csrf
+@if (! empty($returnTo))
+    <input type="hidden" name="return_to" value="{{ $returnTo }}">
+@endif
 
 @php
     $selectedType = old('account_type', $paymentAccount->account_type ?: 'cash');
@@ -150,6 +153,6 @@
 </div>
 
 <div class="form-actions">
-    <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Cancel</a>
+    <a class="btn-secondary" href="{{ $returnTo ?? route('web.payment-accounts.index') }}">Cancel</a>
     <button class="btn" type="submit">{{ $submitLabel }}</button>
 </div>

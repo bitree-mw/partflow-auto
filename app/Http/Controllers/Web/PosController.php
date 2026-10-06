@@ -12,6 +12,7 @@ use App\Services\DiscountPolicyService;
 use App\Services\InventoryDocumentService;
 use App\Services\PackageService;
 use App\Services\SiteAccessService;
+use App\Services\SystemConfigurationService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +33,8 @@ class PosController extends Controller
         private readonly InventoryDocumentService $inventoryDocumentService,
         private readonly SiteAccessService $siteAccessService,
         private readonly DiscountPolicyService $discountPolicy,
-        private readonly PackageService $packages
+        private readonly PackageService $packages,
+        private readonly SystemConfigurationService $systemConfiguration
     ) {}
 
     public function index(Request $request): View
@@ -64,6 +66,7 @@ class PosController extends Controller
                 'profit' => $this->money(0),
             ],
             'paymentAccounts' => $this->paymentAccountOptions($request),
+            'defaultPaymentAccountId' => $this->systemConfiguration->defaultPosPaymentAccountId(),
             'customers' => $this->customerOptions($request),
             'posEndpoints' => [
                 'products' => route('web.pos.products'),

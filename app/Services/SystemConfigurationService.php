@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BusinessSetting;
+use App\Models\PaymentAccount;
 use App\Models\Role;
 use App\Models\Site;
 use App\Models\User;
@@ -13,7 +14,39 @@ use Illuminate\Support\Facades\Storage;
 
 class SystemConfigurationService
 {
+    public const ALL_BRANCHES = 'All sites';
+
+    public const COSTING_METHODS = ['Last purchase cost', 'Weighted average cost', 'Manual standard cost'];
+
+    // PartFlow Auto currently serves Malawi only, so country and currency are fixed rather than configurable.
+    public const BASE_COUNTRY = 'Malawi';
+
+    public const BASE_CURRENCY = 'MWK';
+
     public function __construct(private readonly PackageService $packages) {}
+
+    /**
+     * @return list<string>
+     */
+    public function defaultBranchOptions(): array
+    {
+        return [self::ALL_BRANCHES, ...Site::query()->active()->orderBy('name')->pluck('name')->all()];
+    }
+
+    public function activePaymentAccountOptions(): Collection
+    {
+        return PaymentAccount::query()->active()->orderBy('account_name')->get(['id', 'account_name', 'account_type']);
+    }
+
+    /**
+     * The payment account pre-selected at the POS, if it is still active.
+     */
+    public function defaultPosPaymentAccountId(): ?int
+    {
+        $id = (int) $this->setting('default_pos_payment_account_id');
+
+        return $id > 0 && PaymentAccount::query()->active()->whereKey($id)->exists() ? $id : null;
+    }
 
     public function settings(): array
     {
@@ -27,10 +60,11 @@ class SystemConfigurationService
             'tertiary_color' => $this->themeColor('tertiary_color', '#f5f6f8'),
             'legal_name' => $this->setting('legal_name', $this->businessName().' Limited'),
             'registration_number' => $this->setting('registration_number', config('services.partflow.registration_number', 'MW-BR-1042')),
-            'base_country' => $this->setting('base_country', config('services.partflow.base_country', 'Malawi')),
+            'base_country' => self::BASE_COUNTRY,
             'base_currency' => $this->currency(),
             'low_stock_notification_email' => $this->storedLowStockNotificationEmail(),
-            'default_branch' => $this->setting('default_branch', $defaultSite?->name ?? 'All sites'),
+            'default_branch' => $this->setting('default_branch', $defaultSite?->name ?? self::ALL_BRANCHES),
+            'default_pos_payment_account_id' => $this->defaultPosPaymentAccountId(),
             'stock_costing_method' => $this->setting('stock_costing_method', config('services.partflow.stock_costing_method', 'Last purchase cost')),
             'low_stock_policy' => $this->setting('low_stock_policy', 'Use product default unless branch override exists'),
             'maximum_discount_percentage' => (float) $this->setting(
@@ -164,7 +198,7 @@ class SystemConfigurationService
 
     private function currency(): string
     {
-        return $this->setting('base_currency', config('services.partflow.base_currency', 'MWK'));
+        return self::BASE_CURRENCY;
     }
 
     private function companyLogoUrl(): ?string

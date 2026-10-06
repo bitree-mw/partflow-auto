@@ -3,9 +3,13 @@
     'description' => $description,
 ])
 
+@php
+    $backLabel = $returnTo && str_contains($returnTo, '/back-office/settings') ? 'Back to settings' : 'Back';
+@endphp
+
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Back to list</a>
-    <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', $paymentAccount) }}" title="Edit payment account" aria-label="Edit payment account">
+    <a class="btn-secondary" href="{{ $returnTo ?? route('web.payment-accounts.index') }}">{{ $returnTo ? $backLabel : 'Back to list' }}</a>
+    <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', array_filter([$paymentAccount, 'return_to' => $returnTo])) }}" title="Edit payment account" aria-label="Edit payment account">
         <x-icons.pencil />
     </a>
 @endsection
@@ -52,6 +56,14 @@
                 <span>Last updated</span>
                 <strong>{{ $paymentAccount->updated_at?->toDayDateTimeString() ?: 'N/A' }}</strong>
             </div>
+        </div>
+
+        <div class="form-actions" style="margin: 0 20px; padding-bottom: 20px;">
+            @if ($returnTo)
+                <a class="btn-secondary" href="{{ $returnTo }}">{{ $backLabel }}</a>
+            @endif
+            <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">View all payment accounts</a>
+            <a class="btn" href="{{ route('web.payment-accounts.edit', array_filter([$paymentAccount, 'return_to' => $returnTo])) }}">Edit account</a>
         </div>
     </section>
 @endsection

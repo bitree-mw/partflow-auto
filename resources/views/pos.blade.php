@@ -124,7 +124,7 @@
                         <select name="payment_account_id">
                             <option value="">No payment account</option>
                             @foreach ($paymentAccounts as $paymentAccount)
-                                <option value="{{ $paymentAccount['id'] }}">{{ $paymentAccount['label'] }}</option>
+                                <option value="{{ $paymentAccount['id'] }}" @selected((int) $paymentAccount['id'] === $defaultPaymentAccountId)>{{ $paymentAccount['label'] }}</option>
                             @endforeach
                         </select>
                     </label>

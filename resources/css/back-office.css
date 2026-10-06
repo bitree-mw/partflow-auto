@@ -802,10 +802,12 @@
         gap: 16px;
     }
 
+    /* align-content keeps label, control and help text at natural height when a neighbouring field is taller. */
     .form-field,
     .detail-item {
         display: grid;
         gap: 8px;
+        align-content: start;
     }
 
     .form-field.full {

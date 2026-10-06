@@ -12,7 +12,7 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.payment-accounts.index') }}">Back to list</a>
+    <a class="btn-secondary" href="{{ $returnTo ?? route('web.payment-accounts.index') }}">{{ $returnTo ? 'Back' : 'Back to list' }}</a>
 @endsection
 
 @section('content')
@@ -21,6 +21,7 @@
             'paymentAccount' => $paymentAccount,
             'accountTypes' => $accountTypes,
             'submitLabel' => 'Create account',
+            'returnTo' => $returnTo,
         ])
     </form>
 @endsection

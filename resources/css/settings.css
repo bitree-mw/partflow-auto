@@ -291,13 +291,37 @@
         line-height: 1.5;
     }
 
+    /* Rows share one column grid (details | status pill | actions) so pills line up whatever the text length. */
     .site-list {
         display: grid;
-        gap: 10px;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px 12px;
         border-bottom: 1px solid #e5e7eb;
     }
 
-    .site-list article,
+    .site-list article {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: subgrid;
+        align-items: center;
+        padding: 13px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .site-list article[hidden] {
+        display: none;
+    }
+
+    .site-list article > em {
+        justify-self: start;
+    }
+
+    .site-list article > .settings-row-actions {
+        justify-self: end;
+    }
+
     .settings-groups article {
         display: flex;
         align-items: center;
@@ -713,10 +737,23 @@
             width: 100%;
         }
 
-        .profit-loss-account-list article,
-        .site-list article {
+        .profit-loss-account-list article {
             align-items: flex-start;
             flex-direction: column;
+        }
+
+        .site-list {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .site-list article {
+            grid-template-columns: minmax(0, 1fr);
+            justify-items: start;
+            gap: 10px;
+        }
+
+        .site-list article > .settings-row-actions {
+            justify-self: start;
         }
 
         .settings-row-actions {

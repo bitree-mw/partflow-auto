@@ -7,6 +7,7 @@ use App\Http\Requests\Web\PaymentAccount\StorePaymentAccountRequest;
 use App\Http\Requests\Web\PaymentAccount\UpdatePaymentAccountRequest;
 use App\Models\PaymentAccount;
 use App\Support\CollectionPaginator;
+use App\Support\ReturnUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,9 +30,10 @@ class PaymentAccountController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('payment-accounts.create', [
+            'returnTo' => ReturnUrl::from($request),
             'title' => 'Create Payment Account',
             'description' => 'Add an account that can receive payments or record expenses.',
             'paymentAccount' => new PaymentAccount(['is_active' => true]),
@@ -45,7 +47,7 @@ class PaymentAccountController extends Controller
         $paymentAccount = $this->hydratePaymentAccount($response['data'] ?? []);
 
         return redirect()
-            ->route('web.payment-accounts.show', $paymentAccount)
+            ->to(ReturnUrl::from($request) ?? route('web.payment-accounts.show', $paymentAccount))
             ->with('success', $response['message'] ?? 'Payment account created successfully.');
     }
 
@@ -54,6 +56,7 @@ class PaymentAccountController extends Controller
         $paymentAccount = $this->apiAccount($request, $paymentAccount);
 
         return view('payment-accounts.show', [
+            'returnTo' => ReturnUrl::from($request),
             'title' => 'Payment Account Details',
             'description' => 'Review account setup and status.',
             'paymentAccount' => $paymentAccount,
@@ -65,6 +68,7 @@ class PaymentAccountController extends Controller
         $paymentAccount = $this->apiAccount($request, $paymentAccount);
 
         return view('payment-accounts.edit', [
+            'returnTo' => ReturnUrl::from($request),
             'title' => 'Edit Payment Account',
             'description' => 'Update account details used by payment and expense workflows.',
             'paymentAccount' => $paymentAccount,
@@ -78,7 +82,7 @@ class PaymentAccountController extends Controller
         $paymentAccount = $this->hydratePaymentAccount($response['data'] ?? []);
 
         return redirect()
-            ->route('web.payment-accounts.show', $paymentAccount)
+            ->to(ReturnUrl::from($request) ?? route('web.payment-accounts.show', $paymentAccount))
             ->with('success', $response['message'] ?? 'Payment account updated successfully.');
     }
 
@@ -157,7 +161,7 @@ class PaymentAccountController extends Controller
 
     private function hydratePaymentAccount(array $data): PaymentAccount
     {
-        $paymentAccount = new PaymentAccount();
+        $paymentAccount = new PaymentAccount;
         $paymentAccount->forceFill($data);
         $paymentAccount->exists = true;
 

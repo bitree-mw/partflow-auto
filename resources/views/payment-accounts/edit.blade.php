@@ -12,7 +12,7 @@
 @endpush
 
 @section('header_actions')
-    <a class="btn-secondary" href="{{ route('web.payment-accounts.show', $paymentAccount) }}">View account</a>
+    <a class="btn-secondary" href="{{ route('web.payment-accounts.show', array_filter([$paymentAccount, 'return_to' => $returnTo])) }}">View account</a>
 @endsection
 
 @section('content')
@@ -30,6 +30,7 @@
             'paymentAccount' => $paymentAccount,
             'accountTypes' => $accountTypes,
             'submitLabel' => 'Save changes',
+            'returnTo' => $returnTo,
         ])
     </form>
 @endsection
