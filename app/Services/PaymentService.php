@@ -13,8 +13,25 @@ use Illuminate\Validation\ValidationException;
 class PaymentService
 {
     public function __construct(
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly PackageService $packages
     ) {}
+
+    /**
+     * Packages without customer balances only allow sales that are paid in full. Call inside the sale's transaction.
+     */
+    public function ensureSaleIsPaidInFull(InventoryDocument $document, string $errorKey = 'amount_paid'): void
+    {
+        if ($document->document_type !== 'sale' || $this->packages->has('customer_balances')) {
+            return;
+        }
+
+        if ((float) $document->refresh()->balance_amount > 0.004) {
+            throw ValidationException::withMessages([
+                $errorKey => "Sales must be paid in full: customer balances are not included in your {$this->packages->current()['name']} package.",
+            ]);
+        }
+    }
 
     public function list(array $filters = [], ?User $user = null): Collection
     {
@@ -103,6 +120,7 @@ class PaymentService
 
             $payment->delete();
             $this->refreshDocumentPaymentStatus($document);
+            $this->ensureSaleIsPaidInFull($document, 'payment');
         });
     }
 

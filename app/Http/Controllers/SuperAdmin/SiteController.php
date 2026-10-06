@@ -42,7 +42,11 @@ class SiteController extends Controller
 
     public function store(StoreSiteRequest $request): RedirectResponse
     {
-        $site = $this->siteService->create($request->validated());
+        try {
+            $site = $this->siteService->create($request->validated());
+        } catch (BusinessRuleException $exception) {
+            return redirect()->route('suadmin.sites.create')->withInput()->with('error', $exception->getMessage());
+        }
 
         return redirect()->route('suadmin.sites.index')->with('success', "Site {$site->name} ({$site->code}) created.");
     }

@@ -12,7 +12,7 @@
         @foreach ($cards as $card)
             <article>
                 <span class="suadmin-muted">{{ $card['label'] }}</span>
-                <strong>{{ number_format($card['value']) }}</strong>
+                <strong>{{ is_numeric($card['value']) ? number_format($card['value']) : $card['value'] }}</strong>
                 <span class="suadmin-muted">{{ $card['detail'] }}</span>
             </article>
         @endforeach

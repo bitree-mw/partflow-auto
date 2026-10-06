@@ -10,6 +10,7 @@ use App\Models\Site;
 use App\Models\User;
 use App\Services\DiscountPolicyService;
 use App\Services\InventoryDocumentService;
+use App\Services\PackageService;
 use App\Services\SiteAccessService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
@@ -30,7 +31,8 @@ class PosController extends Controller
     public function __construct(
         private readonly InventoryDocumentService $inventoryDocumentService,
         private readonly SiteAccessService $siteAccessService,
-        private readonly DiscountPolicyService $discountPolicy
+        private readonly DiscountPolicyService $discountPolicy,
+        private readonly PackageService $packages
     ) {}
 
     public function index(Request $request): View
@@ -47,6 +49,8 @@ class PosController extends Controller
             'siteOptions' => $this->siteOptions($request->user()),
             'canChangeSiteDirectly' => $this->isAdmin($request->user()),
             'cashier' => auth()->user()?->name ?? 'Cashier',
+            'fitmentSearch' => $this->packages->has('vehicle_fitment_search'),
+            'requiresFullPayment' => ! $this->packages->has('customer_balances'),
             'saleNumber' => 'Draft sale',
             'quickSearches' => [],
             'products' => $products,

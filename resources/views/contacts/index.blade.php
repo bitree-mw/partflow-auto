@@ -28,6 +28,7 @@
         @endforeach
     </section>
 
+    @if ($showBalances)
     <section class="contact-performance-panel">
         <header>
             <div>
@@ -49,6 +50,7 @@
             @endforeach
         </div>
     </section>
+    @endif
 
     <section class="data-panel">
         <div class="panel-toolbar">
@@ -66,8 +68,10 @@
                         <th>Account</th>
                         <th>Phone</th>
                         <th>Email</th>
-                        <th>Credit limit</th>
-                        <th>{{ $mode === 'customers' ? 'Customer balance' : 'Supplier payable' }}</th>
+                        @if ($showBalances)
+                            <th>Credit limit</th>
+                            <th>{{ $mode === 'customers' ? 'Customer balance' : 'Supplier payable' }}</th>
+                        @endif
                         <th>Performance</th>
                         <th>Status</th>
                         <th style="text-align: right;">Actions</th>
@@ -79,8 +83,10 @@
                             <td><strong>{{ $contact['name'] }}</strong><br><span>{{ $contact['code'] }}</span></td>
                             <td>{{ $contact['phone'] }}</td>
                             <td>{{ $contact['email'] }}</td>
-                            <td>{{ $contact['credit_limit'] }}</td>
-                            <td><span class="status-pill warning">{{ $contact['balance'] }}</span></td>
+                            @if ($showBalances)
+                                <td>{{ $contact['credit_limit'] }}</td>
+                                <td><span class="status-pill warning">{{ $contact['balance'] }}</span></td>
+                            @endif
                             <td>{{ $contact['performance'] }}</td>
                             <td>
                                 <span @class(['status-pill', 'inactive' => ! $contact['is_active']])>
@@ -115,7 +121,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="empty-state">No {{ $mode }} found.</td>
+                            <td colspan="{{ $showBalances ? 8 : 6 }}" class="empty-state">No {{ $mode }} found.</td>
                         </tr>
                     @endforelse
                 </tbody>

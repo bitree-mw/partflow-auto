@@ -81,7 +81,39 @@
                     <p>Set the company identity used on invoices, receipts, purchases, reports, and audit records.</p>
                 </header>
 
-                <div class="branding-settings-card">
+                <div class="form-grid settings-section">
+                    <div class="form-field full">
+                        <span id="current-package-label">Your package</span>
+                        <p>
+                            <span class="status-pill success" aria-labelledby="current-package-label">{{ $package['name'] }}</span>
+                            MK{{ number_format($package['monthly_price']) }} per month. Contact your PartFlow provider to change package.
+                        </p>
+                        <small>Included: {{ implode(' · ', $package['highlights']) }}</small>
+                    </div>
+
+                    @if ($supportContact)
+                        <div class="form-field full">
+                            <span>24/7 support</span>
+                            <p>
+                                @if ($supportContact['support_phone'])
+                                    Phone: <a href="tel:{{ preg_replace('/[^0-9+]/', '', $supportContact['support_phone']) }}">{{ $supportContact['support_phone'] }}</a><br>
+                                @endif
+                                @if ($supportContact['support_whatsapp'])
+                                    WhatsApp: <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $supportContact['support_whatsapp']) }}" target="_blank" rel="noopener">{{ $supportContact['support_whatsapp'] }}</a><br>
+                                @endif
+                                @if ($supportContact['support_email'])
+                                    Email: <a href="mailto:{{ $supportContact['support_email'] }}">{{ $supportContact['support_email'] }}</a><br>
+                                @endif
+                                @if ($supportContact['support_hours'])
+                                    <small>{{ $supportContact['support_hours'] }}</small>
+                                @endif
+                            </p>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Hidden rather than removed when the package excludes branding: settings.js expects these inputs. --}}
+                <div class="branding-settings-card" @unless ($packageFeatures['custom_branding']) hidden style="display: none" @endunless>
                     <div class="branding-logo-control">
                         <div class="branding-logo-preview" data-logo-preview>
                             <x-company-logo :system="$settings" />
@@ -157,6 +189,7 @@
                         <x-form-error name="base_currency" />
                     </div>
 
+                    @if ($packageFeatures['low_stock_emails'])
                     <div class="form-field full">
                         <label for="low_stock_notification_email">Low-stock notification email</label>
                         <input
@@ -209,6 +242,7 @@
                             </tbody>
                         </table>
                     </div>
+                    @endif
                 </div>
             </section>
 
@@ -531,7 +565,7 @@
                                 </select>
                                 <x-form-error name="user_role" />
                             </div>
-                            <div class="form-field">
+                            <div class="form-field" @unless ($packageFeatures['branch_access']) hidden style="display: none" @endunless>
                                 <label for="user_site">Site access</label>
                                 <select class="form-control" id="user_site" name="user_site">
                                     <option value="All sites" @selected(old('user_site', 'All sites') === 'All sites')>All sites</option>
@@ -587,7 +621,7 @@
                                 </select>
                                 <x-form-error name="edit_user_role" />
                             </div>
-                            <div class="form-field">
+                            <div class="form-field" @unless ($packageFeatures['branch_access']) hidden style="display: none" @endunless>
                                 <label for="edit_user_site">Site access</label>
                                 <select class="form-control" id="edit_user_site" name="edit_user_site" data-settings-field="editUserSite">
                                     <option value="All sites" @selected(old('edit_user_site', 'All sites') === 'All sites')>All sites</option>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Services\ContactService;
+use App\Services\PackageService;
 use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +15,8 @@ use Illuminate\Support\Collection;
 class ContactDirectoryController extends Controller
 {
     public function __construct(
-        private readonly ContactService $contactService
+        private readonly ContactService $contactService,
+        private readonly PackageService $packages
     ) {}
 
     public function customers(Request $request): View
@@ -28,6 +30,7 @@ class ContactDirectoryController extends Controller
             'createRoute' => route('web.customers.create'),
             'contacts' => CollectionPaginator::paginate($this->contactRows($contacts, 'sale'), $request),
             'analytics' => $this->customerAnalytics($contacts),
+            'showBalances' => $this->packages->has('customer_balances'),
         ]);
     }
 
@@ -42,6 +45,7 @@ class ContactDirectoryController extends Controller
             'createRoute' => route('web.suppliers.create'),
             'contacts' => CollectionPaginator::paginate($this->contactRows($contacts, 'purchase'), $request),
             'analytics' => $this->supplierAnalytics($contacts),
+            'showBalances' => true,
         ]);
     }
 
@@ -163,6 +167,14 @@ class ContactDirectoryController extends Controller
         $total = (float) $sales->sum('total_amount');
         $paid = (float) $sales->sum('paid_amount');
         $balance = (float) $sales->sum('balance_amount');
+
+        // Without customer balances every sale is paid in full, so credit figures are not shown.
+        if (! $this->packages->has('customer_balances')) {
+            return [
+                ['label' => 'Customer sales', 'value' => $this->money($total), 'detail' => 'All recorded sales', 'tone' => 'neutral'],
+                ['label' => 'Customers', 'value' => (string) $contacts->count(), 'detail' => 'Customer accounts', 'tone' => 'neutral'],
+            ];
+        }
 
         return [
             ['label' => 'Credit outstanding', 'value' => $this->money($balance), 'detail' => 'Across active customer accounts', 'tone' => $balance > 0 ? 'warning' : 'success'],

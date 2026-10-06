@@ -13,7 +13,7 @@
                 </span>
             </div>
             <h2>Find, fit, sell.</h2>
-            <p>{{ $cashier }} · Search by product, code, barcode, OEM, or vehicle and confirm branch availability before checkout.</p>
+            <p>{{ $cashier }} · Search by product, code, barcode, OEM{{ $fitmentSearch ? ', or vehicle' : '' }} and confirm branch availability before checkout.</p>
         </div>
     </section>
 
@@ -22,10 +22,11 @@
             <div class="pos-toolbar">
                 <label class="pos-search-field" for="part-search">
                     <span aria-hidden="true"></span>
-                    <input id="part-search" type="search" value="" placeholder="Search product, code, barcode, vehicle, or OEM" autocomplete="off" aria-label="Search by product, code, barcode, vehicle, or OEM">
+                    <input id="part-search" type="search" value="" placeholder="{{ $fitmentSearch ? 'Search product, code, barcode, vehicle, or OEM' : 'Search product, code, barcode, or OEM' }}" autocomplete="off" aria-label="{{ $fitmentSearch ? 'Search by product, code, barcode, vehicle, or OEM' : 'Search by product, code, barcode, or OEM' }}">
                 </label>
 
-                <div class="app-combobox pos-filter-picker" data-pos-vehicle-picker>
+                {{-- Kept in the DOM but hidden without vehicle fitment search: pos.js expects these elements. --}}
+                <div class="app-combobox pos-filter-picker" data-pos-vehicle-picker @unless ($fitmentSearch) hidden style="display: none" @endunless>
                     <input type="hidden" data-pos-vehicle-id value="">
                     <button class="app-combobox-input app-combobox-trigger" type="button" data-pos-vehicle-trigger aria-label="Filter products by vehicle" aria-haspopup="listbox" aria-controls="pos-vehicle-options" aria-expanded="false">All vehicles</button>
                     <div class="app-combobox-list" data-pos-vehicle-panel hidden>
@@ -64,9 +65,11 @@
                         <div class="part-card-meta">
                             <span class="branch-total-pill current">{{ $product['current_branch_name'] }} {{ $product['current_branch_stock']['available'] }}</span>
                             <span class="branch-total-pill" title="{{ $product['branch_stock_tooltip'] }}">Other {{ $product['other_available'] }}</span>
-                            <span class="compatibility-pill" title="{{ $product['compatible_cars_tooltip'] }}">
-                                {{ $product['compatible_cars_count'] > 0 ? 'Fits '.$product['compatible_cars_count'] : 'No fitment' }}
-                            </span>
+                            @if ($fitmentSearch)
+                                <span class="compatibility-pill" title="{{ $product['compatible_cars_tooltip'] }}">
+                                    {{ $product['compatible_cars_count'] > 0 ? 'Fits '.$product['compatible_cars_count'] : 'No fitment' }}
+                                </span>
+                            @endif
                         </div>
                         <span class="part-price">{{ $product['selling_price_display'] }}</span>
                     </article>
@@ -77,7 +80,7 @@
 
             <footer class="product-browser-footer">
                 <span data-result-count>{{ count($products) }} matches</span>
-                <span>Search includes OEM, barcode, and compatible car models</span>
+                <span>{{ $fitmentSearch ? 'Search includes OEM, barcode, and compatible car models' : 'Search includes OEM and barcode' }}</span>
             </footer>
         </section>
 
@@ -141,6 +144,9 @@
                         <strong data-total-due>{{ $saleTotals['total'] }}</strong>
                     </span>
                 </div>
+                @if ($requiresFullPayment)
+                    <p class="amount-balance-hint">Sales must be paid in full. Enter an amount received equal to the total.</p>
+                @endif
 
                 <div class="checkout-discount-panel">
                     <label for="pos_discount_amount">

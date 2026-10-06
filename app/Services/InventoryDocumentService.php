@@ -122,6 +122,10 @@ class InventoryDocumentService
 
             $this->applyInitialPayment($document, $data, $user);
 
+            if ($status === 'completed') {
+                $this->paymentService->ensureSaleIsPaidInFull($document);
+            }
+
             return $this->show($document->refresh());
         });
     }

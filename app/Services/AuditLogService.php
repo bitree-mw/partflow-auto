@@ -28,6 +28,7 @@ class AuditLogService
         'site_access' => 'User site access',
         'site' => 'Sites',
         'settings' => 'Business settings',
+        'package' => 'Package and support',
     ];
 
     private const SECRET_KEYS = ['password', 'password_confirmation', 'remember_token', 'token', 'secret'];

@@ -80,10 +80,12 @@
                         class="btn-secondary"
                         href="{{ route('web.reports.view', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
                     >View report</a>
-                    <a
-                        class="btn-secondary"
-                        href="{{ route('web.reports.export', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
-                    >Download full CSV</a>
+                    @feature('csv_exports')
+                        <a
+                            class="btn-secondary"
+                            href="{{ route('web.reports.export', array_merge($filteredReportParams, ['report_type' => $report['type']])) }}"
+                        >Download full CSV</a>
+                    @endfeature
                 </div>
             </article>
         @endforeach

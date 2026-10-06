@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Storage;
 
 class SystemConfigurationService
 {
+    public function __construct(private readonly PackageService $packages) {}
+
     public function settings(): array
     {
         $defaultSite = $this->defaultSite();
@@ -27,7 +29,7 @@ class SystemConfigurationService
             'registration_number' => $this->setting('registration_number', config('services.partflow.registration_number', 'MW-BR-1042')),
             'base_country' => $this->setting('base_country', config('services.partflow.base_country', 'Malawi')),
             'base_currency' => $this->currency(),
-            'low_stock_notification_email' => $this->lowStockNotificationEmail(),
+            'low_stock_notification_email' => $this->storedLowStockNotificationEmail(),
             'default_branch' => $this->setting('default_branch', $defaultSite?->name ?? 'All sites'),
             'stock_costing_method' => $this->setting('stock_costing_method', config('services.partflow.stock_costing_method', 'Last purchase cost')),
             'low_stock_policy' => $this->setting('low_stock_policy', 'Use product default unless branch override exists'),
@@ -41,16 +43,18 @@ class SystemConfigurationService
     public function headerContext(?User $user = null): array
     {
         $defaultSite = $this->defaultSite($user);
-        $primaryColor = $this->themeColor('primary_color', '#0a1630');
-        $secondaryColor = $this->themeColor('secondary_color', '#f47a2a');
+        // Packages without custom branding render the default PartFlow logo and colours.
+        $branded = $this->packages->has('custom_branding');
+        $primaryColor = $branded ? $this->themeColor('primary_color', '#0a1630') : '#0a1630';
+        $secondaryColor = $branded ? $this->themeColor('secondary_color', '#f47a2a') : '#f47a2a';
 
         return [
             'business_name' => $this->businessName(),
             'business_initials' => $this->initials($this->businessName()),
-            'company_logo_url' => $this->companyLogoUrl(),
+            'company_logo_url' => $branded ? $this->companyLogoUrl() : null,
             'primary_color' => $primaryColor,
             'secondary_color' => $secondaryColor,
-            'tertiary_color' => $this->themeColor('tertiary_color', '#f5f6f8'),
+            'tertiary_color' => $branded ? $this->themeColor('tertiary_color', '#f5f6f8') : '#f5f6f8',
             'on_primary_color' => $this->contrastingTextColor($primaryColor),
             'on_secondary_color' => $this->contrastingTextColor($secondaryColor),
             'tagline' => config('services.partflow.tagline', 'Auto parts operations'),
@@ -131,7 +135,15 @@ class SystemConfigurationService
         ]);
     }
 
+    /**
+     * Recipient for low-stock alerts and the weekly digest; null disables both, including on packages without them.
+     */
     public function lowStockNotificationEmail(): ?string
+    {
+        return $this->packages->has('low_stock_emails') ? $this->storedLowStockNotificationEmail() : null;
+    }
+
+    private function storedLowStockNotificationEmail(): ?string
     {
         $email = $this->setting('low_stock_notification_email');
 

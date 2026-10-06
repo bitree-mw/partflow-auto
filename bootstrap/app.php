@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\RequirePermission;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => RequirePermission::class,
             'suadmin' => EnsureSuperAdmin::class,
+            'feature' => RequireFeature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

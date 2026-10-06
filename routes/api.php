@@ -58,13 +58,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('purchases-by-date-range', 'purchasesByDateRange');
         Route::get('profit-by-product', 'profitByProduct');
         Route::get('profit-by-site', 'profitBySite');
-        Route::get('customer-balances', 'customerBalances');
+        Route::get('customer-balances', 'customerBalances')->middleware('feature:customer_balances');
         Route::get('payments-by-account', 'paymentsByAccount');
         Route::get('stock-movement-history', 'stockMovementHistory');
-        Route::get('stock-transfer-history', 'stockTransferHistory');
+        Route::get('stock-transfer-history', 'stockTransferHistory')->middleware('feature:stock_transfers');
         Route::get('stock-take-variance', 'stockTakeVariance');
-        Route::get('expenses', 'expenses');
-        Route::get('export', 'export');
+        Route::get('expenses', 'expenses')->middleware('feature:expenses');
+        Route::get('export', 'export')->middleware('feature:csv_exports');
     });
 
     Route::get('pos/products', [PosProductController::class, 'index'])->middleware('permission:sales.create');
@@ -85,9 +85,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('sales', [SaleController::class, 'store'])->middleware('permission:sales.create');
     Route::get('sales/{inventoryDocument}', [SaleController::class, 'show'])->middleware('permission:sales.view');
 
-    Route::get('transfers', [TransferController::class, 'index'])->middleware('permission:stock.view');
-    Route::post('transfers', [TransferController::class, 'store'])->middleware('permission:stock.transfer');
-    Route::get('transfers/{inventoryDocument}', [TransferController::class, 'show'])->middleware('permission:stock.view');
+    Route::get('transfers', [TransferController::class, 'index'])->middleware(['permission:stock.view', 'feature:stock_transfers']);
+    Route::post('transfers', [TransferController::class, 'store'])->middleware(['permission:stock.transfer', 'feature:stock_transfers']);
+    Route::get('transfers/{inventoryDocument}', [TransferController::class, 'show'])->middleware(['permission:stock.view', 'feature:stock_transfers']);
 
     Route::get('stock-adjustments', [StockAdjustmentController::class, 'index'])->middleware('permission:stock.view');
     Route::post('stock-adjustments', [StockAdjustmentController::class, 'store'])->middleware('permission:stock.adjust');
@@ -121,9 +121,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('expense-categories', ExpenseCategoryController::class)
         ->parameters(['expense-categories' => 'expense_category'])
-        ->middleware('permission:purchases.manage');
+        ->middleware(['permission:purchases.manage', 'feature:expenses']);
 
-    Route::apiResource('expenses', ExpenseController::class)->middleware('permission:purchases.manage');
+    Route::apiResource('expenses', ExpenseController::class)->middleware(['permission:purchases.manage', 'feature:expenses']);
 
     Route::apiResource('site-stocks', SiteStockController::class)->only(['index', 'show'])->middleware('permission:stock.view');
     Route::apiResource('site-stocks', SiteStockController::class)->except(['index', 'show'])->middleware('permission:stock.adjust');
@@ -155,7 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('user-site-accesses', UserSiteAccessController::class)
         ->parameters(['user-site-accesses' => 'user_site_access'])
-        ->middleware('permission:settings.manage');
+        ->middleware(['permission:settings.manage', 'feature:branch_access']);
 
     Route::apiResource('roles', RoleController::class)->middleware('permission:settings.manage');
     Route::apiResource('sites', SiteController::class)->only(['index', 'show'])->middleware('permission:stock.view,sales.create,purchases.create');

@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\AlertService;
+use App\Services\PackageService;
 use App\Services\SiteAccessService;
 use App\Services\SystemConfigurationService;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // @feature('csv_exports') ... @endfeature: display only; routes and services enforce the same package rules.
+        Blade::if('feature', fn (string $feature): bool => app(PackageService::class)->has($feature));
+
         View::composer(['layouts.auth', 'auth.*', 'layouts.suadmin'], function ($view): void {
             $view->with('appSystem', app(SystemConfigurationService::class)->headerContext());
         });
@@ -54,7 +59,8 @@ class AppServiceProvider extends ServiceProvider
                         $currentSite ? ['site_id' => $currentSite->id] : []
                     ))
                     : $alertService->summary(['site_ids' => []]),
-                'globalSiteOptions' => $this->siteOptions($user),
+                // Single-branch packages have nothing to switch between.
+                'globalSiteOptions' => app(PackageService::class)->has('multi_branch') ? $this->siteOptions($user) : [],
                 'globalCurrentSiteId' => $currentSite?->id,
                 'globalCanChangeSiteDirectly' => $this->isAdmin($user),
             ]);

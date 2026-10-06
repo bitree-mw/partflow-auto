@@ -43,6 +43,7 @@
         </div>
 
         <div class="dashboard-hero-actions">
+            @feature('multi_branch')
             <form class="branch-switcher" method="GET" action="{{ route('web.dashboard') }}">
                 <label for="dashboard_site_id">Branch</label>
                 <input type="hidden" name="revenue_period" value="{{ $revenuePeriod }}">
@@ -55,6 +56,7 @@
                     @endforeach
                 </select>
             </form>
+            @endfeature
 
             @if (auth()->user()?->hasPermission('stock.adjust'))
                 <a class="btn-secondary" href="{{ route('web.catalog.sites.stock-takes.create') }}">Stock count</a>
@@ -164,7 +166,8 @@
         </article>
     </section>
 
-    <section class="dashboard-distribution-grid">
+    {{-- One branch has nothing to distribute: the average-sale panel takes the full row instead. --}}
+    <section class="dashboard-distribution-grid" @if ($singleBranch) style="grid-template-columns: 1fr;" @endif>
         <article class="insight-panel dashboard-side-metric">
             <div>
                 <span class="eyebrow">Today’s sales</span>
@@ -174,6 +177,7 @@
             <p>Average value per completed sale for {{ $selectedBranchName }} today.</p>
         </article>
 
+        @unless ($singleBranch)
         <article class="insight-panel distribution-panel">
             <header class="insight-header">
                 <div>
@@ -199,6 +203,7 @@
                 </div>
             </div>
         </article>
+        @endunless
     </section>
 
     <section class="dashboard-analytics-grid" aria-label="Financial and inventory analytics">
@@ -230,8 +235,13 @@
         <article class="insight-panel analytics-comparison-panel">
             <header class="insight-header">
                 <div>
-                    <h2>Debtors and creditors</h2>
-                    <p>Recorded customer balances compared with unpaid supplier purchases.</p>
+                    @feature('customer_balances')
+                        <h2>Debtors and creditors</h2>
+                        <p>Recorded customer balances compared with unpaid supplier purchases.</p>
+                    @else
+                        <h2>Supplier balances</h2>
+                        <p>Unpaid supplier purchases still to settle.</p>
+                    @endfeature
                 </div>
             </header>
 
@@ -253,6 +263,7 @@
         </article>
     </section>
 
+    @feature('multi_branch')
     <section class="insight-panel branch-panel">
         <header class="insight-header">
             <div>
@@ -285,4 +296,5 @@
             @endforeach
         </div>
     </section>
+    @endfeature
 @endsection

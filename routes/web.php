@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\AuthSessionController;
 use App\Http\Controllers\Web\CatalogController;
 use App\Http\Controllers\Web\ContactDirectoryController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\ExpensesController;
 use App\Http\Controllers\Web\PaymentAccountController;
 use App\Http\Controllers\Web\PosController;
 use App\Http\Controllers\Web\PurchasesController;
@@ -27,7 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos', [PosController::class, 'index'])->middleware('permission:sales.create')->name('web.pos');
     Route::get('/pos/products.json', [PosController::class, 'productsJson'])->middleware('permission:sales.create')->name('web.pos.products');
     Route::get('/pos/suggestions.json', [PosController::class, 'suggestionsJson'])->middleware('permission:sales.create')->name('web.pos.suggestions');
-    Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->middleware('permission:sales.create')->name('web.pos.vehicle-models');
+    Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->middleware(['permission:sales.create', 'feature:vehicle_fitment_search'])->name('web.pos.vehicle-models');
     Route::get('/pos/product-types.json', [PosController::class, 'productTypesJson'])->middleware('permission:sales.create')->name('web.pos.product-types');
     Route::post('/pos/site', [PosController::class, 'updateSite'])->name('web.pos.site');
     Route::post('/pos/sales', [PosController::class, 'store'])->middleware('permission:sales.create')->name('web.pos.sales');
@@ -61,7 +62,7 @@ Route::prefix('back-office')
         Route::delete('suppliers/{contact}', [ContactDirectoryController::class, 'destroySupplier'])->middleware('permission:suppliers.manage')->name('suppliers.destroy');
         Route::get('reports', [ReportsController::class, 'index'])->middleware('permission:reports.view')->name('reports.index');
         Route::get('reports/view', [ReportsController::class, 'viewReport'])->middleware('permission:reports.view')->name('reports.view');
-        Route::get('reports/export', [ReportsController::class, 'export'])->middleware('permission:reports.view')->name('reports.export');
+        Route::get('reports/export', [ReportsController::class, 'export'])->middleware(['permission:reports.view', 'feature:csv_exports'])->name('reports.export');
         Route::get('alerts', [AlertsController::class, 'index'])->name('alerts.index');
 
         Route::prefix('catalog')->name('catalog.')->controller(CatalogController::class)->group(function () {
@@ -70,10 +71,10 @@ Route::prefix('back-office')
             Route::get('sites/{site}/edit', 'editSite')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.edit');
             Route::put('sites/{site}', 'updateSite')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.update');
             Route::patch('sites/{site}/status', 'updateSiteStatus')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.status');
-            Route::get('sites/transfers', 'siteTransfers')->middleware('permission:stock.view')->name('sites.transfers.index');
-            Route::get('sites/transfers/create', 'createSiteTransfer')->middleware('permission:stock.transfer')->name('sites.transfers.create');
-            Route::post('sites/transfers', 'storeSiteTransfer')->middleware('permission:stock.transfer')->name('sites.transfers.store');
-            Route::get('sites/transfers/{inventoryDocument}', 'showSiteTransfer')->middleware('permission:stock.view')->name('sites.transfers.show');
+            Route::get('sites/transfers', 'siteTransfers')->middleware(['permission:stock.view', 'feature:stock_transfers'])->name('sites.transfers.index');
+            Route::get('sites/transfers/create', 'createSiteTransfer')->middleware(['permission:stock.transfer', 'feature:stock_transfers'])->name('sites.transfers.create');
+            Route::post('sites/transfers', 'storeSiteTransfer')->middleware(['permission:stock.transfer', 'feature:stock_transfers'])->name('sites.transfers.store');
+            Route::get('sites/transfers/{inventoryDocument}', 'showSiteTransfer')->middleware(['permission:stock.view', 'feature:stock_transfers'])->name('sites.transfers.show');
             Route::get('sites/stock-takes', 'siteStockTakes')->middleware('permission:stock.view')->name('sites.stock-takes.index');
             Route::get('sites/stock-takes/create', 'createSiteStockTake')->middleware('permission:stock.adjust')->name('sites.stock-takes.create');
             Route::post('sites/stock-takes', 'storeSiteStockTake')->middleware('permission:stock.adjust')->name('sites.stock-takes.store');
@@ -125,6 +126,15 @@ Route::prefix('back-office')
         Route::post('settings/vehicle-makes/{carMake}/models', [AdminSettingsController::class, 'storeVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-makes.models.store');
         Route::put('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'updateVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-models.update');
         Route::delete('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'deactivateVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-models.destroy');
+
+        Route::middleware(['permission:purchases.manage', 'feature:expenses'])->group(function () {
+            Route::get('expenses', [ExpensesController::class, 'index'])->name('expenses.index');
+            Route::get('expenses/create', [ExpensesController::class, 'create'])->name('expenses.create');
+            Route::post('expenses', [ExpensesController::class, 'store'])->name('expenses.store');
+            Route::get('expenses/{expense}/edit', [ExpensesController::class, 'edit'])->name('expenses.edit');
+            Route::put('expenses/{expense}', [ExpensesController::class, 'update'])->name('expenses.update');
+            Route::post('expense-categories', [ExpensesController::class, 'storeCategory'])->name('expense-categories.store');
+        });
 
         Route::resource('payment-accounts', PaymentAccountController::class)
             ->parameters(['payment-accounts' => 'payment_account'])

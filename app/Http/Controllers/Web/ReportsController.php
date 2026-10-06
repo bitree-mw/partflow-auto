@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReportExportRequest;
 use App\Models\Site;
+use App\Services\PackageService;
 use App\Services\ReportExportService;
 use App\Services\ReportService;
 use App\Services\SiteAccessService;
@@ -17,7 +18,8 @@ class ReportsController extends Controller
     public function __construct(
         private readonly SiteAccessService $siteAccessService,
         private readonly ReportExportService $reportExportService,
-        private readonly ReportService $reportService
+        private readonly ReportService $reportService,
+        private readonly PackageService $packages
     ) {}
 
     public function index(ReportExportRequest $request): View
@@ -41,13 +43,13 @@ class ReportsController extends Controller
             'branchOptions' => $this->branchOptions($request),
             'selectedSiteId' => $selectedSiteId,
             'selectedBranchName' => $selectedBranchName ?? 'All branches',
-            'reportCards' => [
+            'reportCards' => array_values(array_filter([
                 ['name' => 'Sales report', 'type' => 'sales', 'detail' => 'Every sale and line item, including price, discount, VAT, payment status, balance, and profit.', 'status' => 'Transactions'],
                 ['name' => 'Purchase report', 'type' => 'purchases', 'detail' => 'Every supplier purchase and line item, including quantities, costs, totals, payments, and balances.', 'status' => 'Transactions'],
                 ['name' => 'Inventory report', 'type' => 'inventory-valuation', 'detail' => 'Current stock by part and branch with purchase cost, selling price, cost value, expected sales value, and potential margin.', 'status' => 'Current position'],
                 ['name' => 'Creditors report', 'type' => 'creditor-balances', 'detail' => 'Every supplier purchase with an outstanding balance in the selected period.', 'status' => 'Outstanding purchases'],
                 ['name' => 'Debtors report', 'type' => 'debtor-balances', 'detail' => 'Every customer sale with an outstanding balance in the selected period.', 'status' => 'Outstanding sales'],
-            ],
+            ], fn (array $card): bool => $this->packages->reportAllowed($card['type']))),
         ]);
     }
 

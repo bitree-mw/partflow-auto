@@ -35,6 +35,20 @@
         .suadmin-details summary { cursor: pointer; color: #5b6678; font-size: .85rem; }
         .suadmin-details pre { white-space: pre-wrap; word-break: break-word; font-size: .75rem; background: #f5f6f8; padding: 8px; border-radius: 6px; max-width: 420px; }
         .row-actions form { display: inline; }
+        .suadmin-panel-body { padding: 20px; display: grid; gap: 16px; }
+        .suadmin-panel-body .form-actions { margin-top: 0; }
+        .suadmin-package-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+        .suadmin-package-grid legend { padding: 0; margin-bottom: 12px; }
+        .suadmin-package-option { display: flex; flex-direction: column; gap: 6px; height: 100%; box-sizing: border-box; padding: 20px; background: #fff; border: 1px solid #e3e8ef; border-radius: 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+        .suadmin-package-option:hover { border-color: #c4ccd8; }
+        .suadmin-package-option:has(input:checked) { border-color: var(--pf-orange-500); box-shadow: 0 0 0 3px var(--pf-orange-100); }
+        .suadmin-package-option:has(input:focus-visible) { outline: 2px solid var(--pf-orange-500); outline-offset: 2px; }
+        .suadmin-package-head { display: flex; align-items: center; gap: 10px; }
+        .suadmin-package-head input { width: 18px; height: 18px; margin: 0; accent-color: var(--pf-orange-500); flex-shrink: 0; }
+        .suadmin-package-head .suadmin-package-name { font-weight: 700; font-size: 1rem; }
+        .suadmin-package-head .status-pill { margin-left: auto; }
+        .suadmin-package-price { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-top: 8px; }
+        .suadmin-package-option ul { margin: 10px 0 0; padding: 12px 0 0 18px; border-top: 1px solid #eef1f5; display: grid; gap: 6px; font-size: .875rem; color: #3d4757; }
     </style>
 </head>
 <body class="app-shell suadmin-shell">
@@ -47,6 +61,7 @@
             <a href="{{ route('suadmin.dashboard') }}" @if (request()->routeIs('suadmin.dashboard')) aria-current="page" @endif>Overview</a>
             <a href="{{ route('suadmin.sites.index') }}" @if (request()->routeIs('suadmin.sites.*')) aria-current="page" @endif>Sites</a>
             <a href="{{ route('suadmin.users.index') }}" @if (request()->routeIs('suadmin.users.*')) aria-current="page" @endif>Users &amp; admins</a>
+            <a href="{{ route('suadmin.package.edit') }}" @if (request()->routeIs('suadmin.package.*')) aria-current="page" @endif>Package</a>
             <a href="{{ route('suadmin.audit-logs.index') }}" @if (request()->routeIs('suadmin.audit-logs.*')) aria-current="page" @endif>Audit log</a>
         </nav>
         <form method="POST" action="{{ route('suadmin.logout') }}">

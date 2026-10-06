@@ -29,7 +29,8 @@ class SiteAccessService
     {
         $this->validateOperation($operation);
 
-        if ($this->isSystemAdministrator($user)) {
+        // Packages without branch access control (single branch) let every active user work at the active site.
+        if ($this->isSystemAdministrator($user) || ($user->is_active && ! $this->packages->has('branch_access'))) {
             return Site::query()
                 ->active()
                 ->orderBy('id')
@@ -48,6 +49,8 @@ class SiteAccessService
             ->map(fn ($id): int => (int) $id)
             ->all();
     }
+
+    public function __construct(private readonly PackageService $packages) {}
 
     public function scopeFilters(User $user, array $filters = [], ?string $operation = null): array
     {

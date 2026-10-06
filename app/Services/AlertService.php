@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class AlertService
 {
+    public function __construct(private readonly PackageService $packages) {}
+
     public function all(array $filters = []): Collection
     {
         return $this->stockAlerts($filters)
-            ->merge($this->pendingTransferAlerts($filters))
-            ->merge($this->customerBalanceAlerts($filters))
+            ->merge($this->packages->has('stock_transfers') ? $this->pendingTransferAlerts($filters) : collect())
+            ->merge($this->packages->has('customer_balances') ? $this->customerBalanceAlerts($filters) : collect())
             ->sortBy(fn (array $alert) => sprintf(
                 '%d-%s-%s',
                 $alert['priority_rank'],

@@ -33,7 +33,9 @@
             </div>
             <div class="report-view-actions">
                 <a class="btn-secondary" href="{{ route('web.reports.index') }}">Report centre</a>
-                <a class="btn-secondary" href="{{ route('web.reports.export', $downloadParams) }}">Download full CSV</a>
+                @feature('csv_exports')
+                    <a class="btn-secondary" href="{{ route('web.reports.export', $downloadParams) }}">Download full CSV</a>
+                @endfeature
             </div>
         </div>
 

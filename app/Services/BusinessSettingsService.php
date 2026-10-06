@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BusinessSetting;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -11,10 +12,24 @@ use Throwable;
 
 class BusinessSettingsService
 {
-    public function __construct(private readonly AuditLogService $auditLog) {}
+    private const BRANDING_KEYS = ['company_logo', 'primary_color', 'secondary_color', 'tertiary_color'];
+
+    public function __construct(
+        private readonly AuditLogService $auditLog,
+        private readonly PackageService $packages
+    ) {}
 
     public function update(array $settings): void
     {
+        // Settings outside the package are left untouched so an upgrade restores them.
+        if (! $this->packages->has('custom_branding')) {
+            $settings = Arr::except($settings, self::BRANDING_KEYS);
+        }
+
+        if (! $this->packages->has('low_stock_emails')) {
+            unset($settings['low_stock_notification_email']);
+        }
+
         $logo = $settings['company_logo'] ?? null;
         $oldLogoPath = BusinessSetting::query()->where('key', 'company_logo_path')->first()?->value;
         $newLogoPath = null;

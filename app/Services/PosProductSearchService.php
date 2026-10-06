@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\SiteStock;
 use App\Models\Product;
+use App\Models\SiteStock;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -11,13 +11,41 @@ use Illuminate\Support\Facades\DB;
 class PosProductSearchService
 {
     public function __construct(
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly PackageService $packages
     ) {}
+
+    // Vehicle fitment search is a package feature; without it, vehicle filters and vehicle text matches are ignored.
+    private function fitmentSearchEnabled(): bool
+    {
+        return $this->packages->has('vehicle_fitment_search');
+    }
+
+    private function orWhereVehicleMatches($query, string $search)
+    {
+        return $query
+            ->orWhereHas('carModel', function ($query) use ($search) {
+                $query->where('make', 'like', "%{$search}%")
+                    ->orWhere('model', 'like', "%{$search}%")
+                    ->orWhere('engine_size', 'like', "%{$search}%")
+                    ->orWhere('variant_name', 'like', "%{$search}%");
+            })
+            ->orWhereHas('compatibilities.carModel', function ($query) use ($search) {
+                $query->where('make', 'like', "%{$search}%")
+                    ->orWhere('model', 'like', "%{$search}%")
+                    ->orWhere('engine_size', 'like', "%{$search}%")
+                    ->orWhere('variant_name', 'like', "%{$search}%");
+            });
+    }
 
     public function search(array $filters = [], ?User $user = null): Collection
     {
         if ($user) {
             $filters = $this->siteAccessService->scopeFilters($user, $filters, SiteAccessService::MAKE_SALES);
+        }
+
+        if (! $this->fitmentSearchEnabled()) {
+            unset($filters['compatible_car_model_id'], $filters['vehicle_search']);
         }
 
         return SiteStock::query()
@@ -70,18 +98,7 @@ class PosProductSearchService
                         ->orWhereHas('references', function ($query) use ($search) {
                             $query->where('reference_value', 'like', "%{$search}%");
                         })
-                        ->orWhereHas('carModel', function ($query) use ($search) {
-                            $query->where('make', 'like', "%{$search}%")
-                                ->orWhere('model', 'like', "%{$search}%")
-                                ->orWhere('engine_size', 'like', "%{$search}%")
-                                ->orWhere('variant_name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('compatibilities.carModel', function ($query) use ($search) {
-                            $query->where('make', 'like', "%{$search}%")
-                                ->orWhere('model', 'like', "%{$search}%")
-                                ->orWhere('engine_size', 'like', "%{$search}%")
-                                ->orWhere('variant_name', 'like', "%{$search}%");
-                        });
+                        ->when($this->fitmentSearchEnabled(), fn ($query) => $this->orWhereVehicleMatches($query, $search));
                 });
             })
             ->whereHas('product', function ($query) {
@@ -89,7 +106,7 @@ class PosProductSearchService
             })
             ->orderBy('site_id')
             ->orderBy(
-                \App\Models\Product::select('product_name')
+                Product::select('product_name')
                     ->whereColumn('products.id', 'site_stocks.product_id')
                     ->limit(1)
             )
@@ -158,18 +175,7 @@ class PosProductSearchService
                     ->orWhereHas('references', function ($query) use ($search) {
                         $query->where('reference_value', 'like', "%{$search}%");
                     })
-                    ->orWhereHas('carModel', function ($query) use ($search) {
-                        $query->where('make', 'like', "%{$search}%")
-                            ->orWhere('model', 'like', "%{$search}%")
-                            ->orWhere('engine_size', 'like', "%{$search}%")
-                            ->orWhere('variant_name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('compatibilities.carModel', function ($query) use ($search) {
-                        $query->where('make', 'like', "%{$search}%")
-                            ->orWhere('model', 'like', "%{$search}%")
-                            ->orWhere('engine_size', 'like', "%{$search}%")
-                            ->orWhere('variant_name', 'like', "%{$search}%");
-                    });
+                    ->when($this->fitmentSearchEnabled(), fn ($query) => $this->orWhereVehicleMatches($query, $search));
             })
             ->groupBy('products.id', 'products.product_code', 'products.product_name', 'products.brand_id', 'products.product_type_id')
             ->orderByDesc('sold_quantity')

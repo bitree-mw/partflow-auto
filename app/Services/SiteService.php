@@ -20,7 +20,8 @@ class SiteService
 
     public function __construct(
         private readonly SiteAccessService $siteAccessService,
-        private readonly AuditLogService $auditLog
+        private readonly AuditLogService $auditLog,
+        private readonly PackageService $packages
     ) {}
 
     public function list(array $filters = [], ?User $user = null, ?string $operation = null): Collection
@@ -63,6 +64,10 @@ class SiteService
     public function create(array $data): Site
     {
         return DB::transaction(function () use ($data): Site {
+            if ($data['is_active'] ?? true) {
+                $this->ensureBranchAllowance();
+            }
+
             $site = Site::create([
                 'name' => $data['name'],
                 'code' => filled($data['code'] ?? null) ? strtoupper($data['code']) : $this->generateCode($data['name']),
@@ -118,6 +123,8 @@ class SiteService
 
             if (! $active) {
                 $this->ensureSiteIsEmpty($site, 'deactivated');
+            } else {
+                $this->ensureBranchAllowance();
             }
 
             $site->update(['is_active' => $active]);
@@ -167,6 +174,24 @@ class SiteService
         }
 
         return $code;
+    }
+
+    /**
+     * Single-branch packages may have only one active site.
+     */
+    private function ensureBranchAllowance(): void
+    {
+        if ($this->packages->has('multi_branch')) {
+            return;
+        }
+
+        if (Site::query()->active()->lockForUpdate()->count() >= 1) {
+            $package = $this->packages->current()['name'];
+
+            throw new BusinessRuleException(
+                "The {$package} package includes one active branch. Deactivate the current branch first, or upgrade to Drive or higher to run more branches."
+            );
+        }
     }
 
     private function ensureSiteIsEmpty(Site $site, string $action): void

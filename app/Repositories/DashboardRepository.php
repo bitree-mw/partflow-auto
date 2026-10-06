@@ -44,6 +44,21 @@ class DashboardRepository
             ->sum('total_amount');
     }
 
+    public function expensesTotalBetween(string $dateFrom, string $dateTo, ?int $siteId = null, ?array $siteIds = null, bool $includeUnassigned = false): float
+    {
+        return (float) DB::table('expenses')
+            ->whereDate('expense_date', '>=', $dateFrom)
+            ->whereDate('expense_date', '<=', $dateTo)
+            ->when($siteId, fn ($query) => $query->where('site_id', $siteId))
+            ->when(! $siteId && $siteIds !== null, function ($query) use ($siteIds, $includeUnassigned) {
+                // Business-wide expenses (no branch) count only in an all-branches view for administrators.
+                $query->where(fn ($inner) => $inner
+                    ->whereIn('site_id', $siteIds)
+                    ->when($includeUnassigned, fn ($scoped) => $scoped->orWhereNull('site_id')));
+            })
+            ->sum('amount');
+    }
+
     public function todayProfit(?int $siteId = null, ?array $siteIds = null): float
     {
         return (float) DB::table('inventory_document_items')

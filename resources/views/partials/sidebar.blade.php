@@ -35,6 +35,7 @@
             ['label' => 'Purchases', 'icon' => 'basket', 'href' => route('web.purchases.index'), 'active' => request()->routeIs('web.purchases.*'), 'permission' => 'purchases.view'],
             ['label' => 'Customers', 'icon' => 'users', 'href' => route('web.customers.index'), 'active' => request()->routeIs('web.customers.*'), 'permission' => 'customers.view'],
             ['label' => 'Suppliers', 'icon' => 'truck', 'href' => route('web.suppliers.index'), 'active' => request()->routeIs('web.suppliers.*'), 'permission' => 'suppliers.view'],
+            ['label' => 'Expenses', 'icon' => 'wallet', 'href' => route('web.expenses.index'), 'active' => request()->routeIs('web.expenses.*'), 'permission' => 'purchases.manage', 'feature' => 'expenses'],
         ],
         'Catalogue' => [
             ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*'), 'permission' => 'stock.view'],
@@ -82,8 +83,9 @@
         @foreach ($navigationGroups as $group => $items)
             @php
                 $visibleItems = collect($items)->filter(
-                    fn (array $item): bool => empty($item['permission'])
-                        || $signedInUser?->hasPermission($item['permission'])
+                    fn (array $item): bool => (empty($item['permission'])
+                        || $signedInUser?->hasPermission($item['permission']))
+                        && (empty($item['feature']) || app(\App\Services\PackageService::class)->has($item['feature']))
                 );
             @endphp
 

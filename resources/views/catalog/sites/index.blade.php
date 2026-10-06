@@ -30,19 +30,21 @@
     </section>
 
     <section class="dashboard-grid secondary site-workflows">
-        <article class="data-panel site-workflow-panel">
-            <header class="settings-header">
-                <span class="eyebrow">Warehouse movement</span>
-                <h2>Transfer stock</h2>
-                <p>Move multiple parts from a source site to a destination site. The system checks available quantities before stock is moved.</p>
-            </header>
-            <div class="site-workflow-actions">
-                @if (auth()->user()?->hasPermission('stock.transfer'))
-                    <a class="btn" href="{{ route('web.catalog.sites.transfers.create') }}">New transfer</a>
-                @endif
-                <a class="btn-secondary" href="{{ route('web.catalog.sites.transfers.index') }}">View transfers</a>
-            </div>
-        </article>
+        @feature('stock_transfers')
+            <article class="data-panel site-workflow-panel">
+                <header class="settings-header">
+                    <span class="eyebrow">Warehouse movement</span>
+                    <h2>Transfer stock</h2>
+                    <p>Move multiple parts from a source site to a destination site. The system checks available quantities before stock is moved.</p>
+                </header>
+                <div class="site-workflow-actions">
+                    @if (auth()->user()?->hasPermission('stock.transfer'))
+                        <a class="btn" href="{{ route('web.catalog.sites.transfers.create') }}">New transfer</a>
+                    @endif
+                    <a class="btn-secondary" href="{{ route('web.catalog.sites.transfers.index') }}">View transfers</a>
+                </div>
+            </article>
+        @endfeature
 
         <article class="data-panel site-workflow-panel">
             <header class="settings-header">

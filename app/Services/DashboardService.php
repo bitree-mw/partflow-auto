@@ -14,7 +14,8 @@ class DashboardService
     public function __construct(
         private readonly DashboardRepository $dashboard,
         private readonly SystemConfigurationService $systemConfiguration,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly PackageService $packages
     ) {}
 
     public function summary(array $filters = [], ?User $user = null): array
@@ -77,6 +78,15 @@ class DashboardService
             'out_of_stock_count' => $this->dashboard->outOfStockCount($siteId, $siteIds),
             'outstanding_customer_balances' => $this->dashboard->outstandingCustomerBalances($siteId, $siteIds),
             'outstanding_supplier_balances' => $this->dashboard->outstandingSupplierBalances($siteId, $siteIds),
+            'month_expenses' => $this->packages->has('expenses')
+                ? $this->dashboard->expensesTotalBetween(
+                    today()->startOfMonth()->toDateString(),
+                    today()->toDateString(),
+                    $siteId,
+                    $siteIds,
+                    (bool) ($filters['include_unassigned_site'] ?? false)
+                )
+                : 0.0,
             'recent_sales' => $this->dashboard->recentDocuments('sale', 5, $siteId, $siteIds),
             'recent_purchases' => $this->dashboard->recentDocuments('purchase', 5, $siteId, $siteIds),
             'recent_transfers' => $this->dashboard->recentDocuments('transfer', 5, $siteId, $siteIds),
@@ -117,11 +127,13 @@ class DashboardService
             'branchOptions' => $this->branchOptions($siteIds),
             'selectedBranchId' => $siteId,
             'selectedBranchName' => $selectedSite?->name ?? 'All branches',
-            'metrics' => [
+            'metrics' => $this->withoutHiddenMetrics([
                 [
                     'label' => 'Inventory value',
                     'value' => $this->formatCurrency((float) $summary['total_stock_value'], $currency, true),
-                    'change' => $activeSiteCount.' active '.str('site')->plural($activeSiteCount),
+                    'change' => $this->packages->has('multi_branch')
+                        ? $activeSiteCount.' active '.str('site')->plural($activeSiteCount)
+                        : 'At current selling prices',
                     'tone' => 'neutral',
                     'trend' => 'positive',
                     'direction' => 'up',
@@ -167,6 +179,14 @@ class DashboardService
                     'direction' => (float) $summary['today_profit'] > 0 ? 'up' : ((float) $summary['today_profit'] < 0 ? 'down' : 'flat'),
                 ],
                 [
+                    'label' => 'Month expenses',
+                    'value' => $this->formatCurrency((float) $summary['month_expenses'], $currency, true),
+                    'change' => 'Paid out since '.today()->startOfMonth()->format('j M'),
+                    'tone' => 'risk',
+                    'trend' => 'neutral',
+                    'direction' => 'flat',
+                ],
+                [
                     'label' => 'Outstanding debt',
                     'value' => $this->formatCurrency((float) $summary['outstanding_customer_balances'], $currency, true),
                     'change' => 'Customer balances to collect',
@@ -182,13 +202,14 @@ class DashboardService
                     'trend' => (int) $summary['out_of_stock_count'] > 0 ? 'negative' : 'positive',
                     'direction' => (int) $summary['out_of_stock_count'] > 0 ? 'up' : 'flat',
                 ],
-            ],
+            ]),
             'revenuePeriod' => $revenuePeriod,
             'currentSales' => $this->currentSales($summary['recent_sales'], $currency),
             'mostSoldParts' => $topParts,
             'salesTrend' => $salesTrend,
             'branchPerformance' => $branchPerformance,
             'branchSalesMix' => $this->branchSalesMix($branchPerformance),
+            'singleBranch' => ! $this->packages->has('multi_branch'),
             'inventoryValueComparison' => $this->inventoryValueComparison(
                 $currency,
                 (float) $summary['total_stock_cost_value'],
@@ -302,6 +323,19 @@ class DashboardService
         ]);
     }
 
+    /**
+     * Drops metrics for features outside the package (customer debt, expenses).
+     */
+    private function withoutHiddenMetrics(array $metrics): array
+    {
+        $hidden = array_keys(array_filter([
+            'Outstanding debt' => ! $this->packages->has('customer_balances'),
+            'Month expenses' => ! $this->packages->has('expenses'),
+        ]));
+
+        return array_values(array_filter($metrics, fn (array $metric): bool => ! in_array($metric['label'], $hidden, true)));
+    }
+
     private function balanceExposureComparison(string $currency, float $debtorValue, float $creditorValue): Collection
     {
         $maximum = max($debtorValue, $creditorValue, 1);
@@ -319,7 +353,7 @@ class DashboardService
                 'width' => $this->comparisonWidth($creditorValue, $maximum),
                 'tone' => 'neutral',
             ],
-        ]);
+        ])->reject(fn (array $row): bool => $row['label'] === 'Debtors owe us' && ! $this->packages->has('customer_balances'))->values();
     }
 
     private function comparisonWidth(float $value, float $maximum): int

@@ -2,14 +2,30 @@
 
 namespace App\Http\Requests;
 
+use App\Services\PackageService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ReportExportRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return $this->user() !== null;
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $packages = app(PackageService::class);
+                $reportType = $this->input('report_type');
+
+                if (is_string($reportType) && ! $packages->reportAllowed($reportType)) {
+                    $validator->errors()->add('report_type', $packages->missingFeatureMessage($packages->reportFeature($reportType)));
+                }
+            },
+        ];
     }
 
     public function rules(): array
