@@ -117,7 +117,7 @@ The protected API currently exposes these families:
 | --- | --- |
 | Authentication | Login, logout, and current user. |
 | Users/access | Users, roles, permissions, and site assignments. |
-| Sites | List permitted sites and manage sites where authorized. |
+| Sites | List and view permitted sites (read-only). Sites are created and deleted in the super admin console (`/suadmin`) and edited or (de)activated from the web back office. |
 | Parts | CRUD/search, compatibility, pricing, and low-stock settings. |
 | Vehicle data | Makes, models, years, engines, and fuel types. |
 | Suppliers | Supplier CRUD and purchase-related lookup. |

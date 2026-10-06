@@ -659,9 +659,12 @@ class ExampleTest extends TestCase
             'site_type' => 'branch',
             'site_city' => 'Lilongwe',
             'site_country' => 'Malawi',
-        ])->assertRedirect(route('web.settings.index').'#company-sites');
+        ])->assertSessionHas('error', 'New sites can only be created by the super administrator.');
 
-        $site = Site::where('name', 'Settings Branch')->firstOrFail();
+        $this->assertDatabaseMissing('sites', ['name' => 'Settings Branch']);
+
+        // Sites are created only from the super admin console.
+        $site = Site::query()->create(['name' => 'Settings Branch', 'code' => 'SETBR', 'type' => 'branch', 'location' => 'Lilongwe, Malawi', 'is_active' => true]);
 
         $this->get(route('web.settings.index').'#company-sites')
             ->assertOk()

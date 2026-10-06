@@ -2,23 +2,22 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\SaveBusinessSettingsRequest;
+use App\Http\Requests\Web\SendTestEmailRequest;
 use App\Models\CarMake;
 use App\Models\PaymentAccount;
 use App\Models\Role;
-use App\Models\Site;
 use App\Models\User;
-use App\Models\UserSiteAccess;
 use App\Models\VehicleModel;
 use App\Services\BusinessSettingsService;
+use App\Services\MailDiagnosticsService;
 use App\Services\SystemConfigurationService;
+use App\Services\UserAccountService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -26,15 +25,21 @@ class AdminSettingsController extends Controller
 {
     public function __construct(
         private readonly SystemConfigurationService $systemConfiguration,
-        private readonly BusinessSettingsService $businessSettingsService
+        private readonly BusinessSettingsService $businessSettingsService,
+        private readonly MailDiagnosticsService $mailDiagnostics,
+        private readonly UserAccountService $userAccounts
     ) {}
 
     public function index(Request $request): View
     {
+        $settings = $this->systemConfiguration->settings();
+
         return view('settings.index', [
             'title' => 'Application Settings',
             'description' => 'Configure company identity, users, access, and stock operation defaults.',
-            'settings' => $this->systemConfiguration->settings(),
+            'settings' => $settings,
+            'testEmailRecipient' => $settings['low_stock_notification_email'] ?? $request->user()?->email,
+            'emailDeliveryStatus' => $this->mailDiagnostics->deliveryStatus(),
             'sites' => $this->systemConfiguration->sites(),
             'countries' => config('countries'),
             'currencies' => ['MWK', 'USD', 'ZAR', 'EUR', 'GBP', 'JPY', 'CNY', 'AED'],
@@ -131,7 +136,7 @@ class AdminSettingsController extends Controller
         $action = $request->input('settings_action', 'save_settings');
 
         return match ($action) {
-            'create_site' => $this->createSite($request),
+            'create_site' => $this->settingsRedirect('company-profile', 'New sites can only be created by the super administrator.', 'error'),
             'create_user' => $this->createUser($request),
             'update_user' => $this->updateUser($request),
             'deactivate_user' => $this->deactivateUser($request),
@@ -153,32 +158,12 @@ class AdminSettingsController extends Controller
         return $this->settingsRedirect($validated['settings_panel'] ?? 'company-profile', 'Settings saved successfully.');
     }
 
-    private function createSite(Request $request): RedirectResponse
+    public function sendTestEmail(SendTestEmailRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'site_name' => ['required', 'string', 'max:255', 'unique:sites,name'],
-            'site_code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9\-]+$/', 'unique:sites,code'],
-            'site_type' => ['required', 'string', 'in:shop,branch,warehouse'],
-            'site_city' => ['nullable', 'string', 'max:255'],
-            'site_country' => ['nullable', 'string', 'max:100'],
-            'settings_panel' => ['nullable', 'string', 'max:80'],
-        ], [
-            'site_code.regex' => 'The site code may only contain letters, numbers, and hyphens.',
-        ]);
+        $result = $this->mailDiagnostics->sendTestEmail($request->validated('test_email_recipient'), $request->user());
 
-        Site::query()->create([
-            'name' => $validated['site_name'],
-            'code' => filled($validated['site_code'] ?? null)
-                ? strtoupper($validated['site_code'])
-                : $this->uniqueSiteCode($validated['site_name']),
-            'type' => $validated['site_type'],
-            'location' => collect([$validated['site_city'] ?? null, $validated['site_country'] ?? null])
-                ->filter()
-                ->join(', '),
-            'is_active' => true,
-        ]);
-
-        return $this->settingsRedirect($validated['settings_panel'] ?? 'company-sites', 'Site added successfully.');
+        return $this->settingsRedirect('company-profile', $result['message'], $result['sent'] ? 'success' : 'error')
+            ->withInput($request->only('test_email_recipient'));
     }
 
     private function saveSettings(Request $request): RedirectResponse
@@ -223,18 +208,14 @@ class AdminSettingsController extends Controller
             ? Role::query()->active()->where('name', $validated['user_role'])->firstOrFail()
             : null;
 
-        DB::transaction(function () use ($validated, $role): void {
-            $user = User::query()->create([
-                'role_id' => $role?->id,
-                'name' => $validated['user_name'],
-                'username' => $validated['user_username'] ?? $this->generateUsername($validated['user_email']),
-                'email' => strtolower($validated['user_email']),
-                'password' => Hash::make($validated['user_password'] ?? Str::random(12)),
-                'is_active' => true,
-            ]);
-
-            $this->syncUserSite($user, $validated['user_site'] ?? null);
-        });
+        $this->userAccounts->create([
+            'name' => $validated['user_name'],
+            'username' => $validated['user_username'] ?? null,
+            'email' => $validated['user_email'],
+            'role' => $role,
+            'site' => $validated['user_site'] ?? null,
+            'password' => $validated['user_password'] ?? null,
+        ]);
 
         return $this->settingsRedirect('user-management', 'User added successfully.');
     }
@@ -274,38 +255,19 @@ class AdminSettingsController extends Controller
         $role = filled($validated['edit_user_role'] ?? null)
             ? Role::query()->active()->where('name', $validated['edit_user_role'])->firstOrFail()
             : null;
-        $isActive = $request->boolean('edit_user_is_active');
-
-        if ((int) $user->id === (int) $request->user()->id && ! $isActive) {
-            return $this->settingsRedirect('user-management', 'You cannot deactivate your own account.', 'error');
-        }
-
-        if ($this->wouldRemoveLastAdministrator($user, $role, $isActive)) {
-            return $this->settingsRedirect('user-management', 'At least one active system administrator must remain.', 'error');
-        }
-
-        $passwordChanged = filled($validated['edit_user_password'] ?? null);
-
-        DB::transaction(function () use ($user, $validated, $role, $isActive, $passwordChanged): void {
-            $attributes = [
-                'role_id' => $role?->id,
+        try {
+            $this->userAccounts->update($user, [
                 'name' => $validated['edit_user_name'],
-                'username' => $validated['edit_user_username'] ?? $user->username,
-                'email' => strtolower($validated['edit_user_email']),
-                'is_active' => $isActive,
-            ];
-
-            if ($passwordChanged) {
-                $attributes['password'] = Hash::make($validated['edit_user_password']);
-            }
-
-            $user->update($attributes);
-            $this->syncUserSite($user, $validated['edit_user_site'] ?? null);
-
-            if (! $isActive || $passwordChanged) {
-                $this->revokeUserAccess($user);
-            }
-        });
+                'username' => $validated['edit_user_username'] ?? null,
+                'email' => $validated['edit_user_email'],
+                'role' => $role,
+                'site' => $validated['edit_user_site'] ?? null,
+                'password' => $validated['edit_user_password'] ?? null,
+                'is_active' => $request->boolean('edit_user_is_active'),
+            ], $request->user());
+        } catch (BusinessRuleException $exception) {
+            return $this->settingsRedirect('user-management', $exception->getMessage(), 'error');
+        }
 
         return $this->settingsRedirect('user-management', 'User updated successfully.');
     }
@@ -317,100 +279,13 @@ class AdminSettingsController extends Controller
         ]);
         $user = User::query()->with('role')->findOrFail($validated['user_id']);
 
-        if ((int) $user->id === (int) $request->user()->id) {
-            return $this->settingsRedirect('user-management', 'You cannot deactivate your own account.', 'error');
+        try {
+            $this->userAccounts->deactivate($user, $request->user());
+        } catch (BusinessRuleException $exception) {
+            return $this->settingsRedirect('user-management', $exception->getMessage(), 'error');
         }
-
-        if ($this->wouldRemoveLastAdministrator($user, $user->role, false)) {
-            return $this->settingsRedirect('user-management', 'At least one active system administrator must remain.', 'error');
-        }
-
-        DB::transaction(function () use ($user): void {
-            $user->update(['is_active' => false]);
-            $this->revokeUserAccess($user);
-        });
 
         return $this->settingsRedirect('user-management', 'User deactivated successfully.');
-    }
-
-    private function syncUserSite(User $user, ?string $siteName): void
-    {
-        $user->siteAccesses()->update([
-            'is_default' => false,
-            'is_active' => false,
-        ]);
-
-        if (! filled($siteName) || $siteName === 'All sites') {
-            return;
-        }
-
-        $site = Site::query()->active()->where('name', $siteName)->firstOrFail();
-        $access = UserSiteAccess::withTrashed()->firstOrNew([
-            'user_id' => $user->id,
-            'site_id' => $site->id,
-        ]);
-
-        if ($access->trashed()) {
-            $access->restore();
-        }
-
-        $access->fill([
-            'access_level' => $access->access_level ?: 'manager',
-            'can_view_stock' => $access->exists ? $access->can_view_stock : true,
-            'can_make_sales' => $access->exists ? $access->can_make_sales : true,
-            'can_receive_stock' => $access->exists ? $access->can_receive_stock : true,
-            'can_transfer_stock' => $access->exists ? $access->can_transfer_stock : false,
-            'can_adjust_stock' => $access->exists ? $access->can_adjust_stock : false,
-            'is_default' => true,
-            'is_active' => true,
-        ])->save();
-    }
-
-    private function wouldRemoveLastAdministrator(User $user, ?Role $newRole, bool $willRemainActive): bool
-    {
-        $isAdministrator = in_array('*', $user->role?->permissions ?? [], true);
-        $willBeAdministrator = $willRemainActive && in_array('*', $newRole?->permissions ?? [], true);
-
-        if (! $isAdministrator || $willBeAdministrator) {
-            return false;
-        }
-
-        return User::query()
-            ->active()
-            ->whereKeyNot($user->id)
-            ->with('role')
-            ->get()
-            ->doesntContain(fn (User $candidate): bool => in_array('*', $candidate->role?->permissions ?? [], true));
-    }
-
-    private function revokeUserAccess(User $user): void
-    {
-        $user->tokens()->delete();
-
-        if (config('session.driver') !== 'database') {
-            return;
-        }
-
-        $sessionTable = config('session.table', 'sessions');
-
-        if (Schema::hasTable($sessionTable)) {
-            DB::table($sessionTable)->where('user_id', $user->id)->delete();
-        }
-    }
-
-    private function generateUsername(string $email): string
-    {
-        $localPart = Str::before($email, '@');
-        $baseUsername = Str::slug($localPart) ?: 'user';
-        $username = $baseUsername;
-        $suffix = 2;
-
-        while (User::query()->where('username', $username)->exists()) {
-            $username = "{$baseUsername}{$suffix}";
-            $suffix++;
-        }
-
-        return $username;
     }
 
     private function createCarMake(Request $request): RedirectResponse
@@ -768,24 +643,6 @@ class AdminSettingsController extends Controller
             ->where('code', $candidate)
             ->exists()) {
             $candidate = substr($base, 0, 17).str_pad((string) $suffix, 3, '0', STR_PAD_LEFT);
-            $suffix++;
-        }
-
-        return $candidate;
-    }
-
-    private function uniqueSiteCode(string $name): string
-    {
-        $base = Str::of($name)
-            ->upper()
-            ->replaceMatches('/[^A-Z0-9]+/', '')
-            ->substr(0, 6)
-            ->toString() ?: 'SITE';
-        $candidate = $base;
-        $suffix = 1;
-
-        while (Site::query()->where('code', $candidate)->exists()) {
-            $candidate = substr($base, 0, 6).str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
             $suffix++;
         }
 

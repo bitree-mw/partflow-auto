@@ -51,6 +51,10 @@ class AuthSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        if ($request->user()) {
+            $this->authService->recordWebLogout($request->user());
+        }
+
         $this->deleteSessionApiToken($request);
 
         Auth::guard('web')->logout();

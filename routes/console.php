@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\MailDiagnosticsService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -7,6 +8,10 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Lets Settings show whether the hosting cron is actually running.
+Schedule::call(fn () => app(MailDiagnosticsService::class)->recordSchedulerHeartbeat())
+    ->everyMinute()->name('scheduler-heartbeat');
 
 Schedule::command('reminders:stock')->weeklyOn(1, '08:00')
     ->timezone(config('app.timezone', 'Africa/Blantyre'))->withoutOverlapping();

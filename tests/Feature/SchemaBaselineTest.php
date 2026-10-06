@@ -27,15 +27,21 @@ class SchemaBaselineTest extends TestCase
     public function test_baseline_matches_historical_schema_and_does_not_replay_migrations(): void
     {
         $this->artisan('schema:install-baseline')->assertSuccessful();
-        $baseline = $this->schemaSnapshot();
         $manifest = require database_path('baseline/manifest.php');
         $this->assertSame($manifest, DB::table('migrations')->orderBy('migration')->pluck('migration')->all());
+
+        // Only migrations newer than the frozen manifest may run after the baseline.
         $this->artisan('migrate')->assertSuccessful();
-        $this->assertSame($baseline, $this->schemaSnapshot());
+        $this->assertSame($manifest, DB::table('migrations')->where('batch', 1)->orderBy('migration')->pluck('migration')->all());
+        $this->assertSame(
+            collect(glob(database_path('migrations/*.php')))->map(fn ($path) => basename($path, '.php'))->diff($manifest)->sort()->values()->all(),
+            DB::table('migrations')->where('batch', '>', 1)->orderBy('migration')->pluck('migration')->all()
+        );
+        $baselinePlusNewer = $this->schemaSnapshot();
 
         DB::purge('baseline_test');
         $this->artisan('migrate')->assertSuccessful();
-        $this->assertSame($this->schemaSnapshot(), $baseline);
+        $this->assertSame($this->schemaSnapshot(), $baselinePlusNewer);
     }
 
     public function test_existing_database_is_rejected_without_changes(): void

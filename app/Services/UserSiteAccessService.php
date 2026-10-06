@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class UserSiteAccessService
 {
+    private const AUDITED_FIELDS = [
+        'access_level', 'can_view_stock', 'can_make_sales', 'can_receive_stock',
+        'can_transfer_stock', 'can_adjust_stock', 'is_default', 'is_active',
+    ];
+
+    public function __construct(private readonly AuditLogService $auditLog) {}
+
     public function list(array $filters = []): Collection
     {
         return UserSiteAccess::query()
@@ -45,7 +52,13 @@ class UserSiteAccessService
                 'is_active' => $data['is_active'] ?? true,
             ]);
 
-            return $access->load(['user.role', 'site']);
+            $access->load(['user.role', 'site']);
+
+            $this->auditLog->record('site_access.created', $this->describe('Granted', $access), $access, [
+                'attributes' => $access->only(self::AUDITED_FIELDS),
+            ]);
+
+            return $access;
         });
     }
 
@@ -58,14 +71,34 @@ class UserSiteAccessService
                     ->update(['is_default' => false]);
             }
 
+            $before = $access->only(self::AUDITED_FIELDS);
             $access->update($data);
+            $access->refresh()->load(['user.role', 'site']);
 
-            return $access->refresh()->load(['user.role', 'site']);
+            $changes = $this->auditLog->diff($before, $access->only(self::AUDITED_FIELDS));
+
+            if ($changes !== []) {
+                $this->auditLog->record('site_access.updated', $this->describe('Changed', $access), $access, ['changes' => $changes]);
+            }
+
+            return $access;
         });
     }
 
     public function delete(UserSiteAccess $access): void
     {
-        $access->delete();
+        DB::transaction(function () use ($access): void {
+            $access->loadMissing(['user', 'site']);
+            $access->delete();
+            $this->auditLog->record('site_access.deleted', $this->describe('Removed', $access), $access);
+        });
+    }
+
+    private function describe(string $verb, UserSiteAccess $access): string
+    {
+        $user = $access->user?->name ?? "user #{$access->user_id}";
+        $site = $access->site?->name ?? "site #{$access->site_id}";
+
+        return "{$verb} site access for {$user} at {$site}.";
     }
 }

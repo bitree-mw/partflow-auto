@@ -66,8 +66,10 @@ Route::prefix('back-office')
 
         Route::prefix('catalog')->name('catalog.')->controller(CatalogController::class)->group(function () {
             Route::get('sites', 'siteManagement')->middleware('permission:stock.view')->name('sites.index');
-            Route::get('sites/create', 'createSite')->middleware('permission:settings.manage')->name('sites.create');
-            Route::post('sites', 'storeSite')->middleware('permission:settings.manage')->name('sites.store');
+            // Site creation and deletion live in the super admin console (/suadmin).
+            Route::get('sites/{site}/edit', 'editSite')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.edit');
+            Route::put('sites/{site}', 'updateSite')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.update');
+            Route::patch('sites/{site}/status', 'updateSiteStatus')->whereNumber('site')->middleware('permission:settings.manage')->name('sites.status');
             Route::get('sites/transfers', 'siteTransfers')->middleware('permission:stock.view')->name('sites.transfers.index');
             Route::get('sites/transfers/create', 'createSiteTransfer')->middleware('permission:stock.transfer')->name('sites.transfers.create');
             Route::post('sites/transfers', 'storeSiteTransfer')->middleware('permission:stock.transfer')->name('sites.transfers.store');
@@ -118,6 +120,7 @@ Route::prefix('back-office')
         Route::get('settings', [AdminSettingsController::class, 'index'])->middleware('permission:settings.manage')->name('settings.index');
         Route::post('settings', [AdminSettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
         Route::post('settings/business-information', [AdminSettingsController::class, 'saveBusinessSettings'])->middleware('permission:settings.manage')->name('settings.business-information.update');
+        Route::post('settings/test-email', [AdminSettingsController::class, 'sendTestEmail'])->middleware(['permission:settings.manage', 'throttle:6,1'])->name('settings.test-email');
         Route::get('settings/vehicle-makes/{carMake}', [AdminSettingsController::class, 'showVehicleMake'])->middleware('permission:settings.manage')->name('settings.vehicle-makes.show');
         Route::post('settings/vehicle-makes/{carMake}/models', [AdminSettingsController::class, 'storeVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-makes.models.store');
         Route::put('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'updateVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-models.update');
@@ -127,3 +130,5 @@ Route::prefix('back-office')
             ->parameters(['payment-accounts' => 'payment_account'])
             ->middleware('permission:payment-accounts.manage');
     });
+
+require __DIR__.'/suadmin.php';

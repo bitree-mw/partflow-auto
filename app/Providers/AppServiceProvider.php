@@ -2,13 +2,13 @@
 
 namespace App\Providers;
 
-use App\Services\AlertService;
-use App\Services\SystemConfigurationService;
-use App\Services\SiteAccessService;
 use App\Models\Site;
 use App\Models\User;
-use Illuminate\Support\ServiceProvider;
+use App\Services\AlertService;
+use App\Services\SiteAccessService;
+use App\Services\SystemConfigurationService;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        View::composer(['layouts.auth', 'auth.*'], function ($view): void {
+        View::composer(['layouts.auth', 'auth.*', 'layouts.suadmin'], function ($view): void {
             $view->with('appSystem', app(SystemConfigurationService::class)->headerContext());
         });
 

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Site\UpdateSiteRequest;
+use App\Http\Requests\Site\UpdateSiteStatusRequest;
 use App\Http\Requests\Web\StoreCatalogProductRequest;
 use App\Http\Requests\Web\UpdateCatalogProductRequest;
 use App\Models\Brand;
@@ -49,12 +52,14 @@ class CatalogController extends Controller
     {
         $filters = $request->only(['search', 'type', 'is_active']);
         $siteIds = $this->siteAccessService->allowedSiteIds($request->user());
+        // Administrators also see inactive sites so they can reactivate them.
+        $canManageSites = $request->user()->hasPermission('settings.manage');
         $sites = Site::query()
             ->withCount(['siteStocks', 'sourceInventoryDocuments', 'destinationInventoryDocuments'])
             ->withSum('siteStocks as stock_on_hand', 'quantity_on_hand')
             ->search($filters['search'] ?? null)
             ->type($filters['type'] ?? null)
-            ->whereIn('id', $siteIds)
+            ->when(! $canManageSites, fn ($query) => $query->whereIn('id', $siteIds))
             ->when(($filters['is_active'] ?? '') !== '', fn ($query) => $query->where('is_active', (bool) (int) $filters['is_active']))
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -81,6 +86,7 @@ class CatalogController extends Controller
             'description' => 'Manage warehouses, branches, stock transfers, and stock takes.',
             'sites' => $sites,
             'filters' => $filters,
+            'canManageSites' => $canManageSites,
             'summary' => [
                 ['label' => 'Active sites', 'value' => (string) Site::query()->active()->whereIn('id', $siteIds)->count(), 'detail' => 'Branches, shops, and warehouses'],
                 ['label' => 'Warehouses', 'value' => (string) Site::query()->active()->whereIn('id', $siteIds)->where('type', 'warehouse')->count(), 'detail' => 'Stock storage locations'],
@@ -90,37 +96,39 @@ class CatalogController extends Controller
         ]);
     }
 
-    public function createSite(): View
+    // New sites are created only from the super admin console; administrators edit details and (de)activate.
+    public function editSite(Site $site): View
     {
-        return view('catalog.sites.create', [
-            'title' => 'Add Site',
-            'description' => 'Create a branch, shop, or warehouse used for stock, transfers, and stock counts.',
+        return view('catalog.sites.edit', [
+            'title' => 'Edit Site',
+            'description' => 'Update the details of a branch, shop, or warehouse.',
+            'site' => $site,
             'siteTypes' => ['shop' => 'Shop', 'branch' => 'Branch', 'warehouse' => 'Warehouse'],
         ]);
     }
 
-    public function storeSite(Request $request): RedirectResponse
+    public function updateSite(UpdateSiteRequest $request, Site $site): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:sites,name'],
-            'code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/', 'unique:sites,code'],
-            'type' => ['required', 'string', 'in:shop,branch,warehouse'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'address' => ['nullable', 'string', 'max:500'],
-        ], [
-            'code.regex' => 'The site code may only contain letters, numbers, and hyphens.',
-        ]);
-
-        $validated['code'] = filled($validated['code'] ?? null)
-            ? strtoupper($validated['code'])
-            : $this->uniqueSiteCode($validated['name']);
-
-        $this->siteService->create($validated);
+        $this->siteService->update($site, $request->validated());
 
         return redirect()
             ->route('web.catalog.sites.index')
-            ->with('success', 'Site added successfully.');
+            ->with('success', 'Site updated successfully.');
+    }
+
+    public function updateSiteStatus(UpdateSiteStatusRequest $request, Site $site): RedirectResponse
+    {
+        $active = $request->boolean('is_active');
+
+        try {
+            $this->siteService->setActive($site, $active);
+        } catch (BusinessRuleException $exception) {
+            return redirect()->route('web.catalog.sites.index')->with('error', $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('web.catalog.sites.index')
+            ->with('success', $active ? "{$site->name} is active again." : "{$site->name} has been deactivated.");
     }
 
     public function siteTransfers(Request $request): View
@@ -1255,24 +1263,6 @@ class CatalogController extends Controller
                 ])
                 ->all())
             ->all();
-    }
-
-    private function uniqueSiteCode(string $name): string
-    {
-        $base = str($name)
-            ->upper()
-            ->replaceMatches('/[^A-Z0-9]+/', '')
-            ->substr(0, 6)
-            ->toString() ?: 'SITE';
-        $code = $base;
-        $counter = 1;
-
-        while (Site::query()->where('code', $code)->exists()) {
-            $code = $base.str_pad((string) $counter, 2, '0', STR_PAD_LEFT);
-            $counter++;
-        }
-
-        return $code;
     }
 
     private function carModelRows(Collection $carModels): array

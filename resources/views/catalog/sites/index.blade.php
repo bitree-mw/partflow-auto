@@ -8,9 +8,6 @@
 @endpush
 
 @section('header_actions')
-    @if (auth()->user()?->hasPermission('settings.manage'))
-        <a class="btn-secondary" href="{{ route('web.catalog.sites.create') }}">Add site</a>
-    @endif
     @if (auth()->user()?->hasPermission('catalogue.view'))
         <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Parts catalogue</a>
     @endif
@@ -94,6 +91,9 @@
                         <th>Units</th>
                         <th>Documents</th>
                         <th>Status</th>
+                        @if ($canManageSites)
+                            <th style="text-align: right;">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -108,10 +108,35 @@
                             <td>
                                 <span @class(['status-pill', 'inactive' => ! $site['is_active']])>{{ $site['status'] }}</span>
                             </td>
+                            @if ($canManageSites)
+                                <td>
+                                    <div class="row-actions">
+                                        <a class="icon-action icon-edit" href="{{ route('web.catalog.sites.edit', $site['id']) }}" title="Edit site" aria-label="Edit {{ $site['name'] }}">
+                                            <x-icons.pencil />
+                                        </a>
+                                        <form method="POST" action="{{ route('web.catalog.sites.status', $site['id']) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="is_active" value="{{ $site['is_active'] ? 0 : 1 }}">
+                                            @if ($site['is_active'])
+                                                <button
+                                                    class="btn-secondary"
+                                                    type="submit"
+                                                    data-confirm-title="Deactivate site?"
+                                                    data-confirm="Deactivate &quot;{{ $site['name'] }}&quot;? This is only allowed once all of its stock is gone."
+                                                    data-confirm-label="Deactivate"
+                                                >Deactivate</button>
+                                            @else
+                                                <button class="btn-secondary" type="submit">Activate</button>
+                                            @endif
+                                        </form>
+                                    </div>
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="empty-state">No sites found.</td>
+                            <td colspan="{{ $canManageSites ? 8 : 7 }}" class="empty-state">No sites found.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -11,6 +11,8 @@ use Throwable;
 
 class BusinessSettingsService
 {
+    public function __construct(private readonly AuditLogService $auditLog) {}
+
     public function update(array $settings): void
     {
         $logo = $settings['company_logo'] ?? null;
@@ -31,12 +33,24 @@ class BusinessSettingsService
 
         try {
             DB::transaction(function () use ($settings): void {
-                collect($settings)
-                    ->except('settings_panel')
-                    ->each(fn (mixed $value, string $key) => BusinessSetting::query()->updateOrCreate(
-                        ['key' => $key],
-                        ['value' => $value]
-                    ));
+                $values = collect($settings)->except('settings_panel');
+                $before = BusinessSetting::query()
+                    ->whereIn('key', $values->keys())
+                    ->pluck('value', 'key')
+                    ->all();
+
+                $values->each(fn (mixed $value, string $key) => BusinessSetting::query()->updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $value]
+                ));
+
+                $changes = $this->auditLog->diff($before, $values->all());
+
+                if ($changes !== []) {
+                    $this->auditLog->record('settings.updated', 'Updated business settings: '.implode(', ', array_keys($changes)).'.', null, [
+                        'changes' => $changes,
+                    ]);
+                }
             });
         } catch (Throwable $exception) {
             if ($newLogoPath) {

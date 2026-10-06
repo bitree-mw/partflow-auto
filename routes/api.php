@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AlertController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CarModelController;
 use App\Http\Controllers\Api\ContactController;
@@ -159,6 +159,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('roles', RoleController::class)->middleware('permission:settings.manage');
     Route::apiResource('sites', SiteController::class)->only(['index', 'show'])->middleware('permission:stock.view,sales.create,purchases.create');
-    Route::apiResource('sites', SiteController::class)->except(['index', 'show'])->middleware('permission:settings.manage');
 
 });

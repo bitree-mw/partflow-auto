@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Site\StoreSiteRequest;
-use App\Http\Requests\Site\UpdateSiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
-use App\Services\SiteService;
 use App\Services\SiteAccessService;
+use App\Services\SiteService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+// Read-only: sites are created and deleted from the super admin console, and edited or (de)activated from the web back office.
 class SiteController extends Controller
 {
     public function __construct(
@@ -30,16 +29,6 @@ class SiteController extends Controller
         );
     }
 
-    public function store(StoreSiteRequest $request): JsonResponse
-    {
-        $site = $this->siteService->create($request->validated());
-
-        return ApiResponse::created(
-            data: new SiteResource($site),
-            message: 'Site created successfully'
-        );
-    }
-
     public function show(Request $request, Site $site): JsonResponse
     {
         $this->siteAccessService->authorizeSite($request->user(), $site->id);
@@ -48,22 +37,5 @@ class SiteController extends Controller
             data: new SiteResource($site),
             message: 'Site retrieved successfully'
         );
-    }
-
-    public function update(UpdateSiteRequest $request, Site $site): JsonResponse
-    {
-        $site = $this->siteService->update($site, $request->validated());
-
-        return ApiResponse::updated(
-            data: new SiteResource($site),
-            message: 'Site updated successfully'
-        );
-    }
-
-    public function destroy(Site $site): JsonResponse
-    {
-        $this->siteService->delete($site);
-
-        return ApiResponse::deleted('Site deleted successfully');
     }
 }

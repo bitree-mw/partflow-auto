@@ -1,7 +1,8 @@
 <?php
 
-use App\Support\ApiResponse;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\RequirePermission;
+use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -10,6 +11,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'permission' => RequirePermission::class,
+            'suadmin' => EnsureSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -60,6 +63,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::notFound('API endpoint not found');
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error('This action is not available through the API.', 405);
             }
 
             return null;

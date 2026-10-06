@@ -154,6 +154,65 @@ Expect up to one cron interval before an email starts, plus backlog and retry
 delays. Monitor backlog if volume exceeds what these short runs can process.
 `CPANEL_CRON_QUEUE=false` (the default) retains supervised-worker deployments.
 
+## Hosting without SSH (DirectAdmin user accounts)
+
+**Uploaded images.** The `public` disk sets `'serve' => true`, so `/storage/...`
+URLs are served through Laravel when the `public/storage` symlink is missing. The
+symlink is git-ignored and is often lost in zip/FTP uploads. When the symlink
+exists, the web server serves the file directly. The unsigned upload route that
+Laravel pairs with this option rejects requests. Image URLs are built from
+`APP_URL`, so it must be the live `https://` domain.
+
+**Test email.** **Settings → Business information → Send test email** sends one
+message immediately, bypassing the queue. A mail-server error, for example rejected
+credentials, an unreachable host or a refused sender, is shown in the page alert.
+It also reports a `log`/`array` mailer instead of claiming success. This proves
+SMTP only. Queued alerts and reminders also need the cron job.
+
+**Delivery status.** The same panel shows the mailer and SMTP host, when cron last
+ran (a `scheduler-heartbeat` task records this every minute), and the number of
+waiting and failed queue jobs. "Not seen" or "Stopped" means the cron job is
+missing or failing.
+
+**One-off artisan commands.** Without SSH, add a temporary DirectAdmin cron job
+that runs the command once and writes to a log, then delete it. For example, after
+changing `.env` on a host where configuration was cached:
+
+```shell
+/usr/local/bin/php /home/ACCOUNT/partflow-auto/artisan config:clear >> /home/ACCOUNT/partflow-auto/storage/logs/one-off.log 2>&1
+```
+
+Avoid `config:cache` unless you can reliably run `config:clear` after every `.env`
+change.
+
+## Super admin console (`/suadmin`)
+
+The console needs the `audit_logs` migration (`2026_10_06_000001`) and a password hash
+in `.env`. Only the bcrypt hash is stored; the plain password is never in the code or
+`.env`. Wrap the hash in **single quotes** because it contains `$`:
+
+```dotenv
+SUADMIN_PASSWORD_HASH='$2y$12$...'
+SUADMIN_IDLE_TIMEOUT_MINUTES=30
+SUADMIN_MAX_SESSION_MINUTES=480
+```
+
+Leave the hash empty to disable the console. To change the password, generate a new
+hash on a machine with PHP, for example with
+`php -r "echo password_hash(trim(fgets(STDIN)), PASSWORD_BCRYPT), PHP_EOL;"`, and type
+the password on its own line. Replace the value, then run `config:clear` if the
+configuration is cached.
+
+Without SSH, run the migration once through a temporary cron job after taking a
+database backup, then delete the cron job:
+
+```shell
+/usr/local/bin/php /home/ACCOUNT/partflow-auto/artisan migrate --force >> /home/ACCOUNT/partflow-auto/storage/logs/one-off.log 2>&1
+```
+
+Until the migration runs, the console works but shows that the audit log table is
+missing, and no activity is recorded.
+
 ## Verification and recovery
 
 ```shell
