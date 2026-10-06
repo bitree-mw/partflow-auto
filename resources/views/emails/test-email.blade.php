@@ -15,13 +15,13 @@
 
             <div style="padding:28px;">
                 <p style="margin:0 0 16px;line-height:1.6;">
-                    This test was requested by <strong>{{ $details['requested_by'] }}</strong> from the PartFlow Auto settings page on {{ $details['sent_at'] }}.
+                    This test was sent from the PartFlow Auto super admin console on {{ $details['sent_at'] }}.
                 </p>
                 <p style="margin:0 0 24px;line-height:1.6;">
                     Low-stock alerts and scheduled reminders use these same mail settings. They are sent in the background, so the server's cron job must also be running.
                 </p>
 
-                <a href="{{ $details['settings_url'] }}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f97316;color:#ffffff;text-decoration:none;font-weight:bold;">Open settings</a>
+                <a href="{{ $details['console_url'] }}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f97316;color:#ffffff;text-decoration:none;font-weight:bold;">Open console</a>
             </div>
         </div>
     </div>

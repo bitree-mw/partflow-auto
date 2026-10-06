@@ -16,21 +16,15 @@
         box-shadow: 0 18px 45px rgb(17 24 39 / 6%);
     }
 
+    /* Stays in place at the top of the page; it is not pinned while scrolling. */
     .settings-nav-panel {
-        position: sticky;
-        z-index: 10;
-        top: 72px;
+        position: static;
         display: flex;
         align-items: stretch;
         gap: 8px;
-        margin-inline: -28px;
-        padding: 10px 38px;
+        padding: 10px;
         overflow-x: auto;
-        border-right: 0;
-        border-left: 0;
-        border-radius: 0;
         background: #fff;
-        box-shadow: 0 -24px 0 #fff, 0 12px 24px rgb(17 24 39 / 8%);
     }
 
     .settings-nav-panel > .eyebrow {
@@ -681,17 +675,7 @@
         cursor: not-allowed;
     }
 
-    @media (max-width: 1100px) {
-        .settings-nav-panel {
-            top: 64px;
-        }
-    }
-
     @media (max-width: 720px) {
-        .settings-nav-panel {
-            margin-inline: -18px;
-            padding-inline: 28px;
-        }
 
         .settings-groups,
         .admin-setup-grid,

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\MailDiagnosticsService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -18,30 +19,33 @@ class SettingsEmailDeliveryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_administrator_can_send_a_test_email_immediately(): void
+    private const SUADMIN_PASSWORD = 'Email-Test-Password-1';
+
+    public function test_super_admin_can_send_a_test_email_immediately(): void
     {
         config(['mail.default' => 'smtp']);
         Mail::fake();
+        $this->signInSuperAdmin();
 
-        $this->actingAs($this->userWithPermissions(['*']))
-            ->post(route('web.settings.test-email'), ['test_email_recipient' => 'owner@example.test'])
-            ->assertRedirect(route('web.settings.index').'#company-profile')
+        $this->post(route('suadmin.email.test'), ['test_email_recipient' => 'owner@example.test'])
+            ->assertRedirect(route('suadmin.email.edit'))
             ->assertSessionHas('success', fn (string $message) => str_contains($message, 'owner@example.test'));
 
         Mail::assertSent(TestEmailMail::class, fn (TestEmailMail $mail) => $mail->hasTo('owner@example.test'));
         Mail::assertNothingQueued();
+        $this->assertDatabaseHas('audit_logs', ['event' => 'suadmin.test_email_sent', 'actor_type' => 'super_admin']);
     }
 
-    public function test_mail_server_error_is_reported_to_the_administrator(): void
+    public function test_mail_server_error_is_reported_to_the_super_admin(): void
     {
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.password' => 'super-secret-pass']);
+        $this->signInSuperAdmin();
         Mail::shouldReceive('to')->andThrow(new TransportException(
             'Failed to authenticate on SMTP server with username "owner@example.test" using password super-secret-pass: 535 Incorrect authentication data'
         ));
 
-        $response = $this->actingAs($this->userWithPermissions(['*']))
-            ->post(route('web.settings.test-email'), ['test_email_recipient' => 'owner@example.test'])
-            ->assertRedirect(route('web.settings.index').'#company-profile')
+        $response = $this->post(route('suadmin.email.test'), ['test_email_recipient' => 'owner@example.test'])
+            ->assertRedirect(route('suadmin.email.edit'))
             ->assertSessionHasInput('test_email_recipient', 'owner@example.test');
 
         $message = session('error');
@@ -56,30 +60,35 @@ class SettingsEmailDeliveryTest extends TestCase
     {
         config(['mail.default' => 'log']);
         Mail::fake();
+        $this->signInSuperAdmin();
 
-        $this->actingAs($this->userWithPermissions(['*']))
-            ->post(route('web.settings.test-email'), ['test_email_recipient' => 'owner@example.test'])
+        $this->post(route('suadmin.email.test'), ['test_email_recipient' => 'owner@example.test'])
             ->assertSessionHas('error', fn (string $message) => str_contains($message, 'MAIL_MAILER=smtp'));
 
         Mail::assertNothingSent();
     }
 
-    public function test_test_email_requires_a_valid_address_and_settings_permission(): void
+    public function test_email_tools_are_only_available_in_the_super_admin_console(): void
     {
         Mail::fake();
+        $admin = $this->userWithPermissions(['*']);
 
-        $this->actingAs($this->userWithPermissions(['*']))
-            ->post(route('web.settings.test-email'), ['test_email_recipient' => 'not-an-email'])
-            ->assertSessionHasErrors('test_email_recipient');
+        // A business administrator sees neither the test email nor the delivery status.
+        $this->actingAs($admin)->get(route('web.settings.index'))
+            ->assertOk()
+            ->assertDontSee('Send test email')
+            ->assertDontSee('Email delivery status');
+        $this->actingAs($admin)->post('/back-office/settings/test-email', ['test_email_recipient' => 'owner@example.test'])->assertNotFound();
+        $this->actingAs($admin)->get(route('suadmin.email.edit'))->assertRedirect(route('suadmin.login'));
+        $this->actingAs($admin)->post(route('suadmin.email.test'), ['test_email_recipient' => 'owner@example.test'])->assertRedirect(route('suadmin.login'));
 
-        $this->actingAs($this->userWithPermissions(['dashboard.view']))
-            ->post(route('web.settings.test-email'), ['test_email_recipient' => 'owner@example.test'])
-            ->assertForbidden();
+        $this->signInSuperAdmin();
+        $this->post(route('suadmin.email.test'), ['test_email_recipient' => 'not-an-email'])->assertSessionHasErrors('test_email_recipient');
 
         Mail::assertNothingSent();
     }
 
-    public function test_settings_page_shows_email_delivery_status(): void
+    public function test_console_shows_email_delivery_status(): void
     {
         config([
             'mail.default' => 'smtp',
@@ -88,20 +97,18 @@ class SettingsEmailDeliveryTest extends TestCase
             'queue.default' => 'database',
             'hosting.cron_queue' => true,
         ]);
+        $this->signInSuperAdmin();
 
-        $admin = $this->userWithPermissions(['*']);
-
-        $this->actingAs($admin)->get(route('web.settings.index'))
+        $this->get(route('suadmin.email.edit'))
             ->assertOk()
             ->assertSee('Send test email')
-            ->assertSee('form="settings-test-email-form"', false)
             ->assertSee('via mail.example.test:465')
             ->assertSee('No cron run has been recorded')
             ->assertSee('0 waiting, 0 failed.');
 
         app(MailDiagnosticsService::class)->recordSchedulerHeartbeat();
 
-        $this->actingAs($admin)->get(route('web.settings.index'))
+        $this->get(route('suadmin.email.edit'))
             ->assertOk()
             ->assertSee('Running');
     }
@@ -135,6 +142,12 @@ class SettingsEmailDeliveryTest extends TestCase
         }
 
         Storage::disk('public')->assertMissing('branding/upload.png');
+    }
+
+    private function signInSuperAdmin(): void
+    {
+        config(['suadmin.password_hash' => Hash::make(self::SUADMIN_PASSWORD)]);
+        $this->post(route('suadmin.login.store'), ['password' => self::SUADMIN_PASSWORD])->assertRedirect(route('suadmin.dashboard'));
     }
 
     private function userWithPermissions(array $permissions): User

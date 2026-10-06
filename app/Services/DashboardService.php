@@ -130,6 +130,7 @@ class DashboardService
             'metrics' => $this->withoutHiddenMetrics([
                 [
                     'label' => 'Inventory value',
+                    'icon' => 'inventory',
                     'value' => $this->formatCurrency((float) $summary['total_stock_value'], $currency, true),
                     'change' => $this->packages->has('multi_branch')
                         ? $activeSiteCount.' active '.str('site')->plural($activeSiteCount)
@@ -140,6 +141,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Low stock items',
+                    'icon' => 'low-stock',
                     'value' => number_format($lowStockCount),
                     'change' => $lowStockCount.' '.str('item')->plural($lowStockCount).' need attention',
                     'tone' => 'risk',
@@ -156,6 +158,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Pending orders',
+                    'icon' => 'orders',
                     'value' => number_format($pendingOrderCount),
                     'change' => $pendingOrderCount.' '.str('order')->plural($pendingOrderCount).' awaiting action',
                     'tone' => 'risk',
@@ -164,6 +167,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Today sales',
+                    'icon' => 'sales',
                     'value' => $this->formatCurrency((float) $summary['today_sales'], $currency, true),
                     'change' => $todaySaleCount.' '.str('sale')->plural($todaySaleCount).' completed today',
                     'tone' => 'good',
@@ -172,6 +176,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Today profit',
+                    'icon' => 'profit',
                     'value' => $this->formatCurrency((float) $summary['today_profit'], $currency, true),
                     'change' => $this->marginLabel((float) $summary['today_profit'], (float) $summary['today_sales']),
                     'tone' => 'good',
@@ -180,6 +185,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Month expenses',
+                    'icon' => 'expenses',
                     'value' => $this->formatCurrency((float) $summary['month_expenses'], $currency, true),
                     'change' => 'Paid out since '.today()->startOfMonth()->format('j M'),
                     'tone' => 'risk',
@@ -188,6 +194,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Outstanding debt',
+                    'icon' => 'debt',
                     'value' => $this->formatCurrency((float) $summary['outstanding_customer_balances'], $currency, true),
                     'change' => 'Customer balances to collect',
                     'tone' => 'risk',
@@ -196,6 +203,7 @@ class DashboardService
                 ],
                 [
                     'label' => 'Out of stock',
+                    'icon' => 'out-of-stock',
                     'value' => number_format((int) $summary['out_of_stock_count']),
                     'change' => (int) $summary['out_of_stock_count'].' '.str('item')->plural((int) $summary['out_of_stock_count']).' unavailable for sale',
                     'tone' => 'risk',

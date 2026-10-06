@@ -85,7 +85,7 @@
                         @class(['metric-direction', $metric['trend'] ?? 'neutral'])
                         aria-hidden="true"
                     >
-                        {{ ($metric['direction'] ?? 'flat') === 'down' ? '↘' : (($metric['direction'] ?? 'flat') === 'up' ? '↗' : '→') }}
+                        <x-icons.metric :name="$metric['icon'] ?? 'chart'" />
                     </span>
                 </header>
                 <strong data-dashboard-metric-value>{{ $metric['value'] }}</strong>

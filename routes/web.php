@@ -121,7 +121,6 @@ Route::prefix('back-office')
         Route::get('settings', [AdminSettingsController::class, 'index'])->middleware('permission:settings.manage')->name('settings.index');
         Route::post('settings', [AdminSettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
         Route::post('settings/business-information', [AdminSettingsController::class, 'saveBusinessSettings'])->middleware('permission:settings.manage')->name('settings.business-information.update');
-        Route::post('settings/test-email', [AdminSettingsController::class, 'sendTestEmail'])->middleware(['permission:settings.manage', 'throttle:6,1'])->name('settings.test-email');
         Route::get('settings/vehicle-makes/{carMake}', [AdminSettingsController::class, 'showVehicleMake'])->middleware('permission:settings.manage')->name('settings.vehicle-makes.show');
         Route::post('settings/vehicle-makes/{carMake}/models', [AdminSettingsController::class, 'storeVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-makes.models.store');
         Route::put('settings/vehicle-models/{vehicleModel}', [AdminSettingsController::class, 'updateVehicleModelForMake'])->middleware('permission:settings.manage')->name('settings.vehicle-models.update');

@@ -61,6 +61,7 @@
             <a href="{{ route('suadmin.dashboard') }}" @if (request()->routeIs('suadmin.dashboard')) aria-current="page" @endif>Overview</a>
             <a href="{{ route('suadmin.sites.index') }}" @if (request()->routeIs('suadmin.sites.*')) aria-current="page" @endif>Sites</a>
             <a href="{{ route('suadmin.users.index') }}" @if (request()->routeIs('suadmin.users.*')) aria-current="page" @endif>Users &amp; admins</a>
+            <a href="{{ route('suadmin.email.edit') }}" @if (request()->routeIs('suadmin.email.*')) aria-current="page" @endif>Email</a>
             <a href="{{ route('suadmin.package.edit') }}" @if (request()->routeIs('suadmin.package.*')) aria-current="page" @endif>Package</a>
             <a href="{{ route('suadmin.audit-logs.index') }}" @if (request()->routeIs('suadmin.audit-logs.*')) aria-current="page" @endif>Audit log</a>
         </nav>

@@ -163,13 +163,13 @@ exists, the web server serves the file directly. The unsigned upload route that
 Laravel pairs with this option rejects requests. Image URLs are built from
 `APP_URL`, so it must be the live `https://` domain.
 
-**Test email.** **Settings → Business information → Send test email** sends one
+**Test email.** **/suadmin → Email → Send test email** (super admin only) sends one
 message immediately, bypassing the queue. A mail-server error, for example rejected
 credentials, an unreachable host or a refused sender, is shown in the page alert.
 It also reports a `log`/`array` mailer instead of claiming success. This proves
 SMTP only. Queued alerts and reminders also need the cron job.
 
-**Delivery status.** The same panel shows the mailer and SMTP host, when cron last
+**Delivery status.** The same /suadmin page shows the mailer and SMTP host, when cron last
 ran (a `scheduler-heartbeat` task records this every minute), and the number of
 waiting and failed queue jobs. "Not seen" or "Stopped" means the cron job is
 missing or failing.

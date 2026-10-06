@@ -5,14 +5,12 @@ namespace App\Http\Controllers\Web;
 use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\SaveBusinessSettingsRequest;
-use App\Http\Requests\Web\SendTestEmailRequest;
 use App\Models\CarMake;
 use App\Models\PaymentAccount;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\VehicleModel;
 use App\Services\BusinessSettingsService;
-use App\Services\MailDiagnosticsService;
 use App\Services\PackageService;
 use App\Services\SystemConfigurationService;
 use App\Services\UserAccountService;
@@ -27,7 +25,6 @@ class AdminSettingsController extends Controller
     public function __construct(
         private readonly SystemConfigurationService $systemConfiguration,
         private readonly BusinessSettingsService $businessSettingsService,
-        private readonly MailDiagnosticsService $mailDiagnostics,
         private readonly UserAccountService $userAccounts,
         private readonly PackageService $packages
     ) {}
@@ -40,8 +37,6 @@ class AdminSettingsController extends Controller
             'title' => 'Application Settings',
             'description' => 'Configure company identity, users, access, and stock operation defaults.',
             'settings' => $settings,
-            'testEmailRecipient' => $settings['low_stock_notification_email'] ?? $request->user()?->email,
-            'emailDeliveryStatus' => $this->mailDiagnostics->deliveryStatus(),
             'package' => $this->packages->current(),
             'packageFeatures' => collect(array_keys(config('packages.feature_labels')))
                 ->mapWithKeys(fn (string $feature): array => [$feature => $this->packages->has($feature)])
@@ -163,14 +158,6 @@ class AdminSettingsController extends Controller
         $this->businessSettingsService->update($validated);
 
         return $this->settingsRedirect($validated['settings_panel'] ?? 'company-profile', 'Settings saved successfully.');
-    }
-
-    public function sendTestEmail(SendTestEmailRequest $request): RedirectResponse
-    {
-        $result = $this->mailDiagnostics->sendTestEmail($request->validated('test_email_recipient'), $request->user());
-
-        return $this->settingsRedirect('company-profile', $result['message'], $result['sent'] ? 'success' : 'error')
-            ->withInput($request->only('test_email_recipient'));
     }
 
     private function saveSettings(Request $request): RedirectResponse

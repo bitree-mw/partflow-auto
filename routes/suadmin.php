@@ -3,6 +3,7 @@
 use App\Http\Controllers\SuperAdmin\AuditLogController;
 use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
+use App\Http\Controllers\SuperAdmin\EmailController;
 use App\Http\Controllers\SuperAdmin\PackageController;
 use App\Http\Controllers\SuperAdmin\SiteController;
 use App\Http\Controllers\SuperAdmin\UserController;
@@ -33,6 +34,9 @@ Route::prefix('suadmin')->name('suadmin.')->group(function () {
         Route::patch('users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
 
         Route::get('audit-logs', AuditLogController::class)->name('audit-logs.index');
+
+        Route::get('email', [EmailController::class, 'edit'])->name('email.edit');
+        Route::post('email/test', [EmailController::class, 'sendTest'])->middleware('throttle:6,1')->name('email.test');
 
         Route::get('package', [PackageController::class, 'edit'])->name('package.edit');
         Route::put('package', [PackageController::class, 'update'])->name('package.update');

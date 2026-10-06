@@ -205,43 +205,6 @@
                         <small id="low-stock-notification-help">Receives one email when a part at a branch enters low-stock or out-of-stock status. Leave blank to disable emails.</small>
                         <x-form-error name="low_stock_notification_email" />
                     </div>
-
-                    {{-- Belongs to the separate test-email form so a test never submits or discards unsaved settings. --}}
-                    <div class="form-field full">
-                        <label for="test_email_recipient">Send a test email to</label>
-                        <input
-                            class="form-control"
-                            id="test_email_recipient"
-                            name="test_email_recipient"
-                            type="email"
-                            form="settings-test-email-form"
-                            value="{{ old('test_email_recipient', $testEmailRecipient) }}"
-                            autocomplete="email"
-                            placeholder="you@example.com"
-                            aria-describedby="test-email-help"
-                            required
-                        >
-                        <small id="test-email-help">Sends one message immediately using the server's mail settings. If the mail server returns an error, it is shown here.</small>
-                        <x-form-error name="test_email_recipient" />
-                        <div>
-                            <button class="btn-secondary" type="submit" form="settings-test-email-form">Send test email</button>
-                        </div>
-                    </div>
-
-                    <div class="form-field full">
-                        <span id="email-delivery-status-label">Email delivery status</span>
-                        <table class="data-table" aria-labelledby="email-delivery-status-label">
-                            <tbody>
-                                @foreach ($emailDeliveryStatus as $check)
-                                    <tr>
-                                        <td>{{ $check['label'] }}</td>
-                                        <td><span @class(['status-pill', $check['tone']])>{{ $check['status'] }}</span></td>
-                                        <td>{{ $check['detail'] }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                     @endif
                 </div>
             </section>
@@ -672,10 +635,6 @@
                     data-confirm-label="Save changes"
                 >Save settings</button>
             </div>
-        </form>
-
-        <form id="settings-test-email-form" method="POST" action="{{ route('web.settings.test-email') }}" hidden>
-            @csrf
         </form>
     </section>
 @endsection

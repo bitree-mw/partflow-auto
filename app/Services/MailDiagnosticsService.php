@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Mail\TestEmailMail;
-use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -21,14 +20,17 @@ class MailDiagnosticsService
 
     private const NON_DELIVERING_MAILERS = ['log', 'array'];
 
-    public function __construct(private readonly SystemConfigurationService $systemConfiguration) {}
+    public function __construct(
+        private readonly SystemConfigurationService $systemConfiguration,
+        private readonly AuditLogService $auditLog
+    ) {}
 
     /**
      * Send a test message immediately (not queued) so transport errors are reported to the caller.
      *
      * @return array{sent: bool, message: string}
      */
-    public function sendTestEmail(string $recipient, User $requestedBy): array
+    public function sendTestEmail(string $recipient): array
     {
         $mailer = (string) config('mail.default');
 
@@ -42,22 +44,24 @@ class MailDiagnosticsService
         try {
             Mail::to($recipient)->send(new TestEmailMail([
                 'business_name' => $this->systemConfiguration->settings()['business_name'],
-                'requested_by' => $requestedBy->name ?? $requestedBy->email,
                 'sent_at' => now()->format('d M Y H:i'),
-                'settings_url' => route('web.settings.index'),
+                'console_url' => route('suadmin.email.edit'),
             ]));
         } catch (Throwable $exception) {
             Log::warning('Test email delivery failed.', [
-                'user_id' => $requestedBy->getKey(),
                 'mailer' => $mailer,
                 'exception_type' => class_basename($exception),
             ]);
+
+            $this->auditLog->record('suadmin.test_email_failed', "Test email to {$recipient} failed.", null, ['exception_type' => class_basename($exception)]);
 
             return [
                 'sent' => false,
                 'message' => $this->failureMessage($exception),
             ];
         }
+
+        $this->auditLog->record('suadmin.test_email_sent', "Test email sent to {$recipient}.");
 
         return [
             'sent' => true,
@@ -66,7 +70,7 @@ class MailDiagnosticsService
     }
 
     /**
-     * Read-only delivery health shown on the settings page.
+     * Read-only delivery health shown in the super admin console.
      *
      * @return list<array{label: string, tone: string, status: string, detail: string}>
      */

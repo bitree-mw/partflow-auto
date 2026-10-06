@@ -1,0 +1,247 @@
+{
+  "_dialogs-DLcX5AGX.js": {
+    "file": "assets/dialogs-DLcX5AGX.js",
+    "name": "dialogs"
+  },
+  "_table-search-BAPMJFbB.js": {
+    "file": "assets/table-search-BAPMJFbB.js",
+    "name": "table-search"
+  },
+  "resources/css/alerts.css": {
+    "file": "assets/alerts-C-Na0pGh.css",
+    "src": "resources/css/alerts.css",
+    "isEntry": true,
+    "name": "alerts",
+    "names": [
+      "alerts.css"
+    ]
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-CNiuq-dq.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/css/auth.css": {
+    "file": "assets/auth-BhyfX-o2.css",
+    "src": "resources/css/auth.css",
+    "isEntry": true,
+    "name": "auth",
+    "names": [
+      "auth.css"
+    ]
+  },
+  "resources/css/back-office.css": {
+    "file": "assets/back-office-CD76FM6w.css",
+    "src": "resources/css/back-office.css",
+    "isEntry": true,
+    "name": "back-office",
+    "names": [
+      "back-office.css"
+    ]
+  },
+  "resources/css/catalog.css": {
+    "file": "assets/catalog-CigzyRJ0.css",
+    "src": "resources/css/catalog.css",
+    "isEntry": true,
+    "name": "catalog",
+    "names": [
+      "catalog.css"
+    ]
+  },
+  "resources/css/contacts.css": {
+    "file": "assets/contacts-BmHjvwbR.css",
+    "src": "resources/css/contacts.css",
+    "isEntry": true,
+    "name": "contacts",
+    "names": [
+      "contacts.css"
+    ]
+  },
+  "resources/css/dashboard.css": {
+    "file": "assets/dashboard-D--2FvBA.css",
+    "src": "resources/css/dashboard.css",
+    "isEntry": true,
+    "name": "dashboard",
+    "names": [
+      "dashboard.css"
+    ]
+  },
+  "resources/css/payment-accounts.css": {
+    "file": "assets/payment-accounts-CEu-xmsK.css",
+    "src": "resources/css/payment-accounts.css",
+    "isEntry": true,
+    "name": "payment-accounts",
+    "names": [
+      "payment-accounts.css"
+    ]
+  },
+  "resources/css/pos.css": {
+    "file": "assets/pos-DRl82n_R.css",
+    "src": "resources/css/pos.css",
+    "isEntry": true,
+    "name": "pos",
+    "names": [
+      "pos.css"
+    ]
+  },
+  "resources/css/purchases.css": {
+    "file": "assets/purchases-CMfQ9zVZ.css",
+    "src": "resources/css/purchases.css",
+    "isEntry": true,
+    "name": "purchases",
+    "names": [
+      "purchases.css"
+    ]
+  },
+  "resources/css/reports.css": {
+    "file": "assets/reports-U_rAdcMw.css",
+    "src": "resources/css/reports.css",
+    "isEntry": true,
+    "name": "reports",
+    "names": [
+      "reports.css"
+    ]
+  },
+  "resources/css/responsive.css": {
+    "file": "assets/responsive-965zdgo2.css",
+    "src": "resources/css/responsive.css",
+    "isEntry": true,
+    "name": "responsive",
+    "names": [
+      "responsive.css"
+    ]
+  },
+  "resources/css/sales.css": {
+    "file": "assets/sales-BKowEMVu.css",
+    "src": "resources/css/sales.css",
+    "isEntry": true,
+    "name": "sales",
+    "names": [
+      "sales.css"
+    ]
+  },
+  "resources/css/settings.css": {
+    "file": "assets/settings-dPL1Wfcc.css",
+    "src": "resources/css/settings.css",
+    "isEntry": true,
+    "name": "settings",
+    "names": [
+      "settings.css"
+    ]
+  },
+  "resources/css/theme.css": {
+    "file": "assets/theme-B8EFKGvd.css",
+    "src": "resources/css/theme.css",
+    "isEntry": true,
+    "name": "theme",
+    "names": [
+      "theme.css"
+    ]
+  },
+  "resources/js/alerts.js": {
+    "file": "assets/alerts-kl6yGh-J.js",
+    "name": "alerts",
+    "src": "resources/js/alerts.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-C-ugPzcb.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_dialogs-DLcX5AGX.js"
+    ]
+  },
+  "resources/js/auth.js": {
+    "file": "assets/auth-i-Lgv8C0.js",
+    "name": "auth",
+    "src": "resources/js/auth.js",
+    "isEntry": true,
+    "imports": [
+      "_dialogs-DLcX5AGX.js"
+    ]
+  },
+  "resources/js/catalog.js": {
+    "file": "assets/catalog-CORrc5Ut.js",
+    "name": "catalog",
+    "src": "resources/js/catalog.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/contacts.js": {
+    "file": "assets/contacts-kl6yGh-J.js",
+    "name": "contacts",
+    "src": "resources/js/contacts.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/dashboard.js": {
+    "file": "assets/dashboard-Bwe8M6Ag.js",
+    "name": "dashboard",
+    "src": "resources/js/dashboard.js",
+    "isEntry": true
+  },
+  "resources/js/payment-accounts.js": {
+    "file": "assets/payment-accounts-DuYX7fjg.js",
+    "name": "payment-accounts",
+    "src": "resources/js/payment-accounts.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/pos.js": {
+    "file": "assets/pos-oCfqqq4W.js",
+    "name": "pos",
+    "src": "resources/js/pos.js",
+    "isEntry": true
+  },
+  "resources/js/purchases.js": {
+    "file": "assets/purchases-DvDbcSnD.js",
+    "name": "purchases",
+    "src": "resources/js/purchases.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/reports.js": {
+    "file": "assets/reports-B0aMX2R-.js",
+    "name": "reports",
+    "src": "resources/js/reports.js",
+    "isEntry": true
+  },
+  "resources/js/sales.js": {
+    "file": "assets/sales-kl6yGh-J.js",
+    "name": "sales",
+    "src": "resources/js/sales.js",
+    "isEntry": true,
+    "imports": [
+      "_table-search-BAPMJFbB.js"
+    ]
+  },
+  "resources/js/settings.js": {
+    "file": "assets/settings-mWajRZFE.js",
+    "name": "settings",
+    "src": "resources/js/settings.js",
+    "isEntry": true
+  },
+  "resources/js/site-documents.js": {
+    "file": "assets/site-documents-Bav3F15D.js",
+    "name": "site-documents",
+    "src": "resources/js/site-documents.js",
+    "isEntry": true
+  }
+}
