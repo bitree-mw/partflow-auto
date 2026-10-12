@@ -59,11 +59,10 @@ let currentSaleTotal = 0;
 let amountPaidEdited = false;
 let selectedSiteId = siteSelector?.value || sourceSiteInput?.value || '';
 const configuredMaximumDiscountPercentage = Math.max(0, Number(endpoints.maximumDiscountPercentage) || 0);
-// Only an admin types an actual price; a cashier asks for one with an admin's password.
-const canSetPrice = Boolean(endpoints.canSetPrice);
-const discountMode = ['sale', 'item', 'both'].includes(endpoints.discountMode) ? endpoints.discountMode : 'sale';
-const itemDiscountsAllowed = discountMode !== 'sale';
-const saleDiscountAllowed = discountMode !== 'item';
+// Items always sell at their set price; money off is only given as a discount, where the setting allows.
+const discountMode = ['none', 'sale', 'item', 'both'].includes(endpoints.discountMode) ? endpoints.discountMode : 'sale';
+const itemDiscountsAllowed = discountMode === 'item' || discountMode === 'both';
+const saleDiscountAllowed = discountMode === 'sale' || discountMode === 'both';
 
 function formatCurrency(value) {
     return `MWK ${Math.round(value).toLocaleString('en-US')}`;
@@ -71,6 +70,13 @@ function formatCurrency(value) {
 
 function parseCurrency(value) {
     return Number(String(value).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function formatMoneyInput(value) {
+    return (Math.round((Number(value) || 0) * 100) / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 }
 
 function escapeHtml(value) {
@@ -566,15 +572,12 @@ function addProductToCart(product) {
             product_name: product.product_name,
             quantity: 1,
             available_quantity: availableQuantity,
-            // The set selling price is the top of the range; an admin may sell lower, down to the minimum.
+            // The set selling price is never changed at the POS; only a discount comes off it.
             set_price: setPrice,
             unit_price: setPrice,
-            price_minimum: Math.min(setPrice, Math.max(0, Number(product.minimum_selling_price) || 0)),
             minimum_authorized_price: Number(product.minimum_authorized_price) || 0,
             maximum_discount_percentage: Number(product.maximum_discount_percentage) || 0,
             discount_amount: 0,
-            price_approval: null,
-            approved_by: null,
         });
     }
 
@@ -633,18 +636,11 @@ function renderCart() {
         cartList.innerHTML = cartItems.map((item) => {
             const maximumQuantity = Math.max(1, Number(item.available_quantity) || 10000);
 
-            const priceChanged = isPriceChanged(item);
             const lineLimit = lineDiscountLimit(item);
             const lineDiscountInvalid = item.discount_amount > lineLimit + 0.009;
-            const actualPriceControl = canSetPrice
-                ? `<input type="number" inputmode="decimal" min="${item.price_minimum}" max="${item.set_price}" step="0.01"
-                        value="${escapeHtml(item.unit_price)}" data-cart-price="${item.product_id}"
-                        aria-label="Actual selling price for ${escapeHtml(item.product_name)}">`
-                : `<em>${formatCurrency(item.unit_price)}</em>
-                   <button type="button" class="cart-price-change" data-cart-price-request="${item.product_id}">Change price</button>`;
 
             return `
-            <article class="cart-line ${priceChanged ? 'has-price-change' : ''}">
+            <article class="cart-line">
                 <div class="cart-line-main">
                     <strong>${escapeHtml(item.product_code)}</strong>
                     <span>${escapeHtml(item.product_name)}</span>
@@ -658,23 +654,15 @@ function renderCart() {
                         <small>Set price</small>
                         <b>${formatCurrency(item.set_price)}</b>
                     </span>
-                    <span class="cart-price-cell is-actual">
-                        <small>Actual price</small>
-                        ${actualPriceControl}
-                    </span>
                     ${itemDiscountsAllowed ? `
                     <label class="cart-price-cell">
                         <small>Discount</small>
-                        <input type="number" inputmode="decimal" min="0" max="${lineLimit.toFixed(2)}" step="0.01"
-                            value="${escapeHtml(item.discount_amount || 0)}" data-cart-discount="${item.product_id}"
+                        <input type="text" inputmode="decimal" autocomplete="off"
+                            value="${formatMoneyInput(item.discount_amount || 0)}" data-cart-discount="${item.product_id}" data-money-input
                             aria-invalid="${lineDiscountInvalid ? 'true' : 'false'}"
                             aria-label="Discount on ${escapeHtml(item.product_name)}">
-                    </label>` : ''}
-                    ${priceChanged ? `
-                    <span class="cart-price-note">
-                        Range ${formatCurrency(item.price_minimum)} – ${formatCurrency(item.set_price)}${item.approved_by ? ` · approved by ${escapeHtml(item.approved_by)}` : ''}
-                        <button type="button" data-cart-price-reset="${item.product_id}">Use set price</button>
-                    </span>` : ''}
+                    </label>
+                    <span class="cart-price-note">Up to ${formatMoneyInput(lineLimit)} off this line</span>` : ''}
                 </div>
                 <div class="cart-line-actions" aria-label="Adjust ${escapeHtml(item.product_name)} quantity">
                     <button type="button" data-cart-minus="${item.product_id}" aria-label="Decrease quantity">-</button>
@@ -710,15 +698,6 @@ function renderCart() {
         cartList.querySelectorAll('[data-cart-remove]').forEach((button) => {
             button.addEventListener('click', () => removeCartItem(Number(button.dataset.cartRemove)));
         });
-        cartList.querySelectorAll('[data-cart-price]').forEach((input) => {
-            input.addEventListener('change', () => setCartPrice(Number(input.dataset.cartPrice), input.value));
-        });
-        cartList.querySelectorAll('[data-cart-price-request]').forEach((button) => {
-            button.addEventListener('click', () => requestPriceChange(Number(button.dataset.cartPriceRequest)));
-        });
-        cartList.querySelectorAll('[data-cart-price-reset]').forEach((button) => {
-            button.addEventListener('click', () => resetCartPrice(Number(button.dataset.cartPriceReset)));
-        });
         cartList.querySelectorAll('[data-cart-discount]').forEach((input) => {
             input.addEventListener('change', () => setCartDiscount(Number(input.dataset.cartDiscount), input.value));
         });
@@ -742,22 +721,15 @@ function updateCartPayload() {
         cartPayload.value = JSON.stringify(cartItems.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
-            // The server only accepts a changed price with an admin's approval and inside the product's range.
-            actual_price: isPriceChanged(item) ? item.unit_price : null,
-            price_approval: isPriceChanged(item) ? item.price_approval : null,
             discount_amount: itemDiscountsAllowed ? item.discount_amount || 0 : 0,
         })));
         cartPayload.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
-function isPriceChanged(item) {
-    return Math.abs(item.unit_price - item.set_price) > 0.009;
-}
-
-/** Lowest unit price after discounts: the product minimum for an admin-set price, otherwise the discount policy floor. */
+/** Lowest unit price a discount may reach: the discount policy floor for this product. */
 function lineFloor(item) {
-    return isPriceChanged(item) ? item.price_minimum : Math.min(item.unit_price, item.minimum_authorized_price);
+    return Math.min(item.unit_price, item.minimum_authorized_price);
 }
 
 function lineDiscountLimit(item) {
@@ -772,145 +744,13 @@ function findCartItem(productId) {
     return cartItems.find((cartItem) => cartItem.product_id === productId);
 }
 
-async function setCartPrice(productId, value) {
-    const item = findCartItem(productId);
-    const price = Math.round(Number(value) * 100) / 100;
-
-    if (!item) {
-        return;
-    }
-
-    if (!Number.isFinite(price) || price < item.price_minimum - 0.009 || price > item.set_price + 0.009) {
-        renderCart();
-        await showAppAlert(`The price must be between ${formatCurrency(item.price_minimum)} and ${formatCurrency(item.set_price)}.`, { title: 'Price out of range' });
-        return;
-    }
-
-    item.unit_price = price;
-    item.price_approval = null;
-    item.approved_by = null;
-    renderCart();
-}
-
-function resetCartPrice(productId) {
-    const item = findCartItem(productId);
-
-    if (item) {
-        item.unit_price = item.set_price;
-        item.price_approval = null;
-        item.approved_by = null;
-        renderCart();
-    }
-}
-
 function setCartDiscount(productId, value) {
     const item = findCartItem(productId);
 
     if (item) {
-        item.discount_amount = Math.max(0, Math.round((Number(value) || 0) * 100) / 100);
+        item.discount_amount = Math.max(0, Math.round(parseCurrency(value) * 100) / 100);
         renderCart();
     }
-}
-
-async function requestPriceChange(productId) {
-    const item = findCartItem(productId);
-
-    if (!item) {
-        return;
-    }
-
-    const approval = await requestPriceApproval(item);
-
-    if (!approval) {
-        return;
-    }
-
-    try {
-        const token = checkoutForm?.querySelector('input[name="_token"]')?.value;
-        const response = await fetch(endpoints.priceApproval, {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token || '',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify({
-                product_id: item.product_id,
-                unit_price: approval.price,
-                admin_password: approval.password,
-            }),
-        });
-        const payload = await response.json();
-
-        if (!response.ok) {
-            const firstError = Object.values(payload.errors || {}).flat()[0];
-            throw new Error(firstError || payload.message || 'The price could not be approved.');
-        }
-
-        item.unit_price = Number(payload.unit_price);
-        item.price_approval = payload.token;
-        item.approved_by = payload.approved_by;
-        renderCart();
-    } catch (error) {
-        await showAppAlert(error.message, { title: 'Price not changed' });
-    }
-}
-
-function requestPriceApproval(item) {
-    const layer = ensureDialogLayer();
-    const titleId = `pos-dialog-title-${Date.now()}`;
-    const previouslyFocused = document.activeElement;
-
-    layer.innerHTML = `
-        <section class="pos-dialog-card" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
-            <div class="pos-dialog-mark" aria-hidden="true"></div>
-            <h2 id="${titleId}">Change selling price</h2>
-            <p>${escapeHtml(item.product_name)}: set price ${formatCurrency(item.set_price)}. An admin enters the actual price, between ${formatCurrency(item.price_minimum)} and ${formatCurrency(item.set_price)}, and their password.</p>
-            <form class="pos-dialog-form" data-pos-price-form>
-                <input type="number" name="unit_price" inputmode="decimal" step="0.01" min="${item.price_minimum}" max="${item.set_price}" value="${escapeHtml(item.unit_price)}" required aria-label="Actual selling price">
-                <input type="password" name="admin_password" autocomplete="current-password" required aria-label="Admin password" placeholder="Admin password">
-                <div class="pos-dialog-actions">
-                    <button class="pos-dialog-secondary" type="button" data-pos-dialog-cancel>Cancel</button>
-                    <button class="pos-dialog-primary" type="submit">Approve price</button>
-                </div>
-            </form>
-        </section>
-    `;
-    layer.classList.remove('is-closing');
-    layer.hidden = false;
-    document.body.classList.add('pos-dialog-open');
-
-    return new Promise((resolve) => {
-        const form = layer.querySelector('[data-pos-price-form]');
-        const priceInput = form?.querySelector('input[name="unit_price"]');
-        const passwordInput = form?.querySelector('input[name="admin_password"]');
-        const cancelButton = layer.querySelector('[data-pos-dialog-cancel]');
-
-        const close = (value) => {
-            document.removeEventListener('keydown', onKeydown);
-            dismissPosDialog(layer, () => {
-                previouslyFocused?.focus?.();
-                resolve(value);
-            });
-        };
-
-        const onKeydown = (event) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                close(null);
-            }
-        };
-
-        form?.addEventListener('submit', (event) => {
-            event.preventDefault();
-            close({ price: Number(priceInput?.value), password: passwordInput?.value || '' });
-        });
-        cancelButton?.addEventListener('click', () => close(null), { once: true });
-        document.addEventListener('keydown', onKeydown);
-        priceInput?.focus();
-        priceInput?.select();
-    });
 }
 
 function updateTotals() {
@@ -965,7 +805,7 @@ function updateTotals() {
     }
 
     if (amountPaidInput && !amountPaidEdited) {
-        amountPaidInput.value = Math.round(currentSaleTotal);
+        amountPaidInput.value = formatMoneyInput(currentSaleTotal);
     }
 
     updatePaymentSummary();
@@ -991,7 +831,7 @@ function clearCart() {
     cartItems = [];
     amountPaidEdited = false;
     if (discountInput) {
-        discountInput.value = '0';
+        discountInput.value = formatMoneyInput(0);
     }
     renderCart();
 }
@@ -1247,6 +1087,22 @@ amountPaidInput?.addEventListener('input', () => {
 });
 
 discountInput?.addEventListener('input', updateTotals);
+
+document.addEventListener('focusin', (event) => {
+    if (event.target.matches?.('[data-money-input]')) {
+        event.target.select();
+    }
+});
+
+document.addEventListener('focusout', (event) => {
+    const input = event.target;
+
+    if (!input.matches?.('[data-money-input]') || input.matches('[data-cart-discount]')) {
+        return;
+    }
+
+    input.value = formatMoneyInput(parseCurrency(input.value));
+});
 
 renderProductCards();
 renderCart();

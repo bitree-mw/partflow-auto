@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Web\ApprovePosPriceRequest;
 use App\Http\Requests\Web\PosLookupRequest;
 use App\Http\Requests\Web\StorePosSaleRequest;
-use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\DiscountPolicyService;
@@ -78,8 +76,6 @@ class PosController extends Controller
                 'site' => route('web.pos.site'),
                 'canChangeSiteDirectly' => $this->isAdmin($request->user()),
                 'maximumDiscountPercentage' => $this->discountPolicy->maximumDiscountPercentage(),
-                'priceApproval' => route('web.pos.price-approval'),
-                'canSetPrice' => $this->isAdmin($request->user()),
                 'discountMode' => $this->systemConfiguration->discountMode(),
             ],
             'discountMode' => $this->systemConfiguration->discountMode(),
@@ -174,27 +170,6 @@ class PosController extends Controller
         ]);
     }
 
-    /**
-     * An admin approves an actual selling price on a cashier's till. The signed approval
-     * goes back with the cart and is checked again when the sale is completed.
-     */
-    public function approvePrice(ApprovePosPriceRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $approval = $this->pricing->approvePrice(
-            Product::query()->findOrFail($validated['product_id']),
-            (float) $validated['unit_price'],
-            $request->user(),
-            $validated['admin_password']
-        );
-
-        return response()->json([
-            'message' => "Price approved by {$approval['approved_by']}.",
-            ...$approval,
-        ]);
-    }
-
     public function store(StorePosSaleRequest $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
@@ -223,7 +198,6 @@ class PosController extends Controller
                 'items.*.quantity' => ['required', 'integer', 'min:1', 'max:10000'],
                 'items.*.actual_price' => ['nullable', 'numeric', 'min:0'],
                 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
-                'items.*.price_approval' => ['nullable', 'string', 'max:2000'],
             ],
             [
                 'items.required' => 'Add at least one product before completing the sale.',
@@ -239,13 +213,11 @@ class PosController extends Controller
             ]
         )->validate();
 
-        // Actual prices, admin approvals and per-item discounts are checked by the pricing service.
-        $lines = $this->pricing->saleLines(
+        // Lines always sell at the set price; the pricing service checks discounts against the discount setting.
+        $items = $this->pricing->saleLines(
             $cartData['items'],
-            (float) ($validated['discount_amount'] ?? 0),
-            $request->user()
+            (float) ($validated['discount_amount'] ?? 0)
         );
-        $items = $lines['items'];
 
         $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();
 
@@ -273,7 +245,7 @@ class PosController extends Controller
         }
 
         try {
-            $sale = $this->inventoryDocumentService->createSale($payload, $request->user(), $lines['approved_prices']);
+            $sale = $this->inventoryDocumentService->createSale($payload, $request->user());
         } catch (ValidationException|AuthorizationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {

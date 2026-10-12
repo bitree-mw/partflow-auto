@@ -703,11 +703,6 @@
         background: #f8fafc;
     }
 
-    .cart-line.has-price-change .cart-line-pricing {
-        border-color: #fdba74;
-        background: #fff7ed;
-    }
-
     .cart-price-cell {
         display: grid;
         gap: 3px;
@@ -740,6 +735,8 @@
         background: #fff;
         font-size: 13px;
         font-weight: 800;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
     }
 
     .cart-price-cell input[aria-invalid="true"] {
@@ -747,28 +744,16 @@
         outline: 2px solid rgb(220 38 38 / 16%);
     }
 
-    .cart-price-change,
-    .cart-price-note button {
-        justify-self: start;
-        padding: 0;
-        border: 0;
-        color: #c2410c;
-        background: none;
-        font-size: 11px;
-        font-weight: 800;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
     .cart-line .cart-price-note {
         grid-column: 1 / -1;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px 10px;
-        color: #9a3412;
+        color: #5c6558;
         font-size: 11px;
         font-weight: 700;
+    }
+
+    :is(.checkout-form, .checkout-discount-panel) input[data-money-input] {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
     }
 
     .checkout-discount-panel.is-item-only {

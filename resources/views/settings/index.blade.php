@@ -228,7 +228,7 @@
                                 <option value="{{ $mode }}" @selected(old('discount_mode', $settings['discount_mode']) === $mode)>{{ $label }}</option>
                             @endforeach
                         </select>
-                        <small id="discount-mode-help">Whether cashiers discount the complete sale, each item in the cart, or can use both.</small>
+                        <small id="discount-mode-help">Whether cashiers can give no discounts, discount the complete sale, discount each item in the cart, or use both. The selling price itself is never changed at the POS.</small>
                         <x-form-error name="discount_mode" />
                     </div>
                 </div>

@@ -12,6 +12,19 @@ class StorePosSaleRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Money fields are shown with thousands separators (e.g. 12,500.00); validate the plain number.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge(collect(['amount_paid', 'discount_amount'])
+            ->filter(fn (string $field): bool => is_string($this->input($field)))
+            ->mapWithKeys(fn (string $field): array => [
+                $field => str_replace([',', ' '], '', trim($this->input($field))),
+            ])
+            ->all());
+    }
+
     public function rules(): array
     {
         return [

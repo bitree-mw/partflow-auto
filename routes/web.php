@@ -32,7 +32,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->middleware(['permission:sales.create', 'feature:vehicle_fitment_search'])->name('web.pos.vehicle-models');
     Route::get('/pos/product-types.json', [PosController::class, 'productTypesJson'])->middleware('permission:sales.create')->name('web.pos.product-types');
     Route::post('/pos/site', [PosController::class, 'updateSite'])->name('web.pos.site');
-    Route::post('/pos/price-approval', [PosController::class, 'approvePrice'])->middleware(['permission:sales.create', 'throttle:10,1'])->name('web.pos.price-approval');
     Route::post('/pos/sales', [PosController::class, 'store'])->middleware('permission:sales.create')->name('web.pos.sales');
 });
 

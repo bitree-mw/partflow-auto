@@ -18,8 +18,9 @@ class SystemConfigurationService
 
     public const COSTING_METHODS = ['Last purchase cost', 'Weighted average cost', 'Manual standard cost'];
 
-    /** Where the POS offers discounts: on the whole sale, on each cart line, or both. */
+    /** Where the POS offers discounts: nowhere, on the whole sale, on each cart line, or both. */
     public const DISCOUNT_MODES = [
+        'none' => 'No discounts',
         'sale' => 'On the whole sale',
         'item' => 'Per item in the cart',
         'both' => 'Both',
@@ -90,7 +91,7 @@ class SystemConfigurationService
     }
 
     /**
-     * sale, item or both. Defaults to a discount on the whole sale, as the POS has always worked.
+     * none, sale, item or both. Defaults to a discount on the whole sale, as the POS has always worked.
      */
     public function discountMode(): string
     {

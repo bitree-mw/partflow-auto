@@ -137,7 +137,7 @@
                     </label>
                     <label>
                         Amount received
-                        <input type="text" name="amount_paid" value="0" data-pos-amount-paid>
+                        <input type="text" name="amount_paid" value="0.00" inputmode="decimal" autocomplete="off" data-pos-amount-paid data-money-input>
                     </label>
                     <span class="amount-balance-hint">
                         <span>Still owed</span>
@@ -148,20 +148,22 @@
                     <p class="amount-balance-hint">Sales must be paid in full. Enter an amount received equal to the total.</p>
                 @endif
 
-                <div class="checkout-discount-panel {{ $discountMode === 'item' ? 'is-item-only' : '' }}">
-                    @if ($discountMode === 'item')
+                <div class="checkout-discount-panel {{ in_array($discountMode, ['item', 'none'], true) ? 'is-item-only' : '' }}">
+                    @if ($discountMode === 'none')
+                        <p class="checkout-discount-note">Discounts are turned off. Items sell at their set price.</p>
+                    @elseif ($discountMode === 'item')
                         <p class="checkout-discount-note">Discounts are given per item in the cart.</p>
                     @else
                         <label for="pos_discount_amount">
                             {{ $discountMode === 'both' ? 'Discount on the whole sale' : 'Discount amount' }} ({{ $appSystem['currency'] ?? 'MWK' }})
-                            <input id="pos_discount_amount" type="number" name="discount_amount" value="0" min="0" step="0.01" inputmode="decimal" data-pos-discount-amount aria-describedby="pos-discount-feedback">
+                            <input id="pos_discount_amount" type="text" name="discount_amount" value="0.00" inputmode="decimal" autocomplete="off" data-pos-discount-amount data-money-input aria-describedby="pos-discount-feedback">
                         </label>
                     @endif
                     <div class="checkout-discount-feedback" id="pos-discount-feedback" aria-live="polite" data-pos-discount-feedback>
-                        @unless ($discountMode === 'item')
+                        @if (in_array($discountMode, ['sale', 'both'], true))
                             <span>Removed <strong data-discount-percentage>0.00%</strong></span>
                             <span>Allowed <strong data-discount-limit>{{ number_format((float) ($posEndpoints['maximumDiscountPercentage'] ?? 20), 2) }}%</strong></span>
-                        @endunless
+                        @endif
                         <span>Sale total <strong data-sale-total>{{ $saleTotals['total'] }}</strong></span>
                     </div>
                 </div>
