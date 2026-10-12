@@ -148,14 +148,20 @@
                     <p class="amount-balance-hint">Sales must be paid in full. Enter an amount received equal to the total.</p>
                 @endif
 
-                <div class="checkout-discount-panel">
-                    <label for="pos_discount_amount">
-                        Discount amount ({{ $appSystem['currency'] ?? 'MWK' }})
-                        <input id="pos_discount_amount" type="number" name="discount_amount" value="0" min="0" step="0.01" inputmode="decimal" data-pos-discount-amount aria-describedby="pos-discount-feedback">
-                    </label>
+                <div class="checkout-discount-panel {{ $discountMode === 'item' ? 'is-item-only' : '' }}">
+                    @if ($discountMode === 'item')
+                        <p class="checkout-discount-note">Discounts are given per item in the cart.</p>
+                    @else
+                        <label for="pos_discount_amount">
+                            {{ $discountMode === 'both' ? 'Discount on the whole sale' : 'Discount amount' }} ({{ $appSystem['currency'] ?? 'MWK' }})
+                            <input id="pos_discount_amount" type="number" name="discount_amount" value="0" min="0" step="0.01" inputmode="decimal" data-pos-discount-amount aria-describedby="pos-discount-feedback">
+                        </label>
+                    @endif
                     <div class="checkout-discount-feedback" id="pos-discount-feedback" aria-live="polite" data-pos-discount-feedback>
-                        <span>Removed <strong data-discount-percentage>0.00%</strong></span>
-                        <span>Allowed <strong data-discount-limit>{{ number_format((float) ($posEndpoints['maximumDiscountPercentage'] ?? 20), 2) }}%</strong></span>
+                        @unless ($discountMode === 'item')
+                            <span>Removed <strong data-discount-percentage>0.00%</strong></span>
+                            <span>Allowed <strong data-discount-limit>{{ number_format((float) ($posEndpoints['maximumDiscountPercentage'] ?? 20), 2) }}%</strong></span>
+                        @endunless
                         <span>Sale total <strong data-sale-total>{{ $saleTotals['total'] }}</strong></span>
                     </div>
                 </div>

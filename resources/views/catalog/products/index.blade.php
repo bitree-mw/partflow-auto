@@ -12,11 +12,14 @@
 @endpush
 
 @section('header_actions')
-    @if (auth()->user()?->hasPermission('stock.view'))
-        <a class="btn-secondary" href="{{ route('web.catalog.sites.index') }}">Warehouse</a>
+    @if (auth()->user()?->hasPermission('stock.adjust'))
+        <a class="btn-secondary" href="{{ route('web.catalog.sites.stock-takes.create') }}">Stock take</a>
     @endif
-    @if (auth()->user()?->hasPermission('sales.create'))
-        <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
+    @if (auth()->user()?->hasPermission('catalogue.manage') && auth()->user()->hasPermission('purchases.create'))
+        <a class="btn-secondary" href="{{ route('web.catalog.products.import.create') }}">Import parts</a>
+    @endif
+    @if (auth()->user()?->hasPermission('catalogue.manage'))
+        <a class="btn" href="{{ route('web.catalog.products.create') }}">Add new product</a>
     @endif
 @endsection
 
@@ -33,11 +36,7 @@
                     <strong>{{ $item['value'] }}</strong>
                     <p>{{ $item['detail'] }}</p>
 
-                    @if ($item['label'] === 'Products available' && auth()->user()?->hasPermission('catalogue.manage'))
-                        <div class="catalogue-card-actions">
-                            <a class="btn catalogue-add-button" href="{{ route('web.catalog.products.create') }}">Add product</a>
-                        </div>
-                    @elseif ($item['label'] === 'Brands')
+                    @if ($item['label'] === 'Brands')
                         <div class="catalogue-card-actions">
                             <a class="btn-secondary" href="{{ route('web.catalog.brands.index') }}">View</a>
                             @if (auth()->user()?->hasPermission('catalogue.manage'))
@@ -136,7 +135,7 @@
                         <th><x-sort-link field="type" label="Type" /></th>
                         <th><x-sort-link field="brand" label="Brand" /></th>
                         <th><x-sort-link field="compatibility" label="Compatible" /></th>
-                        <th><x-sort-link field="price" label="Price" /></th>
+                        <th><x-sort-link field="price" label="Price range (min – max)" /></th>
                         <th><x-sort-link field="stock" label="Stock" /></th>
                         <th>Status</th>
                         <th style="text-align: right;">Actions</th>
@@ -156,7 +155,7 @@
                             <td>{{ $product['type'] }}</td>
                             <td>{{ $product['brand'] }}</td>
                             <td>{{ $product['compatible_label'] }}</td>
-                            <td>{{ $product['price'] }}</td>
+                            <td style="white-space: nowrap">{{ $product['price_range'] }}</td>
                             <td>
                                 <span class="catalogue-stock-amount">
                                     <strong>{{ $product['stock'] }}</strong>

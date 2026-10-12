@@ -1275,6 +1275,106 @@
     [data-complete-sale-total].is-updating {
         animation: pf-total-pop 220ms ease-out;
     }
+
+    /* Summary cards and the first table rows arrive in a short cascade. */
+    :is(.catalogue-summary, .operation-summary) > article {
+        animation: pf-rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    :is(.catalogue-summary, .operation-summary) > article:nth-child(2) { animation-delay: 40ms; }
+    :is(.catalogue-summary, .operation-summary) > article:nth-child(3) { animation-delay: 80ms; }
+    :is(.catalogue-summary, .operation-summary) > article:nth-child(4) { animation-delay: 120ms; }
+    :is(.catalogue-summary, .operation-summary) > article:nth-child(5) { animation-delay: 160ms; }
+
+    .data-table tbody tr {
+        animation: pf-fade-in 280ms ease-out backwards;
+    }
+
+    .data-table tbody tr:nth-child(-n + 12) {
+        animation-delay: calc(var(--pf-row, 0) * 25ms);
+    }
+
+    .data-table tbody tr:nth-child(2) { --pf-row: 1; }
+    .data-table tbody tr:nth-child(3) { --pf-row: 2; }
+    .data-table tbody tr:nth-child(4) { --pf-row: 3; }
+    .data-table tbody tr:nth-child(5) { --pf-row: 4; }
+    .data-table tbody tr:nth-child(6) { --pf-row: 5; }
+    .data-table tbody tr:nth-child(7) { --pf-row: 6; }
+    .data-table tbody tr:nth-child(8) { --pf-row: 7; }
+    .data-table tbody tr:nth-child(9) { --pf-row: 8; }
+    .data-table tbody tr:nth-child(10) { --pf-row: 9; }
+    .data-table tbody tr:nth-child(11) { --pf-row: 10; }
+    .data-table tbody tr:nth-child(12) { --pf-row: 11; }
+
+    /* The page's main action lifts slightly so it reads as the next step. */
+    .header-actions > .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgb(244 122 42 / 26%);
+    }
+
+    .sidebar-group a.active {
+        animation: pf-nav-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .sidebar-group a:not(.active):hover .nav-icon {
+        transform: translateX(2px);
+    }
+
+    .sidebar-group a .nav-icon {
+        transition: transform 160ms ease;
+    }
+
+    .form-error {
+        animation: pf-error-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Set by app.js on the button that submitted a form, until the next page loads. */
+    :is(button, .btn, .btn-secondary, .btn-danger).is-busy {
+        position: relative;
+        cursor: progress;
+        opacity: 0.85;
+    }
+
+    :is(button, .btn, .btn-secondary, .btn-danger).is-busy::after {
+        content: '';
+        display: inline-block;
+        width: 0.9em;
+        height: 0.9em;
+        margin-left: 0.5em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        vertical-align: -0.12em;
+        animation: pf-spin 700ms linear infinite;
+    }
+}
+
+@keyframes pf-nav-in {
+    from {
+        opacity: 0.4;
+        transform: translateX(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pf-error-in {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pf-spin {
+    to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

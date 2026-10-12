@@ -8,11 +8,13 @@
 @endpush
 
 @section('header_actions')
-    @if (auth()->user()?->hasPermission('catalogue.view'))
-        <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Parts catalogue</a>
-    @endif
-    @if (auth()->user()?->hasPermission('sales.create'))
-        <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
+    @feature('stock_transfers')
+        @if (auth()->user()?->hasPermission('stock.transfer'))
+            <a class="btn-secondary" href="{{ route('web.catalog.sites.transfers.create') }}">New transfer</a>
+        @endif
+    @endfeature
+    @if (auth()->user()?->hasPermission('stock.adjust'))
+        <a class="btn" href="{{ route('web.catalog.sites.stock-takes.create') }}">New stock take</a>
     @endif
 @endsection
 

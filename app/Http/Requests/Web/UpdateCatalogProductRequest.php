@@ -21,6 +21,7 @@ class UpdateCatalogProductRequest extends StoreCatalogProductRequest
         ];
         $rules['minimum_selling_price'] = ['nullable', 'numeric', 'min:0'];
         $rules['is_active'] = ['nullable', 'boolean'];
+        unset($rules['create_sides']); // left/right pairs are only made when adding a product
 
         return $rules;
     }

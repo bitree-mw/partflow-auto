@@ -116,18 +116,23 @@
                     <x-form-error name="tax_profile_id" />
                 </div>
 
-                <div class="form-field">
-                    <label for="default_selling_price">Selling price</label>
-                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price', $product->default_selling_price) }}" data-product-selling-price>
-                    <x-form-error name="default_selling_price" />
-                </div>
-
-                <div class="form-field">
-                    <label for="minimum_selling_price">Minimum selling price</label>
-                    <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price', $product->minimum_selling_price) }}" aria-describedby="minimum-selling-price-help" data-product-minimum-price>
-                    <small id="minimum-selling-price-help">This is the lowest price allowed after all discounts.</small>
+                <fieldset class="form-field catalog-price-range" aria-describedby="selling-price-range-help">
+                    <legend>Selling price range</legend>
+                    <div class="catalog-price-range-inputs">
+                        <div>
+                            <label for="minimum_selling_price">Minimum selling price</label>
+                            <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price', $product->minimum_selling_price) }}" data-product-minimum-price>
+                        </div>
+                        <span class="catalog-price-range-to" aria-hidden="true">to</span>
+                        <div>
+                            <label for="default_selling_price">Maximum selling price</label>
+                            <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price', $product->default_selling_price) }}" data-product-selling-price>
+                        </div>
+                    </div>
+                    <small id="selling-price-range-help">The price changes from day to day but always stays in this range, including after discounts. The maximum is the set selling price shown at the POS.</small>
                     <x-form-error name="minimum_selling_price" />
-                </div>
+                    <x-form-error name="default_selling_price" />
+                </fieldset>
 
                 <div class="form-field catalog-low-stock-field">
                     <label for="default_low_stock_level">Low stock level</label>

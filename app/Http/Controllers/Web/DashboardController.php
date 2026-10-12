@@ -33,18 +33,12 @@ class DashboardController extends Controller
         );
     }
 
+    /**
+     * The dashboard opens on all branches the user can see; it does not follow the
+     * POS selling branch. A branch is only applied when chosen with ?site_id=.
+     */
     private function filters(DashboardRequest $request): array
     {
-        $filters = $request->validated();
-
-        if (! array_key_exists('site_id', $filters)) {
-            $sessionSiteId = (int) $request->session()->get('pos_site_id', 0);
-
-            if ($sessionSiteId > 0) {
-                $filters['site_id'] = $sessionSiteId;
-            }
-        }
-
-        return $filters;
+        return $request->validated();
     }
 }

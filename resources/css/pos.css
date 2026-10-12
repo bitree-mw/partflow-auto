@@ -691,6 +691,98 @@
         background: #fef2f2;
     }
 
+    /* Set price vs actual price (and per-item discount) under each cart line. */
+    .cart-line-pricing {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .cart-line.has-price-change .cart-line-pricing {
+        border-color: #fdba74;
+        background: #fff7ed;
+    }
+
+    .cart-price-cell {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        align-content: start;
+    }
+
+    .cart-line .cart-price-cell small {
+        color: #5c6558;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .cart-price-cell b {
+        color: #20261f;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .cart-price-cell input {
+        width: 100%;
+        min-width: 0;
+        height: 30px;
+        padding: 3px 6px;
+        border: 1px solid #aeb7aa;
+        border-radius: 8px;
+        color: #20261f;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .cart-price-cell input[aria-invalid="true"] {
+        border-color: #dc2626;
+        outline: 2px solid rgb(220 38 38 / 16%);
+    }
+
+    .cart-price-change,
+    .cart-price-note button {
+        justify-self: start;
+        padding: 0;
+        border: 0;
+        color: #c2410c;
+        background: none;
+        font-size: 11px;
+        font-weight: 800;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .cart-line .cart-price-note {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+        color: #9a3412;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .checkout-discount-panel.is-item-only {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+
+    .checkout-discount-note {
+        margin: 0;
+        color: #5c6558;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
     .checkout-form {
         display: grid;
         gap: 10px;

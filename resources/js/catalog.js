@@ -240,6 +240,32 @@ if (productSellingPrice && productMinimumPrice) {
     syncSuggestedMinimum();
 }
 
+// Left and right parts: each side gets its own generated code, so the manual code is switched off.
+const createSides = document.querySelector('[data-product-create-sides]');
+
+if (createSides) {
+    const productCode = document.querySelector('#product_code');
+    const saveButton = document.querySelector('[data-product-save-sides-label]');
+
+    const syncSides = () => {
+        if (productCode) {
+            productCode.disabled = createSides.checked;
+            productCode.placeholder = createSides.checked
+                ? 'Generated for each side'
+                : 'Auto generated, e.g. EOIL-CAST-MWI-001';
+        }
+
+        if (saveButton) {
+            saveButton.textContent = createSides.checked
+                ? saveButton.dataset.productSaveSidesLabel
+                : saveButton.dataset.productSaveLabel;
+        }
+    };
+
+    createSides.addEventListener('change', syncSides);
+    syncSides();
+}
+
 function initProductTypePicker(picker) {
     if (productTypePickers.has(picker)) {
         return;

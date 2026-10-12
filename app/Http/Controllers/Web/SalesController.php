@@ -10,6 +10,7 @@ use App\Services\InventoryDocumentService;
 use App\Services\PaymentAccountService;
 use App\Services\PaymentService;
 use App\Services\SiteAccessService;
+use App\Services\SystemConfigurationService;
 use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,8 @@ class SalesController extends Controller
         private readonly ContactService $contactService,
         private readonly PaymentAccountService $paymentAccountService,
         private readonly PaymentService $paymentService,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly SystemConfigurationService $systemConfiguration
     ) {}
 
     public function index(Request $request): View
@@ -54,6 +56,7 @@ class SalesController extends Controller
             'sale' => $sale,
             'customers' => $this->contactOptions($this->contactService->list()->filter->isCustomer()->values()),
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
+            'defaultPaymentAccountId' => $this->systemConfiguration->defaultPaymentAccountId(),
             'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
             'currency' => config('services.partflow.base_currency', 'MWK'),
         ]);

@@ -220,6 +220,17 @@
                         <small id="maximum-discount-help">Percentage cap for sales agents. A product's minimum selling price may impose a stricter limit.</small>
                         <x-form-error name="maximum_discount_percentage" />
                     </div>
+
+                    <div class="form-field">
+                        <label for="discount_mode">Discounts at the POS</label>
+                        <select class="form-control" id="discount_mode" name="discount_mode" aria-describedby="discount-mode-help">
+                            @foreach (\App\Services\SystemConfigurationService::DISCOUNT_MODES as $mode => $label)
+                                <option value="{{ $mode }}" @selected(old('discount_mode', $settings['discount_mode']) === $mode)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <small id="discount-mode-help">Whether cashiers discount the complete sale, each item in the cart, or can use both.</small>
+                        <x-form-error name="discount_mode" />
+                    </div>
                 </div>
             </section>
 
@@ -385,16 +396,16 @@
                 </div>
                 <div class="form-grid settings-section">
                     <div class="form-field">
-                        <label for="default_pos_payment_account_id">Default payment account for the POS</label>
+                        <label for="default_pos_payment_account_id">Default payment account</label>
                         <select class="form-control" id="default_pos_payment_account_id" name="default_pos_payment_account_id" aria-describedby="default-pos-account-help">
-                            <option value="">None (cashier chooses each sale)</option>
+                            <option value="">None (choose an account each time)</option>
                             @foreach ($posPaymentAccountOptions as $accountOption)
                                 <option value="{{ $accountOption->id }}" @selected((string) old('default_pos_payment_account_id', $settings['default_pos_payment_account_id']) === (string) $accountOption->id)>
                                     {{ $accountOption->account_name }} ({{ $accountTypes[$accountOption->account_type] ?? $accountOption->account_type }})
                                 </option>
                             @endforeach
                         </select>
-                        <small id="default-pos-account-help">Pre-selected at checkout. Cashiers can still pick another account. Click Save settings to apply.</small>
+                        <small id="default-pos-account-help">Pre-selected for POS sales, purchases, payments, expenses, and parts imports. Staff can still pick another account. Click Save settings to apply.</small>
                         <x-form-error name="default_pos_payment_account_id" />
                     </div>
                 </div>
@@ -406,7 +417,12 @@
                                 <strong>{{ $account->account_name }}</strong>
                                 <span>{{ $accountTypes[$account->account_type] ?? $account->account_type }} - {{ $account->account_holder_name ?: 'No holder recorded' }}</span>
                             </div>
-                            <em>{{ $account->is_active ? 'Active' : 'Inactive' }}</em>
+                            <em>
+                                {{ $account->is_active ? 'Active' : 'Inactive' }}
+                                @if ((int) $account->id === (int) ($settings['default_pos_payment_account_id'] ?? 0))
+                                    <span class="status-pill success">Default</span>
+                                @endif
+                            </em>
                             <div class="settings-row-actions">
                                 <a class="btn-secondary" href="{{ route('web.payment-accounts.show', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}">View</a>
                                 <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}" title="Edit payment account" aria-label="Edit payment account">

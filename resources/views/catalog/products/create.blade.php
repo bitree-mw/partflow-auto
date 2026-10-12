@@ -101,18 +101,23 @@
                     <x-form-error name="tax_profile_id" />
                 </div>
 
-                <div class="form-field">
-                    <label for="default_selling_price">Selling price</label>
-                    <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500" data-product-selling-price>
-                    <x-form-error name="default_selling_price" />
-                </div>
-
-                <div class="form-field">
-                    <label for="minimum_selling_price">Minimum selling price</label>
-                    <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price') }}" placeholder="26000" aria-describedby="minimum-selling-price-help" data-product-minimum-price>
-                    <small id="minimum-selling-price-help">Defaults to 20% below the selling price. This is the product's absolute sales floor.</small>
+                <fieldset class="form-field catalog-price-range" aria-describedby="selling-price-range-help">
+                    <legend>Selling price range</legend>
+                    <div class="catalog-price-range-inputs">
+                        <div>
+                            <label for="minimum_selling_price">Minimum selling price</label>
+                            <input class="form-control" id="minimum_selling_price" name="minimum_selling_price" type="number" min="0" step="0.01" value="{{ old('minimum_selling_price') }}" placeholder="26000" data-product-minimum-price>
+                        </div>
+                        <span class="catalog-price-range-to" aria-hidden="true">to</span>
+                        <div>
+                            <label for="default_selling_price">Maximum selling price</label>
+                            <input class="form-control" id="default_selling_price" name="default_selling_price" type="number" min="0" step="0.01" value="{{ old('default_selling_price') }}" placeholder="32500" data-product-selling-price>
+                        </div>
+                    </div>
+                    <small id="selling-price-range-help">The price changes from day to day but always stays in this range. The maximum is the set selling price shown at the POS; the minimum defaults to 20% below it.</small>
                     <x-form-error name="minimum_selling_price" />
-                </div>
+                    <x-form-error name="default_selling_price" />
+                </fieldset>
 
                 <div class="form-field catalog-low-stock-field">
                     <label for="default_low_stock_level">Low stock level</label>
@@ -165,8 +170,20 @@
             </div>
         </section>
 
+        <section class="form-section catalog-sides">
+            <span class="eyebrow">Left and right</span>
+            <label class="catalog-sides-option">
+                <input type="checkbox" name="create_sides" value="1" @checked(old('create_sides')) data-product-create-sides>
+                <span>
+                    <strong>This part comes in a left and a right side</strong>
+                    <small>Saves two products with the same details, named "… – Left" and "… – Right". Each side gets its own product code and its own stock, so leave the product code blank.</small>
+                </span>
+            </label>
+            <x-form-error name="create_sides" />
+        </section>
+
         <div class="form-actions">
-            <button class="btn" type="submit">Save product</button>
+            <button class="btn" type="submit" data-product-save-label="Save product" data-product-save-sides-label="Save left and right parts">{{ old('create_sides') ? 'Save left and right parts' : 'Save product' }}</button>
         </div>
     </form>
 @endsection

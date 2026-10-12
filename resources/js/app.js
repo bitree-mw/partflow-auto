@@ -322,7 +322,51 @@ function initNoFutureDates() {
     window.setInterval(refreshMaximum, 30_000);
 }
 
+// Shows a spinner on the button that submitted a POST form and blocks repeat clicks until the next
+// page loads. Runs after every other submit handler so JS-handled and cancelled submits are skipped.
+function initSubmitBusyState() {
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== 'post' || form.target === '_blank') {
+            return;
+        }
+
+        const submitter = event.submitter;
+
+        window.setTimeout(() => {
+            if (event.defaultPrevented) {
+                return;
+            }
+
+            const button = submitter || form.querySelector('button[type="submit"], button:not([type])');
+
+            if (!button || button.form !== form) {
+                return;
+            }
+
+            button.classList.add('is-busy');
+            button.setAttribute('aria-busy', 'true');
+            button.disabled = true;
+        }, 0);
+    });
+
+    // Restores buttons when the browser shows the page again from its back/forward cache.
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted) {
+            return;
+        }
+
+        document.querySelectorAll('.is-busy').forEach((button) => {
+            button.classList.remove('is-busy');
+            button.removeAttribute('aria-busy');
+            button.disabled = false;
+        });
+    });
+}
+
 initAppDialogs();
+initSubmitBusyState();
 initSearchableSelects();
 initGlobalSiteSwitcher();
 initMobileSidebar();

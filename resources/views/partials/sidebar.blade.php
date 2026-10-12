@@ -19,6 +19,7 @@
         'truck' => '<svg viewBox="0 0 24 24"><path d="M3 6h12v10H3z"></path><path d="M15 10h4l2 3v3h-6z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>',
         'parts' => '<svg viewBox="0 0 24 24"><path d="M7 7h10v10H7z"></path><path d="M4 4h4"></path><path d="M16 4h4"></path><path d="M4 20h4"></path><path d="M16 20h4"></path><path d="M4 12h3"></path><path d="M17 12h3"></path><path d="M12 4v3"></path><path d="M12 17v3"></path></svg>',
         'car' => '<svg viewBox="0 0 24 24"><path d="M5 12l2-5h10l2 5"></path><path d="M4 12h16v6H4z"></path><path d="M7 18v2"></path><path d="M17 18v2"></path><circle cx="8" cy="15" r="1"></circle><circle cx="16" cy="15" r="1"></circle></svg>',
+        'clipboard' => '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V3h6v1"></path><path d="M9 11l2 2 4-4"></path><path d="M9 17h6"></path></svg>',
         'tag' => '<svg viewBox="0 0 24 24"><path d="M20 13l-7 7L4 11V4h7l9 9z"></path><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>',
         'bars' => '<svg viewBox="0 0 24 24"><path d="M5 20V10"></path><path d="M12 20V4"></path><path d="M19 20v-7"></path></svg>',
         'bell' => '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>',
@@ -37,9 +38,10 @@
             ['label' => 'Suppliers', 'icon' => 'truck', 'href' => route('web.suppliers.index'), 'active' => request()->routeIs('web.suppliers.*'), 'permission' => 'suppliers.view'],
             ['label' => 'Expenses', 'icon' => 'wallet', 'href' => route('web.expenses.index'), 'active' => request()->routeIs('web.expenses.*'), 'permission' => 'purchases.manage', 'feature' => 'expenses'],
         ],
-        'Catalogue' => [
-            ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*'), 'permission' => 'stock.view'],
+        'Stock & parts' => [
             ['label' => 'Parts catalogue', 'icon' => 'parts', 'href' => route('web.catalog.products.index'), 'active' => request()->routeIs('web.catalog.*') && ! request()->routeIs('web.catalog.sites.*'), 'permission' => 'catalogue.view'],
+            ['label' => 'Stock takes', 'icon' => 'clipboard', 'href' => route('web.catalog.sites.stock-takes.index'), 'active' => request()->routeIs('web.catalog.sites.stock-takes.*'), 'permission' => 'stock.view'],
+            ['label' => 'Site management', 'icon' => 'box', 'href' => route('web.catalog.sites.index'), 'active' => request()->routeIs('web.catalog.sites.*') && ! request()->routeIs('web.catalog.sites.stock-takes.*'), 'permission' => 'stock.view'],
         ],
         'Intelligence' => [
             ['label' => 'Reports', 'icon' => 'bars', 'href' => route('web.reports.index'), 'active' => request()->routeIs('web.reports.*'), 'permission' => 'reports.view'],

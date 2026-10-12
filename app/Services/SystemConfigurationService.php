@@ -18,6 +18,13 @@ class SystemConfigurationService
 
     public const COSTING_METHODS = ['Last purchase cost', 'Weighted average cost', 'Manual standard cost'];
 
+    /** Where the POS offers discounts: on the whole sale, on each cart line, or both. */
+    public const DISCOUNT_MODES = [
+        'sale' => 'On the whole sale',
+        'item' => 'Per item in the cart',
+        'both' => 'Both',
+    ];
+
     // PartFlow Auto currently serves Malawi only, so country and currency are fixed rather than configurable.
     public const BASE_COUNTRY = 'Malawi';
 
@@ -39,13 +46,20 @@ class SystemConfigurationService
     }
 
     /**
-     * The payment account pre-selected at the POS, if it is still active.
+     * The default payment account chosen in payment account management, if it is still active.
+     * Pre-selected wherever a payment is recorded: POS sales, purchases, sale and purchase payments,
+     * expenses, and parts imports. Stored under its original POS setting key.
      */
-    public function defaultPosPaymentAccountId(): ?int
+    public function defaultPaymentAccountId(): ?int
     {
         $id = (int) $this->setting('default_pos_payment_account_id');
 
         return $id > 0 && PaymentAccount::query()->active()->whereKey($id)->exists() ? $id : null;
+    }
+
+    public function defaultPosPaymentAccountId(): ?int
+    {
+        return $this->defaultPaymentAccountId();
     }
 
     public function settings(): array
@@ -71,7 +85,18 @@ class SystemConfigurationService
                 'maximum_discount_percentage',
                 DiscountPolicyService::DEFAULT_MAXIMUM_DISCOUNT_PERCENTAGE
             ),
+            'discount_mode' => $this->discountMode(),
         ];
+    }
+
+    /**
+     * sale, item or both. Defaults to a discount on the whole sale, as the POS has always worked.
+     */
+    public function discountMode(): string
+    {
+        $mode = (string) $this->setting('discount_mode', 'sale');
+
+        return array_key_exists($mode, self::DISCOUNT_MODES) ? $mode : 'sale';
     }
 
     public function headerContext(?User $user = null): array

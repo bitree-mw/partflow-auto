@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AdminSettingsController;
 use App\Http\Controllers\Web\AlertsController;
 use App\Http\Controllers\Web\AuthSessionController;
 use App\Http\Controllers\Web\CatalogController;
+use App\Http\Controllers\Web\CatalogProductImportController;
 use App\Http\Controllers\Web\ContactDirectoryController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ExpensesController;
@@ -31,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/vehicle-models.json', [PosController::class, 'vehicleModelsJson'])->middleware(['permission:sales.create', 'feature:vehicle_fitment_search'])->name('web.pos.vehicle-models');
     Route::get('/pos/product-types.json', [PosController::class, 'productTypesJson'])->middleware('permission:sales.create')->name('web.pos.product-types');
     Route::post('/pos/site', [PosController::class, 'updateSite'])->name('web.pos.site');
+    Route::post('/pos/price-approval', [PosController::class, 'approvePrice'])->middleware(['permission:sales.create', 'throttle:10,1'])->name('web.pos.price-approval');
     Route::post('/pos/sales', [PosController::class, 'store'])->middleware('permission:sales.create')->name('web.pos.sales');
 });
 
@@ -111,6 +113,21 @@ Route::prefix('back-office')
             Route::get('car-model-options', 'carModelOptionsSearch')->middleware('permission:catalogue.view')->name('car-model-options');
             Route::get('product-type-options', 'productTypeOptionsSearch')->middleware('permission:catalogue.view')->name('product-type-options');
             Route::get('products', 'products')->middleware('permission:catalogue.view')->name('products.index');
+
+            // Parts sheet import: creates parts and records the stock as one paid purchase, so both permissions are required.
+            Route::middleware(['permission:catalogue.manage', 'permission:purchases.create'])
+                ->prefix('products/import')
+                ->name('products.import.')
+                ->controller(CatalogProductImportController::class)
+                ->group(function () {
+                    Route::get('/', 'create')->name('create');
+                    Route::post('/', 'preview')->name('preview');
+                    Route::get('template', 'template')->name('template');
+                    Route::post('confirm', 'store')->name('store');
+                    Route::post('cancel', 'cancel')->name('cancel');
+                    Route::get('{token}', 'show')->whereUuid('token')->name('show');
+                });
+
             Route::get('products/create', 'createProduct')->middleware('permission:catalogue.manage')->name('products.create');
             Route::post('products', 'storeProduct')->middleware('permission:catalogue.manage')->name('products.store');
             Route::get('products/{product}/edit', 'editProduct')->middleware('permission:catalogue.manage')->name('products.edit');

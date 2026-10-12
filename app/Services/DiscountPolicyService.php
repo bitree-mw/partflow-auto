@@ -27,6 +27,22 @@ class DiscountPolicyService
         return round(max(0, $sellingPrice) * (1 - (self::DEFAULT_MAXIMUM_DISCOUNT_PERCENTAGE / 100)), 2);
     }
 
+    /**
+     * The range an admin may sell a product at: from its minimum selling price
+     * up to its (maximum) selling price.
+     *
+     * @return array{minimum: float, maximum: float}
+     */
+    public function priceRange(Product $product): array
+    {
+        $maximum = round(max(0, (float) $product->default_selling_price), 2);
+        $minimum = $product->minimum_selling_price === null
+            ? $this->defaultMinimumSellingPrice($maximum)
+            : (float) $product->minimum_selling_price;
+
+        return ['minimum' => round(max(0, min($maximum, $minimum)), 2), 'maximum' => $maximum];
+    }
+
     public function minimumAuthorizedUnitPrice(Product $product): float
     {
         return $this->minimumAuthorizedPrice(

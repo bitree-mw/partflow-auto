@@ -944,8 +944,19 @@ class CatalogController extends Controller
     public function storeProduct(StoreCatalogProductRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $createSides = (bool) ($validated['create_sides'] ?? false);
+        unset($validated['create_sides']);
 
         $payload = $this->productPayload($validated);
+
+        if ($createSides) {
+            $pair = $this->productService->createLeftAndRight($payload);
+
+            return redirect()
+                ->route('web.catalog.products.index')
+                ->with('success', "Left and right parts saved: {$pair['left']->product_name} ({$pair['left']->product_code}) and {$pair['right']->product_name} ({$pair['right']->product_code}).");
+        }
+
         $this->productService->create($payload);
 
         return redirect()
@@ -1415,6 +1426,8 @@ class CatalogController extends Controller
             'compatible_count' => $compatibilityCount,
             'compatible_label' => $compatibilityCount.' '.($compatibilityCount === 1 ? 'vehicle' : 'vehicles'),
             'price' => $this->money((float) $product->default_selling_price),
+            'price_range' => $this->money((float) ($product->minimum_selling_price ?? $product->default_selling_price))
+                .' – '.number_format((float) $product->default_selling_price),
             'stock' => $stockRows->sum('available_quantity'),
             'low_stock_level' => (int) ($product->default_low_stock_level ?? 0),
             'branch_stock' => $branchStock,

@@ -81,7 +81,7 @@ class ProductService
 
             $product = Product::create([
                 'product_code' => $productCode,
-                'product_name' => $data['product_name'] ?? $this->generateProductName($data),
+                'product_name' => Str::of(($data['product_name'] ?? $this->generateProductName($data)).($data['name_suffix'] ?? ''))->squish()->toString(),
                 'car_model_id' => $data['car_model_id'],
                 'product_type_id' => $data['product_type_id'],
                 'fuel_type_id' => $data['fuel_type_id'] ?? null,
@@ -105,6 +105,23 @@ class ProductService
 
             return $product->load($this->defaultRelations());
         });
+    }
+
+    /**
+     * Parts that come in a left and a right version (mirrors, lamps, arms...):
+     * two products with the same details, named "… – Left" and "… – Right",
+     * each with its own auto-generated product code.
+     *
+     * @return array{left: Product, right: Product}
+     */
+    public function createLeftAndRight(array $data): array
+    {
+        unset($data['product_code']);
+
+        return DB::transaction(fn (): array => [
+            'left' => $this->create([...$data, 'name_suffix' => ' – Left']),
+            'right' => $this->create([...$data, 'name_suffix' => ' – Right']),
+        ]);
     }
 
     public function update(Product $product, array $data): Product

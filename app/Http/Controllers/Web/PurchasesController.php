@@ -12,6 +12,7 @@ use App\Services\PaymentService;
 use App\Services\ProductService;
 use App\Services\SiteAccessService;
 use App\Services\SiteService;
+use App\Services\SystemConfigurationService;
 use App\Support\CollectionPaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,8 @@ class PurchasesController extends Controller
         private readonly ProductService $productService,
         private readonly PaymentAccountService $paymentAccountService,
         private readonly PaymentService $paymentService,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly SystemConfigurationService $systemConfiguration
     ) {}
 
     public function index(Request $request): View
@@ -71,6 +73,7 @@ class PurchasesController extends Controller
             )),
             'parts' => $this->productOptions($this->productService->list(['is_active' => true])),
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
+            'defaultPaymentAccountId' => $this->systemConfiguration->defaultPaymentAccountId(),
             'documentStatuses' => ['draft' => 'Draft', 'completed' => 'Completed and received'],
             'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
             'prefillItem' => $prefillItem,
@@ -172,6 +175,7 @@ class PurchasesController extends Controller
             'purchase' => $purchase,
             'suppliers' => $this->contactOptions($this->contactService->list()->filter->isSupplier()->values()),
             'paymentAccounts' => $this->paymentAccountOptions($this->paymentAccountService->list(['is_active' => true])),
+            'defaultPaymentAccountId' => $this->systemConfiguration->defaultPaymentAccountId(),
             'paymentMethods' => ['cash' => 'Cash', 'mobile_money' => 'Mobile Money', 'card' => 'Card', 'bank' => 'Bank Transfer'],
             'currency' => config('services.partflow.base_currency', 'MWK'),
         ]);

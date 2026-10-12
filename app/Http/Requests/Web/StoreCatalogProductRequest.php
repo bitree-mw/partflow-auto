@@ -35,7 +35,8 @@ class StoreCatalogProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_code' => ['nullable', 'string', 'max:100', 'unique:products,product_code'],
+            'create_sides' => ['nullable', 'boolean'],
+            'product_code' => ['nullable', 'string', 'max:100', 'unique:products,product_code', 'prohibited_if_accepted:create_sides'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'car_model_id' => ['nullable', 'integer', 'exists:car_models,id'],
             'product_type_id' => ['required', 'integer', 'exists:product_types,id'],
@@ -50,6 +51,13 @@ class StoreCatalogProductRequest extends FormRequest
             'compatible_car_model_ids' => ['nullable', 'array'],
             'compatible_car_model_ids.*' => ['required', 'integer', 'distinct', 'exists:car_models,id'],
             'compatibility_notes' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'product_code.prohibited_if_accepted' => 'Leave the product code blank when adding left and right parts; each side gets its own code.',
         ];
     }
 }

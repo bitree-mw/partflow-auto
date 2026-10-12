@@ -89,10 +89,7 @@
             </div>
         </details>
 
-        @hasSection('header_actions')
-            @yield('header_actions')
-        @elseif (auth()->user()?->hasPermission('sales.create'))
-            <a class="btn" href="{{ route('web.pos') }}" target="_blank" rel="noopener">New sale</a>
-        @endif
+        {{-- Each page supplies its own primary action (e.g. "Add new sale" only on Sales). --}}
+        @yield('header_actions')
     </div>
 </header>

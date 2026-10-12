@@ -9,6 +9,7 @@ use App\Http\Requests\Web\StoreExpenseCategoryRequest;
 use App\Models\Expense;
 use App\Services\ExpenseService;
 use App\Services\SiteAccessService;
+use App\Services\SystemConfigurationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class ExpensesController extends Controller
 {
     public function __construct(
         private readonly ExpenseService $expenses,
-        private readonly SiteAccessService $siteAccessService
+        private readonly SiteAccessService $siteAccessService,
+        private readonly SystemConfigurationService $systemConfiguration
     ) {}
 
     public function index(ExpenseIndexRequest $request): View
@@ -40,7 +42,10 @@ class ExpensesController extends Controller
         return view('expenses.form', [
             'title' => 'Record expense',
             'description' => 'Add money paid out for running the business.',
-            'expense' => new Expense(['expense_date' => now()]),
+            'expense' => new Expense([
+                'expense_date' => now(),
+                'payment_account_id' => $this->systemConfiguration->defaultPaymentAccountId(),
+            ]),
             ...$this->expenses->formOptions($request->user()),
         ]);
     }

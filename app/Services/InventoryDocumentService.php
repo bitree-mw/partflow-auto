@@ -18,7 +18,8 @@ class InventoryDocumentService
         private readonly StockMovementService $stockMovementService,
         private readonly PaymentService $paymentService,
         private readonly SiteAccessService $siteAccessService,
-        private readonly DiscountPolicyService $discountPolicy
+        private readonly DiscountPolicyService $discountPolicy,
+        private readonly AuditLogService $auditLog
     ) {}
 
     public function list(array $filters = [], ?User $user = null): Collection
@@ -58,14 +59,18 @@ class InventoryDocumentService
         return $inventoryDocument->load($this->detailRelations());
     }
 
-    public function createPurchase(array $data, User $user): InventoryDocument
+    /**
+     * @param  bool  $applyTax  false when the unit costs are final amounts paid (e.g. stock imported from a sheet),
+     *                          so no tax profile is applied on top of them
+     */
+    public function createPurchase(array $data, User $user, bool $applyTax = true): InventoryDocument
     {
         $this->siteAccessService->authorizeSite($user, (int) $data['destination_site_id'], SiteAccessService::RECEIVE_STOCK);
 
-        return DB::transaction(function () use ($data, $user) {
+        return DB::transaction(function () use ($data, $user, $applyTax) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('purchase', $data, $user, $status);
-            $items = $this->createPricedItems($document, $data['items'], 'cost');
+            $items = $this->createPricedItems($document, $data['items'], 'cost', applyTax: $applyTax);
 
             if ($status === 'completed') {
                 foreach ($items as $item) {
@@ -90,12 +95,17 @@ class InventoryDocumentService
         });
     }
 
-    public function createSale(array $data, User $user): InventoryDocument
+    /**
+     * @param  array<int, array{unit_price: float, approved_by: User}>  $approvedPrices  actual selling prices an
+     *                                                                                   admin set at the POS, by product id
+     *                                                                                   (from PosPricingService, never request input)
+     */
+    public function createSale(array $data, User $user, array $approvedPrices = []): InventoryDocument
     {
         $this->ensureSaleDateIsNotInTheFuture($data['document_date'] ?? null);
         $this->siteAccessService->authorizeSite($user, (int) $data['source_site_id'], SiteAccessService::MAKE_SALES);
 
-        return DB::transaction(function () use ($data, $user) {
+        return DB::transaction(function () use ($data, $user, $approvedPrices) {
             $status = $data['status'] ?? 'completed';
             $document = $this->createBaseDocument('sale', $data, $user, $status);
             $items = $this->createPricedItems(
@@ -104,8 +114,29 @@ class InventoryDocumentService
                 priceBasis: 'price',
                 invoiceDiscount: (float) ($data['discount_amount'] ?? 0),
                 profitMultiplier: 1,
-                enforceSaleDiscountPolicy: true
+                enforceSaleDiscountPolicy: true,
+                approvedPrices: $approvedPrices
             );
+
+            foreach ($items as $item) {
+                if (isset($approvedPrices[$item->product_id])) {
+                    $approval = $approvedPrices[$item->product_id];
+                    $this->auditLog->record(
+                        'sale.price_changed',
+                        "{$item->product->product_name} sold at ".number_format($approval['unit_price'], 2)
+                            .' instead of '.number_format((float) $item->product->default_selling_price, 2)
+                            ." on {$document->document_number}, approved by {$approval['approved_by']->name}.",
+                        $document,
+                        [
+                            'product_id' => $item->product_id,
+                            'set_price' => (float) $item->product->default_selling_price,
+                            'actual_price' => $approval['unit_price'],
+                            'approved_by' => $approval['approved_by']->id,
+                        ],
+                        $user
+                    );
+                }
+            }
 
             if ($status === 'completed') {
                 foreach ($items as $item) {
@@ -406,7 +437,9 @@ class InventoryDocumentService
         string $priceBasis,
         float $invoiceDiscount = 0,
         int $profitMultiplier = 0,
-        bool $enforceSaleDiscountPolicy = false
+        bool $enforceSaleDiscountPolicy = false,
+        array $approvedPrices = [],
+        bool $applyTax = true
     ): array {
         if ($invoiceDiscount < 0) {
             throw ValidationException::withMessages([
@@ -428,9 +461,24 @@ class InventoryDocumentService
             $unitCost = round((float) ($enforceSaleDiscountPolicy
                 ? $this->latestPurchaseCost($product)
                 : ($row['unit_cost'] ?? $this->latestPurchaseCost($product))), 2);
+            // Sales use the set selling price unless an admin approved an actual price
+            // for this product, which must stay inside the product's price range.
+            $approvedPrice = $enforceSaleDiscountPolicy ? ($approvedPrices[$product->id] ?? null) : null;
             $unitPrice = round((float) ($enforceSaleDiscountPolicy
-                ? $product->default_selling_price
+                ? ($approvedPrice['unit_price'] ?? $product->default_selling_price)
                 : ($row['unit_price'] ?? $product->default_selling_price)), 2);
+
+            if ($approvedPrice) {
+                ['minimum' => $rangeMinimum, 'maximum' => $rangeMaximum] = $this->discountPolicy->priceRange($product);
+
+                if ($unitPrice < $rangeMinimum - 0.009 || $unitPrice > $rangeMaximum + 0.009) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.unit_price" => ["The price for {$product->product_name} must be between "
+                            .number_format($rangeMinimum, 2).' and '.number_format($rangeMaximum, 2).'.'],
+                    ]);
+                }
+            }
+
             $lineUnitAmount = $priceBasis === 'cost' ? $unitCost : $unitPrice;
             $lineSubtotal = round($quantity * $lineUnitAmount, 2);
             $lineDiscount = round((float) ($row['discount_amount'] ?? 0), 2);
@@ -458,6 +506,7 @@ class InventoryDocumentService
             $prepared[] = [
                 'row' => $row,
                 'product' => $product,
+                'approved_price' => $approvedPrice,
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
                 'unit_price' => $unitPrice,
@@ -499,7 +548,10 @@ class InventoryDocumentService
             $totalLineDiscount = round($line['item_discount'] + $invoiceDiscountShare, 2);
 
             if ($enforceSaleDiscountPolicy) {
-                $minimumUnitPrice = $this->discountPolicy->minimumAuthorizedUnitPrice($line['product']);
+                // An admin-set price may go down to the product minimum; otherwise the discount policy floor applies.
+                $minimumUnitPrice = $line['approved_price']
+                    ? $this->discountPolicy->priceRange($line['product'])['minimum']
+                    : $this->discountPolicy->minimumAuthorizedUnitPrice($line['product']);
                 $maximumLineDiscount = round(
                     ($line['unit_price'] - $minimumUnitPrice) * $line['quantity'],
                     2
@@ -521,10 +573,12 @@ class InventoryDocumentService
             }
 
             $lineTaxBase = max(0, round($line['line_subtotal'] - $totalLineDiscount, 2));
-            $taxProfile = $this->resolveTaxProfile(
-                $enforceSaleDiscountPolicy ? null : ($line['row']['tax_profile_id'] ?? null),
-                $line['product']
-            );
+            $taxProfile = $applyTax
+                ? $this->resolveTaxProfile(
+                    $enforceSaleDiscountPolicy ? null : ($line['row']['tax_profile_id'] ?? null),
+                    $line['product']
+                )
+                : null;
             $tax = $this->calculateTax($lineTaxBase, $taxProfile);
             $lineProfit = $profitMultiplier === 0
                 ? 0
@@ -540,7 +594,11 @@ class InventoryDocumentService
                 'tax_amount' => $tax['tax_amount'],
                 'line_total' => $tax['line_total'],
                 'profit_amount' => $lineProfit,
-                'notes' => $line['row']['notes'] ?? null,
+                'notes' => $line['approved_price']
+                    ? trim('Set price '.number_format((float) $line['product']->default_selling_price, 2)
+                        .', sold at '.number_format($line['unit_price'], 2)
+                        .", approved by {$line['approved_price']['approved_by']->name}. ".($line['row']['notes'] ?? ''))
+                    : ($line['row']['notes'] ?? null),
             ])->load('product');
 
             $taxableAmount += $tax['taxable_amount'];

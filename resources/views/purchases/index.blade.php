@@ -13,7 +13,7 @@
 
 @section('header_actions')
     @if (auth()->user()?->hasPermission('purchases.create'))
-        <a class="btn" href="{{ route('web.purchases.create') }}">New purchase</a>
+        <a class="btn" href="{{ route('web.purchases.create') }}">Add new purchase</a>
     @endif
 @endsection
 

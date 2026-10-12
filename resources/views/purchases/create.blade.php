@@ -175,7 +175,7 @@
                         <select class="form-control" id="payment_account_id" name="payment_account_id">
                             <option value="">No payment account</option>
                             @foreach ($paymentAccounts as $account)
-                                <option value="{{ $account['id'] }}" @selected((string) old('payment_account_id') === (string) $account['id'])>
+                                <option value="{{ $account['id'] }}" @selected((string) old('payment_account_id', $defaultPaymentAccountId ?? '') === (string) $account['id'])>
                                     {{ $account['label'] }}
                                 </option>
                             @endforeach

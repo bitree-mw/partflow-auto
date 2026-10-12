@@ -187,6 +187,72 @@
         border-radius: 18px;
     }
 
+    /* Minimum and maximum selling price on one line. */
+    .catalog-form .catalog-price-range {
+        grid-column: 1 / -1;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .catalog-price-range legend {
+        margin-bottom: 8px;
+        padding: 0;
+        font-weight: 600;
+    }
+
+    .catalog-price-range-inputs {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: end;
+        gap: 12px;
+    }
+
+    .catalog-price-range-inputs > div {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .catalog-price-range-inputs label {
+        font-size: 12px;
+    }
+
+    .catalog-price-range-to {
+        padding-bottom: 11px;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .catalog-sides-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fafbfc;
+        cursor: pointer;
+    }
+
+    .catalog-sides-option input {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        flex: none;
+    }
+
+    .catalog-sides-option span {
+        display: grid;
+        gap: 4px;
+    }
+
+    .catalog-sides-option small {
+        color: #6b7280;
+        font-size: 12px;
+    }
+
     .catalog-form .catalog-low-stock-field,
     .catalog-form .catalog-pack-size-field {
         align-self: start;
@@ -537,8 +603,80 @@
         grid-column: 1 / -1;
     }
 
+
+    /* Parts sheet import */
+    .import-errors {
+        display: grid;
+        gap: 8px;
+        padding: 14px 16px;
+        border: 1px solid #fecaca;
+        border-radius: 14px;
+        background: #fef2f2;
+        color: #991b1b;
+        font-size: 14px;
+    }
+
+    .import-errors ul {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+        padding-left: 18px;
+        max-height: 260px;
+        overflow-y: auto;
+    }
+
+    .import-file-field {
+        grid-column: 1 / -1;
+    }
+
+    .catalogue-summary.import-summary {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .import-preview-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 24px;
+    }
+
+    .import-preview-meta span {
+        display: grid;
+        gap: 2px;
+    }
+
+    .import-preview-meta small {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .import-preview-table .numeric {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .import-preview-table tfoot th {
+        padding-top: 14px;
+        border-top: 2px solid #d1d5db;
+    }
+
+    .import-new-type {
+        display: block;
+        color: #b45309;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .import-preview-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
     @media (max-width: 900px) {
         .catalog-reference-grid,
+        .catalogue-summary.import-summary,
         .catalogue-summary,
         .site-workflows,
         .site-document-line,
@@ -548,6 +686,16 @@
         .compatibility-variant-row,
         .fuel-type-panel {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .catalog-price-range-inputs {
+            grid-template-columns: 1fr;
+        }
+
+        .catalog-price-range-to {
+            display: none;
         }
     }
 

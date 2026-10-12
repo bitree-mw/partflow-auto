@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\ApprovePosPriceRequest;
 use App\Http\Requests\Web\PosLookupRequest;
 use App\Http\Requests\Web\StorePosSaleRequest;
 use App\Models\Product;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Services\DiscountPolicyService;
 use App\Services\InventoryDocumentService;
 use App\Services\PackageService;
+use App\Services\PosPricingService;
 use App\Services\SiteAccessService;
 use App\Services\SystemConfigurationService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -19,7 +21,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,8 @@ class PosController extends Controller
         private readonly SiteAccessService $siteAccessService,
         private readonly DiscountPolicyService $discountPolicy,
         private readonly PackageService $packages,
-        private readonly SystemConfigurationService $systemConfiguration
+        private readonly SystemConfigurationService $systemConfiguration,
+        private readonly PosPricingService $pricing
     ) {}
 
     public function index(Request $request): View
@@ -76,7 +78,11 @@ class PosController extends Controller
                 'site' => route('web.pos.site'),
                 'canChangeSiteDirectly' => $this->isAdmin($request->user()),
                 'maximumDiscountPercentage' => $this->discountPolicy->maximumDiscountPercentage(),
+                'priceApproval' => route('web.pos.price-approval'),
+                'canSetPrice' => $this->isAdmin($request->user()),
+                'discountMode' => $this->systemConfiguration->discountMode(),
             ],
+            'discountMode' => $this->systemConfiguration->discountMode(),
         ]);
     }
 
@@ -168,6 +174,27 @@ class PosController extends Controller
         ]);
     }
 
+    /**
+     * An admin approves an actual selling price on a cashier's till. The signed approval
+     * goes back with the cart and is checked again when the sale is completed.
+     */
+    public function approvePrice(ApprovePosPriceRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $approval = $this->pricing->approvePrice(
+            Product::query()->findOrFail($validated['product_id']),
+            (float) $validated['unit_price'],
+            $request->user(),
+            $validated['admin_password']
+        );
+
+        return response()->json([
+            'message' => "Price approved by {$approval['approved_by']}.",
+            ...$approval,
+        ]);
+    }
+
     public function store(StorePosSaleRequest $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
@@ -194,6 +221,9 @@ class PosController extends Controller
                         ->whereNull('deleted_at')),
                 ],
                 'items.*.quantity' => ['required', 'integer', 'min:1', 'max:10000'],
+                'items.*.actual_price' => ['nullable', 'numeric', 'min:0'],
+                'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+                'items.*.price_approval' => ['nullable', 'string', 'max:2000'],
             ],
             [
                 'items.required' => 'Add at least one product before completing the sale.',
@@ -209,19 +239,13 @@ class PosController extends Controller
             ]
         )->validate();
 
-        $products = Product::query()
-            ->whereIn('id', collect($cartData['items'])->pluck('product_id'))
-            ->get(['id', 'default_selling_price', 'minimum_selling_price'])
-            ->keyBy('id');
-
-        $items = collect($cartData['items'])
-            ->map(fn (array $item): array => [
-                'product_id' => (int) $item['product_id'],
-                'quantity' => (int) $item['quantity'],
-                'unit_price' => (float) $products->get((int) $item['product_id'])->default_selling_price,
-                'discount_amount' => 0,
-            ])
-            ->all();
+        // Actual prices, admin approvals and per-item discounts are checked by the pricing service.
+        $lines = $this->pricing->saleLines(
+            $cartData['items'],
+            (float) ($validated['discount_amount'] ?? 0),
+            $request->user()
+        );
+        $items = $lines['items'];
 
         $documentDate = filled($validated['document_date'] ?? null) ? $validated['document_date'] : now();
 
@@ -249,7 +273,7 @@ class PosController extends Controller
         }
 
         try {
-            $sale = $this->inventoryDocumentService->createSale($payload, $request->user());
+            $sale = $this->inventoryDocumentService->createSale($payload, $request->user(), $lines['approved_prices']);
         } catch (ValidationException|AuthorizationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
@@ -538,31 +562,12 @@ class PosController extends Controller
 
     private function isAdmin(?User $user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        $user->loadMissing('role');
-        $permissions = $user->role?->permissions ?? [];
-
-        return in_array('*', $permissions, true)
-            || str($user->role?->name ?? '')->lower()->contains('admin');
+        return $this->pricing->isAdmin($user);
     }
 
     private function validAdminPassword(string $password): bool
     {
-        if ($password === '') {
-            return false;
-        }
-
-        return User::query()
-            ->active()
-            ->whereHas('role', function ($query): void {
-                $query->whereJsonContains('permissions', '*')
-                    ->orWhere('name', 'like', '%Admin%');
-            })
-            ->get()
-            ->contains(fn (User $user): bool => Hash::check($password, $user->password));
+        return $this->pricing->adminForPassword($password) !== null;
     }
 
     private function apiCall(Request $request, string $method, string $endpoint, array $payload = []): array

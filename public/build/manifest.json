@@ -44,7 +44,7 @@
     ]
   },
   "resources/css/catalog.css": {
-    "file": "assets/catalog-CigzyRJ0.css",
+    "file": "assets/catalog-B_GYUmXC.css",
     "src": "resources/css/catalog.css",
     "isEntry": true,
     "name": "catalog",
@@ -80,7 +80,7 @@
     ]
   },
   "resources/css/pos.css": {
-    "file": "assets/pos-DRl82n_R.css",
+    "file": "assets/pos-CkM75UWN.css",
     "src": "resources/css/pos.css",
     "isEntry": true,
     "name": "pos",
@@ -89,7 +89,7 @@
     ]
   },
   "resources/css/purchases.css": {
-    "file": "assets/purchases-CMfQ9zVZ.css",
+    "file": "assets/purchases-D7U2Ntp4.css",
     "src": "resources/css/purchases.css",
     "isEntry": true,
     "name": "purchases",
@@ -134,7 +134,7 @@
     ]
   },
   "resources/css/theme.css": {
-    "file": "assets/theme-B8EFKGvd.css",
+    "file": "assets/theme-Db6X8m4g.css",
     "src": "resources/css/theme.css",
     "isEntry": true,
     "name": "theme",
@@ -152,7 +152,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-C-ugPzcb.js",
+    "file": "assets/app-DdmsQTwi.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -170,7 +170,7 @@
     ]
   },
   "resources/js/catalog.js": {
-    "file": "assets/catalog-CORrc5Ut.js",
+    "file": "assets/catalog-vWbdABN_.js",
     "name": "catalog",
     "src": "resources/js/catalog.js",
     "isEntry": true,
@@ -203,7 +203,7 @@
     ]
   },
   "resources/js/pos.js": {
-    "file": "assets/pos-oCfqqq4W.js",
+    "file": "assets/pos-ZEkFaodR.js",
     "name": "pos",
     "src": "resources/js/pos.js",
     "isEntry": true
