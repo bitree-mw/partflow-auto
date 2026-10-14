@@ -29,6 +29,7 @@ class AuditLogService
         'site' => 'Sites',
         'settings' => 'Business settings',
         'package' => 'Package and support',
+        'data' => 'Data cleanup',
     ];
 
     private const SECRET_KEYS = ['password', 'password_confirmation', 'remember_token', 'token', 'secret'];

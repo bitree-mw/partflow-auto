@@ -48,6 +48,13 @@
         .suadmin-package-head .suadmin-package-name { font-weight: 700; font-size: 1rem; }
         .suadmin-package-head .status-pill { margin-left: auto; }
         .suadmin-package-price { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-top: 8px; }
+        .suadmin-cleanup-form { display: grid; gap: 16px; }
+        .suadmin-cleanup-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .suadmin-cleanup-group { margin: 0; padding: 12px 16px 16px; border: 1px solid #e3e8ef; border-radius: 12px; display: grid; gap: 10px; align-content: start; }
+        .suadmin-cleanup-group legend { padding: 0 6px; font-weight: 700; }
+        .suadmin-cleanup-option { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+        .suadmin-cleanup-option input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--pf-orange-500); flex-shrink: 0; }
+        .suadmin-cleanup-option small { display: block; margin-top: 2px; }
         .suadmin-package-option ul { margin: 10px 0 0; padding: 12px 0 0 18px; border-top: 1px solid #eef1f5; display: grid; gap: 6px; font-size: .875rem; color: #3d4757; }
     </style>
 </head>
@@ -64,6 +71,7 @@
             <a href="{{ route('suadmin.email.edit') }}" @if (request()->routeIs('suadmin.email.*')) aria-current="page" @endif>Email</a>
             <a href="{{ route('suadmin.package.edit') }}" @if (request()->routeIs('suadmin.package.*')) aria-current="page" @endif>Package</a>
             <a href="{{ route('suadmin.audit-logs.index') }}" @if (request()->routeIs('suadmin.audit-logs.*')) aria-current="page" @endif>Audit log</a>
+            <a href="{{ route('suadmin.data-cleanup.index') }}" @if (request()->routeIs('suadmin.data-cleanup.*')) aria-current="page" @endif>Data cleanup</a>
         </nav>
         <form method="POST" action="{{ route('suadmin.logout') }}">
             @csrf

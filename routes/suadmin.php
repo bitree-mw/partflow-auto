@@ -3,6 +3,7 @@
 use App\Http\Controllers\SuperAdmin\AuditLogController;
 use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
+use App\Http\Controllers\SuperAdmin\DataCleanupController;
 use App\Http\Controllers\SuperAdmin\EmailController;
 use App\Http\Controllers\SuperAdmin\PackageController;
 use App\Http\Controllers\SuperAdmin\SiteController;
@@ -34,6 +35,10 @@ Route::prefix('suadmin')->name('suadmin.')->group(function () {
         Route::patch('users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
 
         Route::get('audit-logs', AuditLogController::class)->name('audit-logs.index');
+
+        Route::get('data-cleanup', [DataCleanupController::class, 'index'])->name('data-cleanup.index');
+        Route::post('data-cleanup/preview', [DataCleanupController::class, 'preview'])->name('data-cleanup.preview');
+        Route::delete('data-cleanup', [DataCleanupController::class, 'destroy'])->middleware('throttle:5,1')->name('data-cleanup.destroy');
 
         Route::get('email', [EmailController::class, 'edit'])->name('email.edit');
         Route::post('email/test', [EmailController::class, 'sendTest'])->middleware('throttle:6,1')->name('email.test');

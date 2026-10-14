@@ -29,14 +29,7 @@ class SuperAdminAuthService
             return false;
         }
 
-        try {
-            $valid = Hash::check($password, (string) config('suadmin.password_hash'));
-        } catch (Throwable) {
-            // A malformed hash in .env must fail closed.
-            $valid = false;
-        }
-
-        if (! $valid) {
+        if (! $this->passwordMatches($password)) {
             $this->auditLog->record('suadmin.login.failed', 'Failed super admin sign-in attempt.');
 
             return false;
@@ -50,6 +43,23 @@ class SuperAdminAuthService
         $this->auditLog->record('suadmin.login.succeeded', 'Super admin signed in.');
 
         return true;
+    }
+
+    /**
+     * Re-checks the password for destructive console actions without touching the session.
+     */
+    public function passwordMatches(string $password): bool
+    {
+        if (! $this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            return Hash::check($password, (string) config('suadmin.password_hash'));
+        } catch (Throwable) {
+            // A malformed hash in .env must fail closed.
+            return false;
+        }
     }
 
     /**
