@@ -125,6 +125,9 @@ Route::prefix('back-office')
                     Route::post('confirm', 'store')->name('store');
                     Route::post('cancel', 'cancel')->name('cancel');
                     Route::get('{token}', 'show')->whereUuid('token')->name('show');
+                    Route::post('{token}/duplicates', 'removeDuplicates')->whereUuid('token')->name('duplicates');
+                    Route::post('{token}/types', 'mapTypes')->whereUuid('token')->name('types');
+                    Route::post('{token}/rows/remove', 'removeRows')->whereUuid('token')->name('rows.remove');
                 });
 
             Route::get('products/create', 'createProduct')->middleware('permission:catalogue.manage')->name('products.create');

@@ -629,6 +629,626 @@
         grid-column: 1 / -1;
     }
 
+    .import-file-picker {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        padding: 12px;
+        border: 1px dashed #c4ccd8;
+        border-radius: 14px;
+        background: #f9fafb;
+    }
+
+    .import-file-button,
+    .import-template-button {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .import-template-button {
+        margin-left: auto;
+    }
+
+    .import-template-button svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .import-file-button svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .import-file-field input[type="file"]:focus-visible + .import-file-picker .import-file-button {
+        box-shadow: var(--pf-focus);
+    }
+
+    .import-file-name {
+        min-width: 0;
+        overflow: hidden;
+        color: #4b5563;
+        font-size: 13px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .import-file-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #f9fafb;
+        color: #374151;
+        font-size: 13px;
+    }
+
+    .import-file-check[hidden] {
+        display: none;
+    }
+
+    .import-file-check ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+    }
+
+    .import-file-check ul:empty {
+        display: none;
+    }
+
+    .import-file-check[data-state="ok"] {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .import-file-check[data-state="error"] {
+        border-color: #fecaca;
+        background: #fef2f2;
+        color: #991b1b;
+    }
+
+    .import-file-check-icon {
+        display: inline-grid;
+        flex: 0 0 auto;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .import-file-check[data-state="checking"] .import-file-check-icon {
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        animation: pf-spin 700ms linear infinite;
+    }
+
+    .import-file-check[data-state="ok"] .import-file-check-icon {
+        background: #16a34a;
+    }
+
+    .import-file-check[data-state="ok"] .import-file-check-icon::before {
+        content: '\2713';
+    }
+
+    .import-file-check[data-state="error"] .import-file-check-icon {
+        background: #dc2626;
+    }
+
+    .import-file-check[data-state="error"] .import-file-check-icon::before {
+        content: '!';
+    }
+
+    .import-file-check[data-state="warning"] {
+        border-color: #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+    }
+
+    .import-file-check[data-state="warning"] .import-file-check-icon {
+        background: #d97706;
+    }
+
+    .import-file-check[data-state="warning"] .import-file-check-icon::before {
+        content: '!';
+    }
+
+    .import-warning {
+        display: grid;
+        gap: 4px;
+        padding: 14px 16px;
+        border: 1px solid #fde68a;
+        border-radius: 14px;
+        background: #fffbeb;
+        color: #92400e;
+        font-size: 14px;
+    }
+
+    .import-warning p {
+        margin: 0;
+    }
+
+    .import-duplicates-dialog {
+        width: min(760px, calc(100vw - 32px));
+        max-height: calc(100vh - 48px);
+        padding: 0;
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 24px 60px rgb(17 24 39 / 25%);
+    }
+
+    .import-duplicates-dialog::backdrop {
+        background: rgb(17 24 39 / 45%);
+        backdrop-filter: blur(2px);
+    }
+
+    .import-duplicates-card {
+        display: grid;
+        gap: 14px;
+        padding: 22px;
+    }
+
+    .import-duplicates-card > header,
+    .import-duplicates-head,
+    .import-duplicates-actions,
+    .import-duplicates-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .import-duplicates-card h2 {
+        margin: 4px 0 0;
+        font-size: 18px;
+    }
+
+    .import-duplicates-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .import-duplicates-list article {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+    }
+
+    .import-duplicates-head small {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    .import-duplicates-note {
+        margin: 0;
+        color: #92400e;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .import-duplicates-footer {
+        position: sticky;
+        bottom: -22px;
+        margin: 0 -22px -22px;
+        padding: 14px 22px;
+        border-top: 1px solid #e5e7eb;
+        background: #fff;
+        justify-content: flex-end;
+    }
+
+    /* Upload and review pages: keep the header (and its Cancel / Post inventory buttons) in view while scrolling.
+       The body's overflow-x: hidden makes it a scroll container that never scrolls, which stops sticky working;
+       clip still prevents sideways scrolling without creating one. */
+    @media (min-height: 521px) {
+        body:has([data-import-form], [data-import-review]) {
+            overflow-x: clip;
+            overflow-y: visible;
+        }
+
+        body:has([data-import-form], [data-import-review]) .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background: var(--pf-surface, #fff);
+            box-shadow: 0 6px 18px rgb(17 24 39 / 6%);
+        }
+    }
+
+    .import-row-remove {
+        padding: 4px 10px;
+        border: 1px solid #fecaca;
+        border-radius: 999px;
+        background: #fff;
+        color: #b91c1c;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .import-row-remove:hover,
+    .import-row-remove:focus-visible {
+        background: #fef2f2;
+        border-color: #f87171;
+    }
+
+    .import-duplicates-notice {
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        background: #f0fdf4;
+        color: #166534;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .import-header-form {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+
+    /* Header primary buttons get a "+" for "New ..." actions; posting is not one. */
+    .header-actions .btn.import-post-button::before {
+        content: none;
+    }
+
+    .import-post-hint {
+        max-width: 220px;
+        line-height: 1.3;
+        color: #92400e;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .import-post-hint[hidden] {
+        display: none;
+    }
+
+    .import-new-types-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 6px;
+    }
+
+    .import-new-type-row {
+        display: grid;
+        grid-template-columns: minmax(160px, 0.4fr) minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 10px 12px;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .import-new-type-row small {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    .import-new-type-choice {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .import-new-type-choice input {
+        min-height: 38px;
+    }
+
+    .import-type-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .import-type-chip {
+        padding: 3px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        background: #f9fafb;
+        color: #111827;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .import-type-chip:hover,
+    .import-type-chip:focus-visible {
+        border-color: var(--pf-orange-500);
+    }
+
+    @media (max-width: 640px) {
+        .import-new-type-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .import-bulk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .import-similar-row td {
+        background: #fffbeb;
+    }
+
+    .import-merge-choice {
+        display: grid;
+        gap: 6px;
+        justify-items: start;
+        min-width: 260px;
+    }
+
+    .import-merge-choice select {
+        width: 100%;
+        min-height: 38px;
+        font-size: 12px;
+    }
+
+    .import-merge-choice select:invalid {
+        border-color: #d97706;
+    }
+
+    .import-money article.positive strong {
+        color: #15803d;
+    }
+
+    .import-money article.negative strong {
+        color: #b91c1c;
+    }
+
+    .import-default-flag {
+        display: inline-block;
+        margin-left: 4px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .import-type-summary td strong {
+        color: #111827;
+    }
+
+    .import-share {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 120px;
+    }
+
+    .import-share-bar {
+        flex: 1 1 auto;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e7eb;
+    }
+
+    .import-share-bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--pf-orange-500);
+    }
+
+    .import-share-label {
+        min-width: 36px;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+    }
+
+    .import-progress {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: rgb(17 24 39 / 45%);
+        backdrop-filter: blur(3px);
+        animation: pf-fade-in 160ms ease-out;
+    }
+
+    .import-progress[hidden] {
+        display: none;
+    }
+
+    .import-progress-card {
+        display: grid;
+        gap: 14px;
+        width: min(440px, 100%);
+        padding: 24px;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 24px 60px rgb(17 24 39 / 25%);
+        color: #374151;
+        font-size: 13px;
+    }
+
+    .import-progress-card > strong {
+        color: #111827;
+        font-size: 17px;
+    }
+
+    .import-progress-bar {
+        position: relative;
+        height: 14px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e7eb;
+    }
+
+    .import-progress-bar span {
+        position: relative;
+        display: block;
+        width: 0;
+        height: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+        background: var(--pf-orange-500);
+        transition: width 220ms ease-out;
+    }
+
+    /* Moving sheen so the bar still looks alive while the server works. */
+    .import-progress-bar span::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent);
+        transform: translateX(-100%);
+        animation: import-progress-sheen 1.2s ease-in-out infinite;
+    }
+
+    .import-progress[data-state="done"] .import-progress-bar span {
+        background: #16a34a;
+    }
+
+    .import-progress[data-state="error"] .import-progress-bar span {
+        background: #dc2626;
+    }
+
+    .import-progress:is([data-state="done"], [data-state="error"]) .import-progress-bar span::after {
+        animation: none;
+    }
+
+    .import-progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-weight: 700;
+    }
+
+    .import-progress-meta b {
+        color: #111827;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .import-progress-steps {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .import-progress-steps li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #9ca3af;
+    }
+
+    .import-progress-steps li::before {
+        content: '';
+        display: inline-grid;
+        flex: 0 0 auto;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        box-sizing: border-box;
+        border: 2px solid #d1d5db;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+    .import-progress-steps li[data-state="active"] {
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .import-progress-steps li[data-state="active"]::before {
+        border-color: var(--pf-orange-500);
+        border-right-color: transparent;
+        animation: pf-spin 700ms linear infinite;
+    }
+
+    .import-progress-steps li[data-state="done"] {
+        color: #166534;
+    }
+
+    .import-progress-steps li[data-state="done"]::before {
+        content: '\2713';
+        border-color: #16a34a;
+        color: #fff;
+        background: #16a34a;
+    }
+
+    .import-progress[data-state="error"] .import-progress-steps {
+        display: none;
+    }
+
+    .import-progress-error {
+        display: grid;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        background: #fef2f2;
+        color: #991b1b;
+    }
+
+    .import-progress-error[hidden] {
+        display: none;
+    }
+
+    .import-progress-error ul {
+        display: grid;
+        gap: 4px;
+        max-height: 220px;
+        margin: 0;
+        padding-left: 18px;
+        overflow-y: auto;
+    }
+
+    .import-progress-error button {
+        justify-self: end;
+    }
+
+    .import-progress-note {
+        color: #6b7280;
+    }
+
+    .import-progress-note[hidden] {
+        display: none;
+    }
+
+    @keyframes import-progress-sheen {
+        to { transform: translateX(100%); }
+    }
+
     .catalogue-summary.import-summary {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }

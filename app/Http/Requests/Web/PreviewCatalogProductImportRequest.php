@@ -17,7 +17,7 @@ class PreviewCatalogProductImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'extensions:csv,xlsx,txt', 'max:5120'],
+            'file' => ['required', 'file', 'extensions:csv,xlsx,txt', 'max:'.CatalogProductImportService::MAX_FILE_KB],
             'site_id' => ['required', 'integer', Rule::exists('sites', 'id')->where('is_active', true)],
             'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
             'payment_account_id' => ['required', 'integer', Rule::exists('payment_accounts', 'id')->where('is_active', true)->whereNull('deleted_at')],

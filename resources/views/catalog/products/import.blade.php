@@ -17,7 +17,16 @@
 @endsection
 
 @section('content')
-    <form class="form-panel catalog-form" method="POST" action="{{ route('web.catalog.products.import.preview') }}" enctype="multipart/form-data">
+    <form
+        class="form-panel catalog-form import-form"
+        method="POST"
+        action="{{ route('web.catalog.products.import.preview') }}"
+        enctype="multipart/form-data"
+        data-import-form
+        data-max-rows="{{ $maxRows }}"
+        data-max-bytes="{{ $maxBytes }}"
+        data-default-low-stock="{{ $defaultLowStockLevel }}"
+    >
         @csrf
 
         @if ($errors->has('file'))
@@ -36,9 +45,28 @@
             <div class="form-grid">
                 <div class="form-field import-file-field">
                     <label for="file">CSV or Excel file</label>
-                    <input class="form-control" id="file" name="file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+                    <input class="sr-only" id="file" name="file" type="file" accept=".csv,.xlsx,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required data-import-file>
+                    <div class="import-file-picker">
+                        <label class="btn-secondary import-file-button" for="file">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span data-import-file-button-label>Choose file</span>
+                        </label>
+                        <span class="import-file-name" data-import-file-name>No file chosen</span>
+                        <a class="btn-secondary import-template-button" href="{{ route('web.catalog.products.import.template') }}" download>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Download template
+                        </a>
+                    </div>
+                    <div class="import-file-check" data-import-file-check hidden role="status" aria-live="polite">
+                        <span class="import-file-check-icon" aria-hidden="true"></span>
+                        <div>
+                            <strong data-import-file-check-title></strong>
+                            <ul data-import-file-check-messages></ul>
+                        </div>
+                    </div>
                     <p class="form-help">
-                        Columns: {{ implode(', ', $templateHeaders) }}. All columns are required, up to {{ number_format($maxRows) }} rows.
+                        Columns: {{ implode(', ', $templateHeaders) }}. Up to {{ number_format($maxRows) }} rows.
+                        Warning Number is optional: if the column is missing or a cell is blank, the default of {{ $defaultLowStockLevel }} is used. Every other column is required.
                         Item Name is the product type and Description is the product name. Amounts may include commas, e.g. 12,500.00.
                     </p>
                 </div>
@@ -91,7 +119,12 @@
         </section>
 
         <div class="form-actions">
-            <button class="btn" type="submit">Upload and review</button>
+            <button class="btn" type="submit" data-import-submit>Upload and review</button>
         </div>
+
+        @include('catalog.products.partials.import-progress', [
+            'title' => 'Uploading and reviewing your sheet',
+            'steps' => ['Uploading file', 'Reading the sheet', 'Checking parts and prices', 'Preparing the review'],
+        ])
     </form>
 @endsection

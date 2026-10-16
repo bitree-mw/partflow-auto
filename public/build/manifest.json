@@ -44,7 +44,7 @@
     ]
   },
   "resources/css/catalog.css": {
-    "file": "assets/catalog-B_GYUmXC.css",
+    "file": "assets/catalog-DlLu4CuM.css",
     "src": "resources/css/catalog.css",
     "isEntry": true,
     "name": "catalog",
@@ -125,7 +125,7 @@
     ]
   },
   "resources/css/settings.css": {
-    "file": "assets/settings-BdmdQU27.css",
+    "file": "assets/settings-CbVO4AUg.css",
     "src": "resources/css/settings.css",
     "isEntry": true,
     "name": "settings",
@@ -170,7 +170,7 @@
     ]
   },
   "resources/js/catalog.js": {
-    "file": "assets/catalog-vWbdABN_.js",
+    "file": "assets/catalog-BNH_IeHN.js",
     "name": "catalog",
     "src": "resources/js/catalog.js",
     "isEntry": true,

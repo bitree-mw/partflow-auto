@@ -1,6 +1,14 @@
+import { initImportFileCheck } from './modules/import-file-check';
+import { initImportConfirmProgress } from './modules/import-progress';
+import { initImportDuplicatesDialog, initImportMergeChoices, initImportTypeMapping } from './modules/import-review';
 import { initTableSearch } from './modules/table-search';
 
 initTableSearch();
+initImportFileCheck();
+initImportConfirmProgress();
+initImportMergeChoices();
+initImportDuplicatesDialog();
+initImportTypeMapping();
 
 const carModelPickers = new WeakSet();
 const productTypePickers = new WeakSet();

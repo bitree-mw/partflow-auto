@@ -417,12 +417,12 @@
                                 <strong>{{ $account->account_name }}</strong>
                                 <span>{{ $accountTypes[$account->account_type] ?? $account->account_type }} - {{ $account->account_holder_name ?: 'No holder recorded' }}</span>
                             </div>
-                            <em>
-                                {{ $account->is_active ? 'Active' : 'Inactive' }}
+                            <div class="settings-row-badges">
+                                <em>{{ $account->is_active ? 'Active' : 'Inactive' }}</em>
                                 @if ((int) $account->id === (int) ($settings['default_pos_payment_account_id'] ?? 0))
                                     <span class="status-pill success">Default</span>
                                 @endif
-                            </em>
+                            </div>
                             <div class="settings-row-actions">
                                 <a class="btn-secondary" href="{{ route('web.payment-accounts.show', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}">View</a>
                                 <a class="icon-action icon-edit" href="{{ route('web.payment-accounts.edit', [$account, 'return_to' => route('web.settings.index').'#payment-accounts']) }}" title="Edit payment account" aria-label="Edit payment account">

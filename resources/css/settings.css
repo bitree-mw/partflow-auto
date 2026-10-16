@@ -314,8 +314,22 @@
         display: none;
     }
 
-    .site-list article > em {
+    .site-list article > em,
+    .site-list article > .settings-row-badges {
         justify-self: start;
+    }
+
+    .site-list .settings-row-badges {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+
+    /* Undo the generic .site-list span sub-label styling for badges. */
+    .site-list .settings-row-badges .status-pill {
+        display: inline-flex;
+        margin-top: 0;
     }
 
     .site-list article > .settings-row-actions {
