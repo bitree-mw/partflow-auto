@@ -44,7 +44,7 @@
     ]
   },
   "resources/css/catalog.css": {
-    "file": "assets/catalog-DlLu4CuM.css",
+    "file": "assets/catalog-CX3VJ6dC.css",
     "src": "resources/css/catalog.css",
     "isEntry": true,
     "name": "catalog",
@@ -80,7 +80,7 @@
     ]
   },
   "resources/css/pos.css": {
-    "file": "assets/pos-p6i0SYWO.css",
+    "file": "assets/pos-CpOtkTy-.css",
     "src": "resources/css/pos.css",
     "isEntry": true,
     "name": "pos",
@@ -170,7 +170,7 @@
     ]
   },
   "resources/js/catalog.js": {
-    "file": "assets/catalog-BtE2Ai4B.js",
+    "file": "assets/catalog-DZei8uEG.js",
     "name": "catalog",
     "src": "resources/js/catalog.js",
     "isEntry": true,
@@ -203,7 +203,7 @@
     ]
   },
   "resources/js/pos.js": {
-    "file": "assets/pos-CAffKEwW.js",
+    "file": "assets/pos-epFXIqix.js",
     "name": "pos",
     "src": "resources/js/pos.js",
     "isEntry": true

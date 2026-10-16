@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\SiteStock;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -91,14 +92,7 @@ class PosProductSearchService
                 $search = $filters['search'];
 
                 $query->whereHas('product', function ($query) use ($search) {
-                    $query->where('product_code', 'like', "%{$search}%")
-                        ->orWhere('product_name', 'like', "%{$search}%")
-                        ->orWhere('pos_description', 'like', "%{$search}%")
-                        ->orWhere('part_country_of_origin', 'like', "%{$search}%")
-                        ->orWhereHas('references', function ($query) use ($search) {
-                            $query->where('reference_value', 'like', "%{$search}%");
-                        })
-                        ->when($this->fitmentSearchEnabled(), fn ($query) => $this->orWhereVehicleMatches($query, $search));
+                    $this->productSearchWhere($query, $search);
                 });
             })
             ->whereHas('product', function ($query) {
@@ -135,6 +129,27 @@ class PosProductSearchService
         });
     }
 
+    private function productSearchWhere(Builder $query, string $search): void
+    {
+        $fitmentSearch = $this->fitmentSearchEnabled();
+        foreach (preg_split('/\s+/u', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $term) {
+            // Every word must match, but words can be spread across the description and type.
+            $query->where(function (Builder $query) use ($term, $fitmentSearch): void {
+                $query->where('products.product_code', 'like', "%{$term}%")
+                    ->orWhere('products.product_name', 'like', "%{$term}%")
+                    ->orWhere('products.description', 'like', "%{$term}%")
+                    ->orWhere('products.pos_description', 'like', "%{$term}%")
+                    ->orWhere('products.part_country_of_origin', 'like', "%{$term}%")
+                    ->orWhereHas('productType', function (Builder $query) use ($term): void {
+                        $query->where('name', 'like', "%{$term}%")
+                            ->orWhere('code', 'like', "%{$term}%");
+                    })
+                    ->orWhereHas('references', fn (Builder $query) => $query->where('reference_value', 'like', "%{$term}%"))
+                    ->when($fitmentSearch, fn (Builder $query) => $this->orWhereVehicleMatches($query, $term));
+            });
+        }
+    }
+
     public function suggestions(array $filters = [], ?User $user = null): array
     {
         if ($user) {
@@ -169,13 +184,7 @@ class PosProductSearchService
                 $query->whereIn('inventory_documents.source_site_id', $filters['site_ids']);
             })
             ->where(function ($query) use ($search) {
-                $query->where('products.product_code', 'like', "%{$search}%")
-                    ->orWhere('products.product_name', 'like', "%{$search}%")
-                    ->orWhere('products.pos_description', 'like', "%{$search}%")
-                    ->orWhereHas('references', function ($query) use ($search) {
-                        $query->where('reference_value', 'like', "%{$search}%");
-                    })
-                    ->when($this->fitmentSearchEnabled(), fn ($query) => $this->orWhereVehicleMatches($query, $search));
+                $this->productSearchWhere($query, $search);
             })
             ->groupBy('products.id', 'products.product_code', 'products.product_name', 'products.brand_id', 'products.product_type_id')
             ->orderByDesc('sold_quantity')

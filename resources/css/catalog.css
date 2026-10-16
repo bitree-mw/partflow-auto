@@ -1276,6 +1276,20 @@
         font-variant-numeric: tabular-nums;
     }
 
+    .import-preview-table .import-price-details-row td {
+        padding-top: 8px;
+        padding-bottom: 12px;
+        white-space: normal;
+    }
+
+    .import-price-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 24px;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
     .import-preview-table tfoot th {
         padding-top: 14px;
         border-top: 2px solid #d1d5db;

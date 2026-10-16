@@ -104,7 +104,11 @@ Components should focus on presentation. They must not calculate authoritative p
 
 ## Point-of-sale experience
 
+POS product cards and cart items show the part type in bold to the right of the part description/name, with long text wrapping within its column. The desktop product grid adds columns as space permits, using a 260px minimum card width. The main search and sales-based suggestions match part type names and codes as well as the existing search fields, while retaining site access and selected-branch filtering.
+
 The POS should allow staff to:
+
+POS text search and suggestions match every entered word across names, descriptions, part types/codes, references, and enabled vehicle fitment fields. Word order does not matter: `axela head lamp left` matches an `Axela` part with type `Head Lamp Left`. The existing branch and active-product restrictions still apply.
 
 1. Search by part code, name, brand, category, or vehicle compatibility.
 2. See current-site availability before adding an item.
@@ -127,7 +131,8 @@ The POS workspace is intentionally desktop-only. Viewports below 1200 pixels sho
 - Whitelist allowed sort fields and directions.
 - Provide useful empty states rather than blank tables.
 - Common filters include site, status, date range, supplier, customer, category, and low-stock state.
-- Product catalogue filters apply automatically after a short search-input delay or immediately when a dropdown value changes.
+- Product catalogue search updates the results in place after a 200 ms typing pause; dropdown filters apply immediately. The search controls, focus, and scroll position remain in place. Pagination and sorting also update results without a page reload; failed requests keep the previous results and show a retry message. Search matches all entered words across part names, descriptions, codes, references, and part type names/codes.
+- The catalogue price range displays the current stored buying price (`default_purchase_price`) underneath it.
 - Avoid loading complete part, customer, sale, or movement tables into the browser.
 
 ## Tailwind CSS rules

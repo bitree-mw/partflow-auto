@@ -16,6 +16,34 @@ class CatalogueMultiSiteStockTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_catalogue_search_combines_type_and_description_and_shows_current_buying_price(): void
+    {
+        $role = Role::create(['name' => 'Catalogue Search Admin', 'permissions' => ['*'], 'is_active' => true]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $type = ProductType::create(['name' => 'Tail Lamp Left', 'code' => 'TLL', 'is_active' => true]);
+        $product = Product::create([
+            'product_code' => 'PART-001', 'product_name' => 'Suzuki Alto', 'product_type_id' => $type->id,
+            'description' => 'Replacement rear assembly', 'default_purchase_price' => 12345,
+            'minimum_selling_price' => 18000, 'default_selling_price' => 20000, 'is_active' => true,
+        ]);
+        Product::create([
+            'product_code' => 'PART-002', 'product_name' => 'Toyota Vitz', 'product_type_id' => $type->id,
+            'description' => 'Different assembly', 'is_active' => true,
+        ]);
+        $this->actingAs($user);
+        foreach (['TLL Suzuki', 'tail lamp Alto', 'rear assembly', 'Suzuki replacement'] as $search) {
+            $this->get(route('web.catalog.products.index', ['search' => $search]))
+                ->assertOk()->assertViewHas('products', fn ($rows) => $rows->count() === 1 && $rows->first()['id'] === $product->id)
+                ->assertSee('Buying price:')->assertSee('12,345')
+                ->assertSee('data-catalogue-results', false);
+        }
+        $this->get(route('web.catalog.products.index', ['search' => 'TLL radiator']))
+            ->assertOk()->assertSee('No parts found.');
+        $product->update(['default_purchase_price' => 14000]);
+        $this->get(route('web.catalog.products.index', ['search' => 'Suzuki']))
+            ->assertOk()->assertSee('14,000')->assertDontSee('12,345');
+    }
+
     public function test_catalogue_site_filter_keeps_both_pills_for_shared_products_and_limits_rows_to_the_selected_site(): void
     {
         $role = Role::query()->create([

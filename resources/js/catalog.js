@@ -488,17 +488,85 @@ initProductTypePickers();
 
 document.querySelectorAll('[data-live-product-filters]').forEach((form) => {
     const searchInput = form.querySelector('input[name="search"]');
+    const panel = form.closest('[data-catalogue-panel]');
+    const results = panel?.querySelector('[data-catalogue-results]');
+    const status = panel?.querySelector('[data-catalogue-search-status]');
+    if (!results || !status) return;
     let submitTimer = null;
+    let request = null;
+    let version = 0;
+
+    async function loadResults(url) {
+        const currentVersion = ++version;
+        request?.abort();
+        request = new AbortController();
+        results.setAttribute('aria-busy', 'true');
+        status.textContent = 'Searching…';
+        try {
+            const response = await fetch(url, {
+                signal: request.signal,
+                headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok || response.redirected) throw new Error('Search failed');
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const updated = page.querySelector('[data-catalogue-results]');
+            if (!updated) throw new Error('Missing results');
+            if (currentVersion !== version) return;
+            results.replaceChildren(...updated.childNodes);
+            const sizes = page.querySelector('[data-live-product-filters] .page-size-controls');
+            if (sizes) form.querySelector('.page-size-controls')?.replaceWith(sizes);
+            form.querySelector('[name="per_page"]').value = url.searchParams.get('per_page') || '10';
+            window.history.replaceState(null, '', url);
+            status.textContent = 'Results updated.';
+        } catch (error) {
+            if (error.name !== 'AbortError' && currentVersion === version) {
+                status.textContent = 'Could not update results. Check your connection and press Filter to retry.';
+            }
+        } finally {
+            if (currentVersion === version) results.removeAttribute('aria-busy');
+        }
+    }
+
+    function filterUrl() {
+        const url = new URL(form.action, window.location.origin);
+        new FormData(form).forEach((value, key) => {
+            if (value !== '') url.searchParams.set(key, value);
+        });
+        for (const key of ['sort', 'direction']) {
+            const value = new URL(window.location.href).searchParams.get(key);
+            if (value) url.searchParams.set(key, value);
+        }
+        return url;
+    }
 
     function submitFilters(delay = 0) {
         window.clearTimeout(submitTimer);
-        submitTimer = window.setTimeout(() => form.requestSubmit(), delay);
+        request?.abort();
+        version++;
+        submitTimer = window.setTimeout(() => loadResults(filterUrl()), delay);
     }
 
-    searchInput?.addEventListener('input', () => submitFilters(350));
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        submitFilters();
+    });
+    searchInput?.addEventListener('input', () => submitFilters(200));
 
     form.querySelectorAll('select, input[type="hidden"][name="product_type_id"]').forEach((control) => {
         control.addEventListener('change', () => submitFilters());
+    });
+    panel.addEventListener('click', (event) => {
+        const link = event.target.closest('.pagination-wrap a, th a, .page-size-controls a');
+        if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        event.preventDefault();
+        window.clearTimeout(submitTimer);
+        const url = filterUrl();
+        const target = new URL(link.href);
+        for (const key of ['page', 'per_page', 'sort', 'direction']) {
+            if (target.searchParams.has(key)) url.searchParams.set(key, target.searchParams.get(key));
+        }
+        if (link.closest('.page-size-controls')) url.searchParams.delete('page');
+        loadResults(url);
     });
 });
 

@@ -22,7 +22,7 @@
             <div class="pos-toolbar">
                 <label class="pos-search-field" for="part-search">
                     <span aria-hidden="true"></span>
-                    <input id="part-search" type="search" value="" placeholder="{{ $fitmentSearch ? 'Search product, code, barcode, vehicle, or OEM' : 'Search product, code, barcode, or OEM' }}" autocomplete="off" aria-label="{{ $fitmentSearch ? 'Search by product, code, barcode, vehicle, or OEM' : 'Search by product, code, barcode, or OEM' }}">
+                    <input id="part-search" type="search" value="" placeholder="{{ $fitmentSearch ? 'Search part, type, code, barcode, vehicle, or OEM' : 'Search part, type, code, barcode, or OEM' }}" autocomplete="off" aria-label="{{ $fitmentSearch ? 'Search by part, part type, code, barcode, vehicle, or OEM' : 'Search by part, part type, code, barcode, or OEM' }}">
                 </label>
 
                 {{-- Kept in the DOM but hidden without vehicle fitment search: pos.js expects these elements. --}}
@@ -55,9 +55,11 @@
                     <article class="part-card" data-product-index="{{ $index }}">
                         <div class="part-card-top">
                             <div class="part-card-heading">
-                                <span class="product-type">{{ $product['product_type'] }}</span>
                                 <span class="part-brand">{{ $product['brand'] }}</span>
-                                <strong class="part-name">{{ $product['product_name'] }}</strong>
+                                <div class="part-description-line">
+                                    <strong class="part-name">{{ $product['product_name'] }}</strong>
+                                    <strong class="product-type">{{ $product['product_type'] }}</strong>
+                                </div>
                                 <span class="part-code">({{ $product['product_code'] }})</span>
                             </div>
                             <button class="part-add-button" type="button" data-card-add="{{ $index }}" aria-label="Add {{ $product['product_name'] }} to cart">+</button>

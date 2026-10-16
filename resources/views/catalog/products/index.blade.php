@@ -78,11 +78,11 @@
         </div>
     </section>
 
-    <section class="data-panel">
+    <section class="data-panel" id="catalogue-search" data-catalogue-panel>
         <div class="panel-toolbar">
             <form class="filter-form" method="GET" action="{{ route('web.catalog.products.index') }}" data-live-product-filters>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search products..." aria-label="Search sellable products">
+                <input name="search" type="search" value="{{ $filters['search'] ?? '' }}" placeholder="Search part, type, description or code..." aria-label="Search parts by name, type, description or code">
 
                 <div class="async-picker filter-async-picker" data-product-type-picker data-empty-label="All product types" data-endpoint="{{ route('web.catalog.product-type-options') }}">
                     <input type="hidden" name="product_type_id" value="{{ $selectedProductType['id'] ?? ($filters['product_type_id'] ?? '') }}" data-product-type-value>
@@ -123,10 +123,12 @@
                 </select>
 
                 <button class="btn-secondary" type="submit">Filter</button>
-                <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}">Reset</a>
+                <a class="btn-secondary" href="{{ route('web.catalog.products.index') }}#catalogue-search">Reset</a>
                 <x-page-size-controls />
             </form>
         </div>
+        <p class="form-help" role="status" aria-live="polite" data-catalogue-search-status></p>
+        <div data-catalogue-results>
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
@@ -155,7 +157,12 @@
                             <td>{{ $product['type'] }}</td>
                             <td>{{ $product['brand'] }}</td>
                             <td>{{ $product['compatible_label'] }}</td>
-                            <td style="white-space: nowrap">{{ $product['price_range'] }}</td>
+                            <td style="white-space: nowrap">
+                                <span class="catalogue-stock-amount">
+                                    <span>{{ $product['price_range'] }}</span>
+                                    <small>Buying price: {{ $product['buying_price'] }}</small>
+                                </span>
+                            </td>
                             <td>
                                 <span class="catalogue-stock-amount">
                                     <strong>{{ $product['stock'] }}</strong>
@@ -217,6 +224,7 @@
 
         <div class="pagination-wrap">
             {{ $products->links() }}
+        </div>
         </div>
     </section>
 @endsection

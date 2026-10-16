@@ -359,15 +359,7 @@
                                     <small class="import-new-type">New type</small>
                                 @endif
                             </td>
-                            <td>
-                                {{ $row['product_name'] }}
-                                @if ($row['price_changes'] !== [])
-                                    <p class="form-help"><strong>Price changes detected</strong> — will be applied when posted.</p>
-                                    @foreach ($row['price_changes'] as $change)
-                                        <p class="form-help">{{ $change }}</p>
-                                    @endforeach
-                                @endif
-                            </td>
+                            <td>{{ $row['product_name'] }}</td>
                             <td class="numeric">{{ $row['quantity'] }}</td>
                             <td class="numeric">{{ $row['unit_cost'] }}</td>
                             <td class="numeric">{{ $row['minimum_selling_price'] }}</td>
@@ -419,6 +411,18 @@
                                 >Remove</button>
                             </td>
                         </tr>
+                        @if ($row['price_changes'] !== [])
+                            <tr class="import-price-details-row">
+                                <td colspan="11">
+                                    <div class="import-price-details">
+                                        <span><strong>Price changes detected</strong> — will be applied when posted.</span>
+                                        @foreach ($row['price_changes'] as $change)
+                                            <span>{{ $change }}</span>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
                     @endforeach
                 </tbody>
                 <tfoot>

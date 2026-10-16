@@ -112,16 +112,23 @@ class Product extends Model
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function (Builder $query) use ($search) {
-            $query->where(function (Builder $query) use ($search) {
-                $query->where('product_code', 'like', "%{$search}%")
-                    ->orWhere('product_name', 'like', "%{$search}%")
-                    ->orWhere('part_country_of_origin', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('pos_description', 'like', "%{$search}%")
-                    ->orWhereHas('references', function (Builder $query) use ($search) {
-                        $query->where('reference_value', 'like', "%{$search}%");
-                    });
-            });
+            foreach (preg_split('/\s+/u', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $term) {
+                $query->where(function (Builder $query) use ($term) {
+                    $search = $term;
+                    $query->where('product_code', 'like', "%{$search}%")
+                        ->orWhere('product_name', 'like', "%{$search}%")
+                        ->orWhere('part_country_of_origin', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('pos_description', 'like', "%{$search}%")
+                        ->orWhereHas('productType', function (Builder $query) use ($search) {
+                            $query->where('name', 'like', "%{$search}%")
+                                ->orWhere('code', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('references', function (Builder $query) use ($search) {
+                            $query->where('reference_value', 'like', "%{$search}%");
+                        });
+                });
+            }
         });
     }
 }

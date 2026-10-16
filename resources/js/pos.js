@@ -269,9 +269,11 @@ function renderProductCards() {
         <article class="part-card" data-product-index="${index}">
             <div class="part-card-top">
                 <div class="part-card-heading">
-                    <span class="product-type">${escapeHtml(product.product_type)}</span>
                     <span class="part-brand">${escapeHtml(product.brand)}</span>
-                    <strong class="part-name">${escapeHtml(product.product_name)}</strong>
+                    <div class="part-description-line">
+                        <strong class="part-name">${escapeHtml(product.product_name)}</strong>
+                        <strong class="product-type">${escapeHtml(product.product_type)}</strong>
+                    </div>
                     <span class="part-code">(${escapeHtml(product.product_code)})</span>
                 </div>
                 <button class="part-add-button" type="button" data-card-add="${index}" aria-label="Add ${escapeHtml(product.product_name)} to cart">+</button>
@@ -570,6 +572,7 @@ function addProductToCart(product) {
             product_id: product.product_id,
             product_code: product.product_code,
             product_name: product.product_name,
+            product_type: product.product_type,
             quantity: 1,
             available_quantity: availableQuantity,
             // The set selling price is never changed at the POS; only a discount comes off it.
@@ -643,7 +646,10 @@ function renderCart() {
             <article class="cart-line">
                 <div class="cart-line-main">
                     <strong>${escapeHtml(item.product_code)}</strong>
-                    <span>${escapeHtml(item.product_name)}</span>
+                    <div class="part-description-line">
+                        <span>${escapeHtml(item.product_name)}</span>
+                        <strong class="product-type">${escapeHtml(item.product_type || '')}</strong>
+                    </div>
                 </div>
                 <div class="cart-line-price">
                     <em>${formatCurrency(lineNet(item))}</em>

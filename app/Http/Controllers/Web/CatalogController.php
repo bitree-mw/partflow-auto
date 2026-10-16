@@ -1426,6 +1426,7 @@ class CatalogController extends Controller
             'compatible_count' => $compatibilityCount,
             'compatible_label' => $compatibilityCount.' '.($compatibilityCount === 1 ? 'vehicle' : 'vehicles'),
             'price' => $this->money((float) $product->default_selling_price),
+            'buying_price' => $this->money((float) $product->default_purchase_price),
             'price_range' => $this->money((float) ($product->minimum_selling_price ?? $product->default_selling_price))
                 .' – '.number_format((float) $product->default_selling_price),
             'stock' => $stockRows->sum('available_quantity'),
