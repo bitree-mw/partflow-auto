@@ -31,6 +31,6 @@
             <button class="btn-secondary" type="button" data-import-progress-close>Close</button>
         </div>
 
-        <small class="import-progress-note" data-import-progress-note>Please keep this page open until it finishes.</small>
+        <small class="import-progress-note" data-import-progress-note>Please keep this page open until it finishes. Processing progress and stages are estimated; large sheets can take several minutes.</small>
     </div>
 </div>

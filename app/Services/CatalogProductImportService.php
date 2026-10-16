@@ -167,6 +167,17 @@ class CatalogProductImportService
             $restockedParts = 0;
             $mergedParts = 0;
             $combinedRows = 0;
+            $originalPrices = [];
+            $createdIds = [];
+
+            // Resolve every required type before inserting any parts. Rows explicitly merged into
+            // another part keep that part's type and do not need a new, unused type.
+            foreach ($rows as $row) {
+                if ($row['combined_into'] === null && ! isset($merges[$row['row_number']])) {
+                    $typeKey = $this->key($row['product_type_name']);
+                    $productTypeIds[$typeKey] ??= $this->productTypeFor($row['product_type_name'])->id;
+                }
+            }
 
             foreach ($rows as $row) {
                 $pricing = [
@@ -182,7 +193,7 @@ class CatalogProductImportService
                     $combinedRows++;
                 } elseif (isset($merges[$row['row_number']])) {
                     // The user chose an existing similar part: its own name and type are kept.
-                    $product = Product::query()->find($merges[$row['row_number']]);
+                    $product = Product::query()->lockForUpdate()->find($merges[$row['row_number']]);
 
                     if (! $product) {
                         throw ValidationException::withMessages([
@@ -193,9 +204,8 @@ class CatalogProductImportService
                     $mergedParts++;
                 } else {
                     $typeKey = $this->key($row['product_type_name']);
-                    $productTypeIds[$typeKey] ??= $this->productTypeFor($row['product_type_name'])->id;
                     $productTypeId = $productTypeIds[$typeKey];
-                    $product = $this->existingProduct($productTypeId, $row['product_name']);
+                    $product = $this->existingProduct($productTypeId, $row['product_name'], lock: true);
                 }
 
                 $alreadyInPurchase = $product && isset($lineByProductAndCost[$product->id]);
@@ -206,7 +216,10 @@ class CatalogProductImportService
 
                 try {
                     if ($product) {
-                        $product = $this->productService->update($product, [...$pricing, 'is_active' => true]);
+                        if (! isset($createdIds[$product->id])) {
+                            $originalPrices[$product->id] ??= $product->only(['default_purchase_price', 'minimum_selling_price', 'default_selling_price']);
+                        }
+                        $product = $this->productService->update($product, [...$pricing, 'is_active' => true], loadRelations: false);
 
                         // Repeats and similar-part choices were counted above; an exact match that another
                         // row already brought into this purchase is a combination, not another restock.
@@ -222,8 +235,9 @@ class CatalogProductImportService
                             'brand_id' => null,
                             'tax_profile_id' => $defaultTaxProfileId,
                             'compatibilities' => [],
-                        ]);
+                        ], loadRelations: false);
                         $createdParts++;
+                        $createdIds[$product->id] = true;
                     }
                 } catch (ValidationException $exception) {
                     throw ValidationException::withMessages([
@@ -274,6 +288,14 @@ class CatalogProductImportService
                 ], $user);
             }
 
+            $priceChanges = [];
+            foreach (Product::query()->whereKey(array_keys($originalPrices))->get() as $product) {
+                $changes = $this->auditLog->diff($originalPrices[$product->id], $product->only(array_keys($originalPrices[$product->id])));
+                if ($changes !== []) {
+                    $priceChanges[$product->id] = ['code' => $product->product_code, 'changes' => $changes];
+                }
+            }
+
             $this->auditLog->record(
                 'catalog.stock_imported',
                 "{$source} into purchase {$purchase->document_number}: {$createdParts} new and {$restockedParts} restocked parts{$mergedNote}.",
@@ -285,11 +307,12 @@ class CatalogProductImportService
                     'restocked_parts' => $restockedParts,
                     'merged_into_similar_parts' => $mergedParts,
                     'total_amount' => (float) $purchase->total_amount,
+                    'price_changes' => $priceChanges,
                 ],
                 $user
             );
 
-            return $purchase->refresh();
+            return $purchase->refresh()->setAttribute('import_price_change_count', count($priceChanges));
         });
     }
 
@@ -525,6 +548,7 @@ class CatalogProductImportService
                 'is_new_type' => ! $productType || $productType->trashed(),
                 'existing_product_id' => $existing?->id,
                 'existing_product_code' => $existing?->product_code,
+                'price_changes' => $existing ? $this->priceChanges($existing, $row) : [],
             ];
         })->pipe(fn ($resolved) => $this->withSimilarParts($resolved->all()));
     }
@@ -542,22 +566,24 @@ class CatalogProductImportService
         $catalogue = Product::query()
             ->join('product_types', 'product_types.id', '=', 'products.product_type_id')
             ->orderBy('products.id')
-            ->get(['products.id', 'products.product_code', 'products.product_name', 'product_types.name as type_name']);
+            ->get(['products.id', 'products.product_code', 'products.product_name', 'products.default_purchase_price', 'products.minimum_selling_price', 'products.default_selling_price', 'product_types.name as type_name']);
         $tokenCounts = [];
         $index = [];
         $byId = [];
+        $names = [];
 
         foreach ($catalogue as $product) {
             $tokens = $this->nameTokens($product->product_name);
             $tokenCounts[$product->id] = count($tokens);
             $byId[$product->id] = $product;
+            $names[$product->id] = implode(' ', $tokens);
 
             foreach ($tokens as $token) {
                 $index[$token][] = $product->id;
             }
         }
 
-        return array_map(function (array $row) use ($index, $tokenCounts, $byId): array {
+        return array_map(function (array $row) use ($index, $tokenCounts, $byId, $names): array {
             $row['similar'] = [];
 
             // Repeated rows follow the first row's part, so they are never asked about separately.
@@ -584,6 +610,20 @@ class CatalogProductImportService
                 }
             }
 
+            // Edit distance catches spelling mistakes even when no complete words match.
+            // Suggestions still require an explicit choice; never silently merge vehicle parts.
+            $name = implode(' ', $tokens);
+            foreach ($names as $productId => $candidate) {
+                $length = max(strlen($name), strlen($candidate));
+                if ($length < 4 || abs(strlen($name) - strlen($candidate)) > $length * 0.2) {
+                    continue;
+                }
+                $score = 1 - levenshtein($name, $candidate) / $length;
+                if ($score >= 0.8) {
+                    $scores[$productId] = max($scores[$productId] ?? 0, $score);
+                }
+            }
+
             arsort($scores);
 
             foreach (array_slice($scores, 0, self::MAX_SIMILAR_PARTS, true) as $productId => $score) {
@@ -593,6 +633,7 @@ class CatalogProductImportService
                     'name' => $byId[$productId]->product_name,
                     'type' => $byId[$productId]->type_name,
                     'score' => (int) round($score * 100),
+                    'price_changes' => $this->priceChanges($byId[$productId], $row),
                 ];
             }
 
@@ -922,13 +963,32 @@ class CatalogProductImportService
         return $candidate;
     }
 
-    private function existingProduct(int $productTypeId, string $productName): ?Product
+    private function existingProduct(int $productTypeId, string $productName, bool $lock = false): ?Product
     {
         return Product::query()
             ->where('product_type_id', $productTypeId)
             ->whereRaw('LOWER(product_name) = ?', [$this->key($productName)])
             ->orderBy('id')
+            ->when($lock, fn ($query) => $query->lockForUpdate())
             ->first();
+    }
+
+    private function priceChanges(Product $product, array $row): array
+    {
+        $changes = [];
+        foreach ([
+            'Cost price' => ['default_purchase_price', 'unit_cost'],
+            'Minimum selling price' => ['minimum_selling_price', 'minimum_selling_price'],
+            'Maximum selling price' => ['default_selling_price', 'maximum_selling_price'],
+        ] as $label => [$field, $column]) {
+            $before = number_format((float) $product->$field, 2, '.', '');
+            $after = number_format((float) $row[$column], 2, '.', '');
+            if ($before !== $after) {
+                $changes[] = "{$label}: {$before} → {$after}";
+            }
+        }
+
+        return $changes;
     }
 
     private function key(string $value): string

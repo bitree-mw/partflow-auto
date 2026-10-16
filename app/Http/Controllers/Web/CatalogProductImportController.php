@@ -171,6 +171,7 @@ class CatalogProductImportController extends Controller
                 'row_number' => $row['row_number'],
                 'product_type' => $row['product_type_name'],
                 'product_name' => $row['product_name'],
+                'price_changes' => $row['price_changes'] ?? [],
                 'quantity' => number_format($row['quantity']),
                 'unit_cost' => $this->money($row['unit_cost']),
                 'minimum_selling_price' => $this->money($row['minimum_selling_price']),
@@ -191,7 +192,8 @@ class CatalogProductImportController extends Controller
                 },
                 'similar' => collect($row['similar'] ?? [])->map(fn (array $part): array => [
                     'id' => $part['id'],
-                    'label' => "Add to {$part['code']} - {$part['name']} ({$part['type']}, {$part['score']}% match)",
+                    'label' => "Add to {$part['code']} - {$part['name']} ({$part['type']}, {$part['score']}% match)"
+                        .(($part['price_changes'] ?? []) !== [] ? ' — Price changes detected: '.implode('; ', $part['price_changes']) : ''),
                 ])->all(),
             ])->all(),
             'totalCost' => $currency.' '.$this->money($totals['total_cost']),
@@ -228,6 +230,13 @@ class CatalogProductImportController extends Controller
         // Clear the preview before writing so a double submit cannot import the same sheet twice.
         $request->session()->forget(self::SESSION_KEY);
 
+        // Bulk posting needs more than the usual 30-second web request budget.
+        // Preserve unlimited/higher host limits and restore the limit after this operation.
+        $previousTimeLimit = (int) ini_get('max_execution_time');
+        $importTimeLimit = max(30, (int) config('hosting.import_timeout_seconds', 300));
+        $extendedTimeLimit = $previousTimeLimit > 0 && $previousTimeLimit < $importTimeLimit
+            && function_exists('set_time_limit') && set_time_limit($importTimeLimit);
+
         try {
             $purchase = $this->importService->import(
                 $pending['rows'],
@@ -248,6 +257,10 @@ class CatalogProductImportController extends Controller
                 ->route('web.catalog.products.import.create')
                 ->withErrors($exception->errors())
                 ->with('error', $notSaved);
+        } finally {
+            if ($extendedTimeLimit) {
+                set_time_limit($previousTimeLimit);
+            }
         }
 
         $success = sprintf(
@@ -257,6 +270,10 @@ class CatalogProductImportController extends Controller
             config('services.partflow.base_currency', 'MWK'),
             $this->money((float) $purchase->total_amount)
         );
+
+        if ($purchase->import_price_change_count > 0) {
+            $success .= ' Price changes detected and applied to '.number_format($purchase->import_price_change_count).' existing part(s).';
+        }
 
         if ($request->expectsJson()) {
             // Flashed now so the catalogue shows it when the page follows the redirect.

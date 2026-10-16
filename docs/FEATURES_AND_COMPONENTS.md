@@ -51,6 +51,18 @@ Do not label a feature Implemented merely because a menu item, route, model, or 
 | Reports and CSV export | **Partial** | Site-scoped sales, purchase, inventory valuation, creditor, debtor, profit, payment, movement, transfer, variance, and expense datasets exist. The Blade reports page exposes five primary full-row CSV downloads through a validated session-authenticated export route; most JSON report collections remain unpaginated, and debtor aging/due dates are not implemented. | `app/Repositories/ReportRepository.php`, `app/Services/ReportExportService.php`, `app/Http/Controllers/Api/ReportController.php`, `app/Http/Controllers/Web/ReportsController.php`, `resources/views/reports/index.blade.php` |
 | Testing | **Partial** | PHPUnit feature tests cover authentication, core Blade pages, catalogue operations, stock takes, purchases, POS price/quantity guards, commands, and site access. Concurrency, state transitions, returns/refunds, debtor aging, reversals, and browser behavior are not covered. | `tests/Feature`, `tests/Unit`, `phpunit.xml` |
 
+### Parts import update (2026-10-16)
+
+Posting resolves all required part types before inserting or updating parts, then records the purchase, stock movements, and payment in the same transaction. Types belonging only to rows explicitly merged into existing parts are not created. Import saves skip unused product relationship loading.
+
+The review shows old and incoming cost/minimum/maximum selling prices for exact matches, and price differences alongside similar-part choices. Posting rechecks the current prices under product row locks, records actual before/after changes in the import audit entry, and confirms how many existing parts changed. Existing repeated-row pricing rules remain unchanged.
+
+Similar-part suggestions also accept normalized name edit similarity of at least 80%, including names with no complete words in common. Suggestions require the user's existing merge-or-create choice. Progress stages are estimates, not server-reported completion. A failed or lost response asks the user to check purchases before retrying because the commit outcome may be unknown.
+
+The import feature tests cover type/part/purchase ordering, price-change notices and audit values, typo suggestions, unchanged prices, and rollback of all stock and purchase writes when payment fails. Tests use SQLite; deployed MySQL behavior remains unverified.
+
+Local failed posting attempts on October 16 logged PHP's 30-second maximum execution time being exceeded. Posting now temporarily raises a finite lower PHP execution limit to `hosting.import_timeout_seconds` (300 seconds by default), preserving unlimited/higher limits and restoring the previous limit afterward. This does not override an independent web-server or proxy timeout. The test suite includes a 1,000-row import and execution-limit restoration on failure.
+
 ## Confirmed planned work
 
 The following changes are active targets but are not implemented:

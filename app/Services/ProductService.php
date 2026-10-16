@@ -62,9 +62,9 @@ class ProductService
             ->get();
     }
 
-    public function create(array $data): Product
+    public function create(array $data, bool $loadRelations = true): Product
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $loadRelations) {
             $data = $this->withValidatedPricing($data);
             $data['brand_id'] = $data['brand_id'] ?? $this->unknownBrandId();
             $data['part_country_of_origin'] = $this->partCountryOfOrigin(
@@ -103,7 +103,7 @@ class ProductService
             $this->syncReferences($product, $data['references'] ?? []);
             $this->syncCompatibilities($product, $data['compatibilities'] ?? []);
 
-            return $product->load($this->defaultRelations());
+            return $loadRelations ? $product->load($this->defaultRelations()) : $product;
         });
     }
 
@@ -124,9 +124,9 @@ class ProductService
         ]);
     }
 
-    public function update(Product $product, array $data): Product
+    public function update(Product $product, array $data, bool $loadRelations = true): Product
     {
-        return DB::transaction(function () use ($product, $data) {
+        return DB::transaction(function () use ($product, $data, $loadRelations) {
             if (array_key_exists('brand_id', $data) && empty($data['brand_id'])) {
                 $data['brand_id'] = $this->unknownBrandId();
             }
@@ -211,7 +211,7 @@ class ProductService
                 $this->syncCompatibilities($product, $compatibilities);
             }
 
-            return $product->refresh()->load($this->defaultRelations());
+            return $loadRelations ? $product->refresh()->load($this->defaultRelations()) : $product;
         });
     }
 

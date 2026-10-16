@@ -23,7 +23,7 @@ function failureMessages(status, body) {
         return [body.message];
     }
 
-    return ['Something went wrong on the server. Nothing was saved. Please try again.'];
+    return ['The server could not complete the response. Check the purchases list before retrying to avoid posting the same stock twice. If no purchase was recorded, upload the sheet again.'];
 }
 
 function createOverlay(root) {
@@ -71,6 +71,7 @@ function createOverlay(root) {
         fail(heading, messages, onClose) {
             root.dataset.state = 'error';
             title.textContent = heading;
+            stageLabel.textContent = 'Request failed; completion could not be confirmed';
             note.hidden = true;
             errorList.replaceChildren(...messages.map((message) => {
                 const item = document.createElement('li');
@@ -158,7 +159,7 @@ export function submitWithProgress(form, root, { uploadShare, stepStarts, doneTi
 
     xhr.addEventListener('error', () => {
         stopCreep();
-        overlay.fail(failTitle, ['The connection was lost. Check your internet connection and try again. Nothing was saved.'], restore);
+        overlay.fail(failTitle, ['The connection was lost. Check your internet connection and the purchases list before retrying; the server may have completed the import.'], restore);
     });
 
     xhr.send(new FormData(form));
@@ -185,7 +186,7 @@ export function initImportConfirmProgress() {
             uploadShare: 5,
             stepStarts: [0, 30, 60, 80],
             doneTitle: 'Inventory posted',
-            failTitle: 'Inventory was not posted',
+            failTitle: 'Could not confirm inventory posting',
         });
     });
 }

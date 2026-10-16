@@ -359,7 +359,15 @@
                                     <small class="import-new-type">New type</small>
                                 @endif
                             </td>
-                            <td>{{ $row['product_name'] }}</td>
+                            <td>
+                                {{ $row['product_name'] }}
+                                @if ($row['price_changes'] !== [])
+                                    <p class="form-help"><strong>Price changes detected</strong> — will be applied when posted.</p>
+                                    @foreach ($row['price_changes'] as $change)
+                                        <p class="form-help">{{ $change }}</p>
+                                    @endforeach
+                                @endif
+                            </td>
                             <td class="numeric">{{ $row['quantity'] }}</td>
                             <td class="numeric">{{ $row['unit_cost'] }}</td>
                             <td class="numeric">{{ $row['minimum_selling_price'] }}</td>
@@ -426,6 +434,6 @@
 
     @include('catalog.products.partials.import-progress', [
         'title' => 'Posting inventory',
-        'steps' => ['Saving parts', 'Adding stock to '.$site, 'Recording the purchase', 'Recording the payment'],
+        'steps' => ['Creating part types', 'Saving parts and applying detected price changes', 'Recording the purchase and stock at '.$site, 'Recording the payment'],
     ])
 @endsection
